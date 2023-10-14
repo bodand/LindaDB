@@ -1,6 +1,31 @@
-# </project/> project
+# LindaDB project
 #
-# </license_text/>
+# Copyright (c) 2023 bodand <bodand@proton.me>. 
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#   1. Redistributions of source code must retain the above copyright notice,
+#      this list of conditions and the following disclaimer.
+#
+#   2. Redistributions in binary form must reproduce the above copyright notice,
+#      this list of conditions and the following disclaimer in the documentation
+#      and/or other materials provided with the distribution.
+#
+#   3. Neither the name of the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from this
+#      software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # CMakeLists.txt --
 #   The main CMake script for building and managing the project.
@@ -28,9 +53,9 @@ cmake_policy(SET CMP0065 NEW)
 cmake_policy(SET CMP0048 NEW)
 
 # project #########################################################################
-project(</project/>
+project(LindaDB
         VERSION 0.0.1
-        DESCRIPTION "</summary/>"
+        DESCRIPTION "HPC-centric, distributed IMDB for the linda language's implementation."
         LANGUAGES CXX)
 
 # generate versioninfo.txt file for build
@@ -54,8 +79,6 @@ include(cmake/generate_lto.cmake)
 
 find_program(ASCIIDOCTOR_EXE asciidoctor
              DOC "The asciidoctor executable used to build documentation")
-find_program(PANDOC_EXE pandoc
-             DOC "The pandoc executable used to convert documentation formats")
 
 # coverage data
 add_library(internal-coverage INTERFACE)
@@ -63,10 +86,11 @@ if (NOT DEFINED ENV{CG_DEPLOYMENT})
     target_compile_options(internal-coverage INTERFACE
                            $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
                            $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
-    if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC")
+    if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
+        AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH vs_llvmx64_bindir)
         cmake_path(GET vs_llvmx64_bindir PARENT_PATH vs_llvmx64_dir)
-        set(clang_profile_lib "${vs_llvmx64_dir}/lib/clang/15.0.1/lib/windows/clang_rt.profile-x86_64.lib")
+        set(clang_profile_lib "${vs_llvmx64_dir}/lib/clang/16/lib/windows/clang_rt.profile-x86_64.lib")
         target_link_libraries(internal-coverage INTERFACE "${clang_profile_lib}")
     else ()
         target_link_options(internal-coverage INTERFACE
@@ -89,14 +113,16 @@ if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC")
     message(STATUS "Injecting /EHsc into clang-cl command-line")
     add_compile_options(/EHsc)
 endif ()
+find_package(mimalloc CONFIG REQUIRED)
+find_package(Catch2 CONFIG)
 
 # targets
 set(PROJECT_TARGETS)
-#add_subdirectory(src/tgt1)
+add_subdirectory(src/LindaDB)
 # docs
 #add_subdirectory(docs)
 # test
-#add_subdirectory(test)
+add_subdirectory(test)
 
 # clang-tidy
 if (CMAKE_GENERATOR MATCHES [[Make|Ninja]]
@@ -121,12 +147,3 @@ if (CMAKE_GENERATOR MATCHES [[Make|Ninja]]
         endforeach ()
     endforeach ()
 endif ()
-
-# Installation
-#install(TARGETS ...
-#        DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.adoc"
-        DESTINATION "${CMAKE_INSTALL_DOCDIR}")
-
-# cpack
-include(cmake/cpack_config.cmake)

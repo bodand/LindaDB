@@ -1,8 +1,12 @@
 {
-  "name": "</project/>",
+  "name": "linda-db",
   "version-semver": "0.1.0",
-  "license": "</license/>",
+  "license": "BSD-3-Clause",
   "maintainers": [
-    "</name/> (</email/>)"
+    "bodand (bodand@proton.me)"
+  ],
+  "dependencies": [
+    "mimalloc",
+    "catch2"
   ]
 }

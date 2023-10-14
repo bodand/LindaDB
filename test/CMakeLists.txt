@@ -1,4 +1,4 @@
-# cg3 project
+# LindaDB project
 #
 # Copyright (c) 2023 András Bodor <bodand@pm.me>
 # All rights reserved.
@@ -28,38 +28,14 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Originally created: 2023-04-29.
+# Originally created: 2023-10-14.
 #
-# cmake/generate_lto.cmake --
-#  Configuration for LTO
+# test/CMakeLists.txt --
+#   The main orchestrator project file for handling the test-cases of LindaDB.
 
-include(CheckIPOSupported)
+if (TARGET Catch2::Catch2)
+    message(STATUS "Catch2 not present -- skipping tests")
+    return()
+endif ()
 
-option(LindaDB_FORBID_LTO "Instruct the build-system to never enable LTO [No]" No)
-
-function(generate_lto _tgt)
-    message(CHECK_START "Checking for LTO support")
-    if (LindaDB_FORBID_LTO)
-        message(CHECK_FAIL "forbidden")
-        return()
-    endif ()
-
-    if (NOT CMAKE_BUILD_TYPE MATCHES [[Rel]])
-        message(CHECK_FAIL "skip: not in release mode")
-        return()
-    endif ()
-
-    check_ipo_supported(RESULT HAVE_LTO)
-    if (NOT HAVE_LTO)
-        message(CHECK_FAIL "failed")
-    endif ()
-    message(CHECK_PASS "found")
-
-    set_target_properties("${_tgt}" PROPERTIES
-                          INTERFACE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-    if (MSVC)
-        set_target_properties("${_tgt}" PROPERTIES
-                              INTERFACE_COMPILE_OPTIONS "/GL"
-                              INTERFACE_LINK_FLAGS "/LTCG:incremental")
-    endif ()
-endfunction()
+include(Catch2)
