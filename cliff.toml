@@ -1,0 +1,6 @@
+[changelog]
+
+[git]
+conventional_commits = true
+tag_pattern = "v*"
+topo_order = true

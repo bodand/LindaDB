@@ -1,0 +1,15 @@
+= Hooks
+:icons: font
+
+Since git's default hooking system is not checked into version control, this directory serves the purpose of providing the automating management of hooks without manually asking people (future me) to symlink/copy/make an NTFS junction/etc which people (I) will forget.
+
+CMake configure calls this directory's install script, which will install the current set of scripts into .git/hooks to allow them to trigger.
+
+To add custom scripts, just add them under the `my` directory in the same format as for the checked-in hooks.
+
+Each subdirectory here is the name of a git-hook (not-checkedfootnote:[The hooks' names itself is not checked, so if there is a directory named foo, the script will install a hook called foo.]) and each script under it will be installed under .git/hook in a format that a generated hook will call-them in order.
+Hooks are called in alphabetical order, so if their ordering is important name them like Perl people name their tests: `01-spellcheck.ps1`, `02-lint.sh`, etc.
+
+IMPORTANT: DOS and generally platforms that require 8.3 are not supported.
+
+

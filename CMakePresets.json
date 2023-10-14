@@ -1,0 +1,556 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 22,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "export-cc",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
+      }
+    },
+    {
+      "name": "cmake-release-type",
+      "hidden": true,
+      "inherits": [
+        "export-cc"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": {
+          "type": "STRING",
+          "value": "Release"
+        }
+      }
+    },
+    {
+      "name": "cmake-debug-type",
+      "hidden": true,
+      "inherits": [
+        "export-cc"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": {
+          "type": "STRING",
+          "value": "Debug"
+        }
+      }
+    },
+    {
+      "name": "win32-build",
+      "description": "Condition for building on Windows",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "BUILD_SYS_NAME": "windows"
+      }
+    },
+    {
+      "name": "unix-build",
+      "description": "Condition for building on not Windows",
+      "hidden": true,
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-build",
+      "description": "Conditions for building on Linux",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "BUILD_SYS_NAME": "linux"
+      }
+    },
+    {
+      "name": "osx-build",
+      "description": "Conditions for building on OSX",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "BUILD_SYS_NAME": "osx"
+      }
+    },
+    {
+      "name": "fbsd-build",
+      "description": "Conditions for building on FreeBSD",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "FreeBSD"
+      },
+      "cacheVariables": {
+        "BUILD_SYS_NAME": "freebsd"
+      }
+    },
+    {
+      "name": "linux-clang",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "CMAKE_C_COMPILER": "/usr/bin/clang"
+      }
+    },
+    {
+      "name": "vcpkg-rel-no-dbg",
+      "description": "Tries to disable building Debug objects for Release builds w/ vcpkg",
+      "hidden": true,
+      "cacheVariables": {
+        "VCPKG_OVERLAY_TRIPLETS": {
+          "type": "PATH",
+          "value": "${sourceDir}/cmake/triplets"
+        },
+        "VCPKG_INSTALL_OPTIONS": {
+          "type": "STRING",
+          "value": "--clean-after-build;--x-use-aria2"
+        }
+      }
+    },
+    {
+      "name": "win-msvc-x64-dbg",
+      "displayName": "Windows Visual Studio x64 Debug",
+      "description": "Debug build of cg3 for x86_64 using Visual Studio on Windows",
+      "inherits": [
+        "win32-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-windows-msvc.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-x64-msvc"
+    },
+    {
+      "name": "win-msvc-x64-rel",
+      "displayName": "Windows Visual Studio x64 Release",
+      "description": "Release build of cg3 for x86_64 using Visual Studio on Windows",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "win32-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-windows-msvc.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-x64-msvc"
+    },
+    {
+      "name": "win-clang-x64-dbg",
+      "displayName": "LLVM/Clang x64 Debug",
+      "description": "Debug build of cg3 for x86_64 using LLVM/Clang on Windows",
+      "generator": "Ninja",
+      "inherits": [
+        "win32-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-windows-clang.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "binaryDir": "${sourceDir}/_build-debug-x64-clang"
+    },
+    {
+      "name": "win-clang-x64-rel",
+      "displayName": "LLVM/Clang x64 Release",
+      "description": "Release build of cg3 for x86_64 using LLVM/Clang on Windows",
+      "generator": "Ninja",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "win32-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-windows-clang.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "binaryDir": "${sourceDir}/_build-release-x64-clang"
+    },
+    {
+      "name": "lnx-gcc-x64-dbg",
+      "displayName": "Linux GCC x64 Debug",
+      "description": "Debug build of cg3 for x86_64 using GCC on Linux",
+      "inherits": [
+        "linux-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-linux-gcc.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-x64-gcc"
+    },
+    {
+      "name": "lnx-gcc-x64-rel",
+      "displayName": "Linux GCC x64 Release",
+      "description": "Release build of cg3 for x86_64 using GCC on Linux",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "linux-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-linux-gcc.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-x64-gcc"
+    },
+    {
+      "name": "lnx-gcc-arm-dbg",
+      "displayName": "Linux GCC arm Debug",
+      "description": "Debug build of cg3 for x86_64 using GCC on Linux",
+      "inherits": [
+        "linux-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm64-linux-gcc.cmake",
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-arm-gcc"
+    },
+    {
+      "name": "lnx-gcc-arm-rel",
+      "displayName": "Linux GCC arm Release",
+      "description": "Debug build of cg3 for x86_64 using GCC on Linux",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "linux-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm64-linux-gcc.cmake",
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-arm-gcc"
+    },
+    {
+      "name": "lnx-clang-x64-dbg",
+      "displayName": "Linux Clang x64 Debug",
+      "description": "Debug build of cg3 for x86_64 using Clang on Linux",
+      "inherits": [
+        "linux-build",
+        "cmake-debug-type",
+        "linux-clang"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-linux-clang.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-x64-gcc"
+    },
+    {
+      "name": "lnx-clang-x64-rel",
+      "displayName": "Linux Clang x64 Release",
+      "description": "Release build of cg3 for x86_64 using Clang on Linux",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "linux-build",
+        "cmake-release-type",
+        "linux-clang"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-linux-clang.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-x64-clang"
+    },
+    {
+      "name": "lnx-clang-arm-dbg",
+      "displayName": "Linux Clang arm Debug",
+      "description": "Debug build of cg3 for arm using Clang on Linux",
+      "inherits": [
+        "linux-build",
+        "cmake-debug-type",
+        "linux-clang"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm64-linux-clang.cmake",
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-arm-clang"
+    },
+    {
+      "name": "lnx-clang-arm-rel",
+      "displayName": "Linux Clang arm Release",
+      "description": "Release build of cg3 for arm using Clang on Linux",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "linux-build",
+        "cmake-release-type",
+        "linux-clang"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm64-linux-clang.cmake",
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-arm-clang"
+    },
+    {
+      "name": "osx-gcc-x64-dbg",
+      "displayName": "OS X GCC x64 Debug",
+      "description": "Debug build of cg3 for x86_64 using GCC on OS X",
+      "inherits": [
+        "osx-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-x64-gcc"
+    },
+    {
+      "name": "osx-gcc-x64-rel",
+      "displayName": "OS X GCC x64 Release",
+      "description": "Release build of cg3 for x86_64 using GCC on OS X",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "osx-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-x64-gcc"
+    },
+    {
+      "name": "osx-gcc-arm-dbg",
+      "displayName": "OS X GCC arm Debug",
+      "description": "Debug build of cg3 for x86_64 using GCC on OS X",
+      "inherits": [
+        "osx-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-arm-gcc"
+    },
+    {
+      "name": "osx-gcc-arm-rel",
+      "displayName": "OS X GCC arm Release",
+      "description": "Release build of cg3 for x86_64 using GCC on OS X",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "osx-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-arm-gcc"
+    },
+    {
+      "name": "fbsd-clang-x64-dbg",
+      "displayName": "FreeBSD Clang x64 Debug",
+      "description": "Debug build of cg3 for x86_64 using Clang on FreeBSD",
+      "inherits": [
+        "fbsd-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-x64-clang"
+    },
+    {
+      "name": "fbsd-clang-x64-rel",
+      "displayName": "FreeBSD Clang x64 Release",
+      "description": "Release build of cg3 for x86_64 using Clang on FreeBSD",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "fbsd-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-x64-clang"
+    },
+    {
+      "name": "fbsd-clang-arm-dbg",
+      "displayName": "FreeBSD Clang arm Debug",
+      "description": "Debug build of cg3 for x86_64 using Clang on FreeBSD",
+      "inherits": [
+        "fbsd-build",
+        "cmake-debug-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-debug-arm-clang"
+    },
+    {
+      "name": "fbsd-clang-arm-rel",
+      "displayName": "FreeBSD Clang arm Release",
+      "description": "Release build of cg3 for x86_64 using Clang on FreeBSD",
+      "inherits": [
+        "vcpkg-rel-no-dbg",
+        "fbsd-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "BUILD_SYS_ARCH": "arm64"
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build-release-arm-clang"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "win32-build-pre",
+      "description": "Condition for building on Windows",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-build-pre",
+      "description": "Conditions for building on Linux",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "osx-build-pre",
+      "description": "Conditions for building on OSX",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "fbsd-build-pre",
+      "description": "Conditions for building on FreeBSD",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "FreeBSD"
+      }
+    },
+    {
+      "name": "release-windows-x64-msvc",
+      "displayName": "Perform a full Release rebuild of the whole project",
+      "inherits": [
+        "win32-build-pre"
+      ],
+      "configurePreset": "win-msvc-x64-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "release-windows-x64-clang",
+      "displayName": "Perform a full Release rebuild of the whole project using clang-cl",
+      "inherits": [
+        "win32-build-pre"
+      ],
+      "configurePreset": "win-clang-x64-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "release-linux-x64-gcc",
+      "displayName": "Perform a full Release rebuild of the whole project",
+      "inherits": [
+        "linux-build-pre"
+      ],
+      "configurePreset": "lnx-gcc-x64-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "release-linux-arm-gcc",
+      "displayName": "Perform a full Release rebuild of the whole project",
+      "inherits": [
+        "linux-build-pre"
+      ],
+      "configurePreset": "lnx-gcc-arm-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "release-linux-x64-clang",
+      "displayName": "Perform a full Release rebuild of the whole project",
+      "inherits": [
+        "linux-build-pre"
+      ],
+      "configurePreset": "lnx-clang-x64-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "release-linux-arm-clang",
+      "displayName": "Perform a full Release rebuild of the whole project",
+      "inherits": [
+        "linux-build-pre"
+      ],
+      "configurePreset": "lnx-clang-arm-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "release-osx-x64-gcc",
+      "displayName": "Perform a full Release rebuild of the whole project",
+      "inherits": [
+        "osx-build-pre"
+      ],
+      "configurePreset": "osx-gcc-x64-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "release-osx-arm-gcc",
+      "displayName": "Perform a full Release rebuild of the whole project",
+      "inherits": [
+        "osx-build-pre"
+      ],
+      "configurePreset": "osx-gcc-arm-rel",
+      "cleanFirst": true,
+      "configuration": "Release"
+    }
+  ]
+}

@@ -1,0 +1,300 @@
+########################################################################################################################
+#                                                                                                                      #
+#                                                      LINUX                                                           #
+#                                                                                                                      #
+########################################################################################################################
+# Linux CI is built for:
+#  - x64/gcc/test
+#  - x64/gcc/deploy
+#  - x64/clang/test
+#  - x64/clang/deploy (upload nop)
+#  - arm/gcc/test
+#  - arm/gcc/deploy
+#  - arm/clang/test
+#  - arm/clang/deploy (upload nop)
+
+linux_test_template: &LINUX_TEST_TEMPLATE_TASK
+  test_script:
+    - cd ${BUILD_PATH}
+    - ctest
+
+  coverage_script:
+    - cd ${BUILD_PATH}
+    - if [ "x${BUILD_TOOLCHAIN}" = "xclang" ]; then /usr/bin/env sh ../ci/gather-coverage.sh; fi
+
+linux_deploy_commands: &LINUX_DEPLOY_TEMPLATE_TASK
+  only_if: ${CIRRUS_TAG} != ''
+  stateful: "false"
+
+  env:
+    DEPLOYMENT: yes
+    CI_DO_CLANG_TIDY: yes
+
+  tarball_package_script:
+    - cd ${BUILD_PATH} && cpack -G TXZ .
+
+  package_deb_script:
+    - cd ${BUILD_PATH} && cpack -G DEB .
+
+  package_rpm_script:
+    - cd ${BUILD_PATH} && cpack -G RPM .
+
+  elevate_package_name_into_env_script:
+    - echo "PKG_NAME=</project/>-${PROJECT_VER}-`uname`-`uname -m`" > ${CIRRUS_ENV}
+
+  generate_signing_keys_script:
+    - cd ${BUILD_PATH} && signify-openbsd -G -nc "</project/> ${PROJECT_VER} package distribution" -s "${PKG_NAME}.sec" -p "${PKG_NAME}.pub"
+
+  sign_packages_script:
+    - cd ${BUILD_PATH}
+    - shasum --tag -a 256 "${PKG_NAME}.tar.xz" > "${PKG_NAME}.sha256"
+    - shasum --tag -a 256 "${PKG_NAME}.deb" >> "${PKG_NAME}.sha256"
+    - shasum --tag -a 256 "${PKG_NAME}.rpm" >> "${PKG_NAME}.sha256"
+    - signify-openbsd -S -es "${PKG_NAME}.sec" -m "${PKG_NAME}.sha256"
+
+  gh_create_release_script:
+    - /usr/bin/env sh ci/make_release.sh
+
+  gh_release_upload_script:
+    - cd ${BUILD_PATH}
+    - /usr/bin/env sh ../ci/upload-artefact.sh "${PKG_NAME}.pub"
+    - /usr/bin/env sh ../ci/upload-artefact.sh "${PKG_NAME}.tar.xz" "application/x-gtar"
+    - /usr/bin/env sh ../ci/upload-artefact.sh "${PKG_NAME}.deb" "application/vnd.debian.binary-package"
+    - /usr/bin/env sh ../ci/upload-artefact.sh "${PKG_NAME}.rpm" "application/x-rpm"
+    - /usr/bin/env sh ../ci/upload-artefact.sh "${PKG_NAME}.sha256.sig" "text/plain"
+
+linux_builds_task:
+  matrix:
+    - name: "linux-gcc-x64"
+      container:
+        image: gcc:latest
+        cpu: 8
+        memory: 32G
+      env:
+        BUILD_ARCH: x64
+        CMAKE_ARCH: x86_64
+        BUILD_TOOLCHAIN: gcc
+    - name: "linux-clang-x64"
+      container:
+        image: silkeh/clang@sha256:693fdfa16424b2f41408204933b63a796e2700f1865a19c7eec7f6606040d7fd
+        cpu: 8
+        memory: 32G
+      env:
+        BUILD_ARCH: x64
+        CMAKE_ARCH: x86_64
+        BUILD_TOOLCHAIN: clang
+    - name: "linux-gcc-arm64"
+      arm_container:
+        image: gcc:latest
+        cpu: 8
+        memory: 32G
+      env:
+        BUILD_ARCH: arm
+        CMAKE_ARCH: aarch64
+        BUILD_TOOLCHAIN: gcc
+        VCPKG_FORCE_SYSTEM_BINARIES: "1"
+        VCPKG_MAX_CONCURRENCY: "6"
+    - name: "linux-clang-arm64"
+      arm_container:
+        image: silkeh/clang@sha256:5016765524d97cec4c1c146b5a6f93681819046a8e725083801e501d7bea3cd5
+        cpu: 8
+        memory: 32G
+      env:
+        BUILD_ARCH: arm
+        CMAKE_ARCH: aarch64
+        BUILD_TOOLCHAIN: clang
+        VCPKG_FORCE_SYSTEM_BINARIES: "1"
+        VCPKG_MAX_CONCURRENCY: "6"
+
+  env:
+    CIRRUS_CLONE_SUBMODULES: "true"
+    VCPKG_DEFAULT_BINARY_CACHE: ${CIRRUS_WORKING_DIR}/vcpkg-bincache
+    CMAKE_PRESET: lnx-${BUILD_TOOLCHAIN}-${BUILD_ARCH}-rel
+    CMAKE_BUILD_PRESET: release-linux-${BUILD_ARCH}-${BUILD_TOOLCHAIN}
+    BUILD_PATH: _build-release-${BUILD_ARCH}-${BUILD_TOOLCHAIN}
+    CMAKE_TAR_URL: https://github.com/Kitware/CMake/releases/download/v3.25.1/cmake-3.25.1-linux-${CMAKE_ARCH}.tar.gz
+    PATH: /tmp/cirrus-ci-build/cmake-3.25.1-linux-${CMAKE_ARCH}/bin:${PATH}
+    CC: /usr/bin/cc
+    CXX: /usr/bin/c++
+    PROJECT_CC_EXE: /usr/bin/cc
+    PROJECT_CXX_EXE: /usr/bin/c++
+
+  apt_script:
+    - apt-get update
+    - apt-get install -y pkg-config curl ninja-build zip unzip git aria2 python3 rpm signify-openbsd jq asciidoctor
+    - gem install coveralls-lcov
+
+  cmake_install_script:
+    - aria2c ${CMAKE_TAR_URL} -o cmake-install.tar.gz
+    - tar xzf cmake-install.tar.gz
+
+  symlink_compilers_script:
+    - /usr/bin/env sh ci/symlinks.sh
+
+  vcpkg_cache:
+    folder: vcpkg-bincache
+    reupload_on_changes: "false"
+    fingerprint_script:
+      - echo $BUILD_ARCH
+      - echo $CIRRUS_OS
+      - echo $BUILD_TOOLCHAIN
+      - jq .dependencies vcpkg.json
+    populate_script:
+      - mkdir ${VCPKG_DEFAULT_BINARY_CACHE}
+      - cmake --preset ${CMAKE_PRESET} -S.
+
+  configure_script:
+    - cmake --preset ${CMAKE_PRESET} -S.
+
+  upload_caches:
+    - vcpkg
+
+  elevate_version_into_env_script:
+    - echo PROJECT_VER=`cat ${BUILD_PATH}/versioninfo.txt` > ${CIRRUS_ENV}
+
+  build_script:
+    - cmake --build --preset ${CMAKE_BUILD_PRESET}
+
+  matrix:
+    - *LINUX_TEST_TEMPLATE_TASK
+    - *LINUX_DEPLOY_TEMPLATE_TASK
+
+  on_failure:
+    list_vcpkg_logs_script:
+      - /usr/bin/env sh ci/gather_logs.sh
+
+########################################################################################################################
+#                                                                                                                      #
+#                                                      WINDOWS                                                         #
+#                                                                                                                      #
+########################################################################################################################
+# Windows CI is built for:
+#  - x64/msvc/test
+#  - x64/msvc/deploy
+#  - x64/clang-cl/test
+#  - x64/clang-cl/deploy (upload nop)
+
+windows_test_template: &WINDOWS_TEST_TEMPLATE_TASK
+  test_script:
+    - cd %BUILD_PATH%
+    - ctest
+
+windows_deploy_template: &WINDOWS_DEPLOY_TEMPLATE_TASK
+  only_if: ${CIRRUS_TAG} != ''
+  stateful: "false"
+
+  env:
+    DEPLOYMENT: yes
+    CI_DO_CLANG_TIDY: yes
+
+  get_signify_script:
+    - cd %BUILD_PATH%
+    - aria2c https://github.com/badboy/signify-rs/releases/download/v0.5.3/signify-v0.5.3-x86_64-pc-windows-msvc.zip -o signify.zip
+    - cmake -E tar xzf signify.zip
+
+  tarball_package_script:
+    - cd %BUILD_PATH% && cpack -G TXZ .
+
+  package_msi_script:
+    - cd %BUILD_PATH% && cpack -G WIX .
+
+  elevate_package_name_into_env_script:
+    - ci\package_env.bat
+
+  generate_signing_keys_script:
+    - cd %BUILD_PATH%
+    - vars.cmd
+    - signify -G -nc "cg3 %PROJECT_VER% package distribution" -s "%PKG_NAME%.sec" -p "%PKG_NAME%.pub"
+
+  sign_packages_script:
+    - cd %BUILD_PATH%
+    - vars.cmd
+    - ..\ci\sha256.bat "%PKG_NAME%.tar.xz" > "%PKG_NAME%.sha256"
+    - ..\ci\sha256.bat "%PKG_NAME%.msi" >> "%PKG_NAME%.sha256"
+    - signify -S -es "%PKG_NAME%.sec" -m "%PKG_NAME%.sha256"
+
+  gh_create_release_script:
+    - ci\make_release.bat
+
+  gh_release_upload_script:
+    - cd %BUILD_PATH%
+    - vars.cmd
+    - ..\ci\upload-artefact.bat "%PKG_NAME%.pub" "application/octet-stream"
+    - ..\ci\upload-artefact.bat "%PKG_NAME%.tar.xz" "application/x-gtar"
+    - ..\ci\upload-artefact.bat "%PKG_NAME%.msi" "application/msword"
+    - ..\ci\upload-artefact.bat "%PKG_NAME%.sha256.sig" "text/plain"
+
+windows_builds_task:
+  timeout_in: 120m
+  windows_container:
+    image: cirrusci/windowsservercore:2019
+    cpu: 8
+    memory: 32G
+
+  dependencies_script:
+    - choco install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.Component.VC.Runtime.UCRTSDK --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.ATL"
+    - choco install vswhere -y
+    - choco install jq -y
+    - choco install pandoc -y
+    - choco install ruby -y
+    - choco install aria2 -y
+    - choco install cmake -y
+    - choco install ninja -y
+    - gem install asciidoctor
+    - gem install coveralls-lcov
+    - cmake -E make_directory wix_toolset
+    - cd wix_toolset
+    - aria2c https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip -o wix311.zip
+    - cmake -E tar xzf wix311.zip
+
+  matrix:
+    - name: "windows-msvc-x64"
+      env:
+        BUILD_TOOLCHAIN: msvc
+    - name: "windows-clang-x64"
+      env:
+        BUILD_TOOLCHAIN: clang
+
+  env:
+    CIRRUS_CLONE_SUBMODULES: "true"
+    BUILD_ARCH: x64
+    VCPKG_DEFAULT_BINARY_CACHE: "%CIRRUS_WORKING_DIR%\\vcpkg-bincache"
+    CMAKE_PRESET: win-%BUILD_TOOLCHAIN%-%BUILD_ARCH%-rel
+    CMAKE_BUILD_PRESET: release-windows-%BUILD_ARCH%-%BUILD_TOOLCHAIN%
+    BUILD_PATH: _build-release-${BUILD_ARCH}-${BUILD_TOOLCHAIN}
+    MS_VS_PATH: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools
+    PATH: C:\ProgramData\chocolatey\bin;C:\tools\ruby31\bin;C:\Program Files\CMake\bin;%PATH%
+
+  longpath_script:
+    - reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
+
+  vcpkg_cache:
+    folder: vcpkg-bincache
+    reupload_on_changes: "false"
+    fingerprint_script:
+      - echo:%BUILD_ARCH%
+      - echo:%CIRRUS_OS%
+      - echo:%BUILD_TOOLCHAIN%
+      - jq .dependencies vcpkg.json
+    populate_script:
+      - ci\vs.bat
+      - cmake -E make_directory %VCPKG_DEFAULT_BINARY_CACHE%
+      - cmake --preset %CMAKE_PRESET% -S.
+
+  configure_script:
+    - ci\vs.bat
+    - cmake --preset %CMAKE_PRESET% -S.
+
+  upload_caches:
+    - vcpkg
+
+  elevate_version_into_env_script:
+    - ci\version_env.bat
+
+  build_script:
+    - ci\vs.bat
+    - cmake --build --preset %CMAKE_BUILD_PRESET%
+
+  matrix:
+    - *WINDOWS_TEST_TEMPLATE_TASK
+    - *WINDOWS_DEPLOY_TEMPLATE_TASK
