@@ -31,4 +31,8 @@
 # Originally created: 2023-10-14.
 #
 # test/LindaDB/CMakeLists.txt --
-#   
+#   CMake script for handling the LindaDB project's test requirements.
+
+add_covered_test(NAME LindaDB.Test CATCH
+                 SOURCES tree_payloads/scalar_payload.test.cxx
+                 LIBRARIES LindaDB)

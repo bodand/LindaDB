@@ -1,6 +1,6 @@
-# cg3 project
+# HFPD2 project
 #
-# Copyright (c) 2022, András Bodor <bodand@proton.me>
+# Copyright (c) 2023, András Bodor <bodand@proton.me>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,13 +35,13 @@
 
 function(add_covered_test)
     cmake_parse_arguments(PARSE_ARGV 0 act
-            "CATCH"  # FLAGS
-            "NAME"  # SINGLE ARGS
-            "SOURCES;LIBRARIES") # MULTI ARGS
+                          "CATCH;CATCH_OWNMAIN"  # FLAGS
+                          "NAME"  # SINGLE ARGS
+                          "SOURCES;LIBRARIES") # MULTI ARGS
 
     if (NOT DEFINED act_NAME
-            OR NOT DEFINED act_SOURCES)
-        message(SEND_ERROR "Invalid call to add_covered_test(NAME <name> [CATCH]
+        OR NOT DEFINED act_SOURCES)
+        message(SEND_ERROR "Invalid call to add_covered_test(NAME <name> [CATCH|CATCH_OWNMAIN]
         SOURCES <src>...
         [LIBRARIES <lib>...])")
         return()
@@ -52,17 +52,18 @@ function(add_covered_test)
 
     add_executable("${test_name}" ${act_SOURCES})
     target_compile_features("${test_name}" PRIVATE cxx_std_20)
-    target_link_libraries("${test_name}" PRIVATE ${act_LIBRARIES})
+    target_link_libraries("${test_name}" PRIVATE internal-coverage internal-warnings ${act_LIBRARIES})
 
-    if (act_CATCH)
+    if (act_CATCH OR act_CATCH_OWNMAIN)
         catch_discover_tests("${test_name}"
-                WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-                PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
+                             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+                             PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
+        target_link_libraries("${test_name}" PRIVATE $<IF:$<BOOL:${act_CATCH_OWNMAIN}>,Catch2::Catch2,Catch2::Catch2WithMain>)
     else ()
         add_test(NAME "${test_name}"
-                COMMAND "${test_name}"
-                WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+                 COMMAND "${test_name}"
+                 WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
         set_tests_properties("${test_name}" PROPERTIES
-                ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
+                             ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
     endif ()
 endfunction()

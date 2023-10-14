@@ -33,9 +33,11 @@
 # test/CMakeLists.txt --
 #   The main orchestrator project file for handling the test-cases of LindaDB.
 
-if (TARGET Catch2::Catch2)
+if (NOT TARGET Catch2::Catch2)
     message(STATUS "Catch2 not present -- skipping tests")
     return()
 endif ()
 
-include(Catch2)
+include(Catch)
+
+add_subdirectory(LindaDB)

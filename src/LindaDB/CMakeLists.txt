@@ -35,14 +35,36 @@
 #   components.
 
 add_library(LindaDB STATIC
+            public/ldb/index/tree/payload/scalar_payload.hxx
+            public/ldb/index/tree/payload/vector_payload.hxx
+            public/ldb/index/tree/payload.hxx
+            public/ldb/index/tree/payload_dispatcher.hxx
+            public/ldb/profiler.hxx
+            src/index/tree/payload/scalar_payload.cxx
+            src/index/tree/payload/vector_payload.cxx
+            src/index/tree/payload.cxx
+            src/index/tree/payload_dispatcher.cxx)
+add_library(LindaDB-mimalloc STATIC
             src/malloc_overrider.cxx)
 
 target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-target_link_libraries(LindaDB
+target_include_directories(LindaDB-mimalloc
+                           PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
+                           PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(LindaDB-mimalloc
                       PUBLIC mimalloc-static
+                      PRIVATE internal-warnings internal-lto)
+target_link_libraries(LindaDB
+                      PUBLIC mimalloc-static LindaDB-mimalloc
                       PRIVATE internal-coverage internal-warnings internal-lto)
+target_compile_features(LindaDB-mimalloc PUBLIC cxx_std_20)
 target_compile_features(LindaDB PUBLIC cxx_std_20)
 
-list(APPEND PROJECT_TARGETS LindaDB)
+if (TARGET Tracy::TracyClient)
+    target_link_libraries(LindaDB PRIVATE Tracy::TracyClient)
+    target_compile_definitions(LindaDB PRIVATE LINDA_DB_PROFILER)
+endif ()
+
+list(APPEND PROJECT_TARGETS LindaDB LindaDB-mimalloc)

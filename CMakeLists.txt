@@ -80,6 +80,16 @@ include(cmake/generate_lto.cmake)
 find_program(ASCIIDOCTOR_EXE asciidoctor
              DOC "The asciidoctor executable used to build documentation")
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND WIN32)
+    set(LDB_DEFAULT_PROFILER NO)
+else ()
+    set(LDB_DEFAULT_PROFILER YES)
+endif ()
+
+option(LINDA_DB_USE_PROFILER
+       "While building the LindaDB implementation provide the required orchestration for the Tracy profiler [${LDB_DEFAULT_PROFILER}]"
+       ${LDB_DEFAULT_PROFILER})
+
 # coverage data
 add_library(internal-coverage INTERFACE)
 if (NOT DEFINED ENV{CG_DEPLOYMENT})
@@ -108,13 +118,24 @@ add_library(internal-lto INTERFACE)
 generate_lto(internal-lto)
 
 # Dependencies
-if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    message(STATUS "Using MSVC: ${CMAKE_CXX_COMPILER}")
+    message(STATUS "Injecting /permissive- into cl command-line")
+    add_compile_options(/permissive-)
+    message(STATUS "Injecting /Zc:__cplusplus into cl command-line")
+    add_compile_options(/Zc:__cplusplus)
+endif ()
+if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
+    AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message(STATUS "Using clang-cl: ${CMAKE_CXX_COMPILER}")
     message(STATUS "Injecting /EHsc into clang-cl command-line")
     add_compile_options(/EHsc)
 endif ()
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
+if (LINDA_DB_USE_PROFILER)
+    find_package(tracy CONFIG REQUIRED)
+endif ()
 
 # targets
 set(PROJECT_TARGETS)

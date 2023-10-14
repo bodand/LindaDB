@@ -36,7 +36,7 @@
 
 include(CheckCXXCompilerFlag)
 
-function(CheckWarningFlag OptionName CacheName)
+function(checkwarningflag OptionName CacheName)
     if (OptionName MATCHES [[^/]]) # MSVC-style args are passed as-is
         set(WarningPrefix "")
     else ()
@@ -62,7 +62,7 @@ function(generate_warnings _Interface)
         nullability-completeness unreachable-code-loop-increment redundant-decls
         suggest-attribute=pure suggest-attribute=const suggest-attribute=cold
         suggest-final-methods duplicated-branches placement-new=2 error=trampolines
-        logical-op reorder no-c++98-compat no-c++98-compat-pedantic no-shadow
+        logical-op reorder no-c++98-compat no-c++98-compat-pedantic no-shadow no-c++20-compat
         # MSVC
         /w14062 /w14165 /w14191 /w14242 /we4263 /w14265 /w14287 /w14296 /we4350 /we4355
         /w14355 /w14471 /we4545 /w14546 /w14547 /w14548 /w14549 /w14557 /we4596 /w14605
@@ -70,14 +70,14 @@ function(generate_warnings _Interface)
         /wd5030
         4
         /diagnostics:caret
-        )
+    )
     # cannot just check if -Wall, because MSVC also has /Wall, but also accepts -Wall
     # this wouldn't be a problem, but /Wall means literally everything... don't.
     set(gw_found_warnings $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall>)
 
     foreach (warn IN LISTS gw_known_warnings)
         string(MAKE_C_IDENTIFIER "${warn}" CacheName)
-        CheckWarningFlag("${warn}" ${CacheName})
+        checkwarningflag("${warn}" ${CacheName})
         if (HAS_WARNING_${CacheName})
             if (warn MATCHES [[^/]]) # MSVC-style args are passed as-is
                 set(WarningPrefix "")
