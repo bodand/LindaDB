@@ -31,7 +31,10 @@
  * Originally created: 2023-10-15.
  *
  * test/LindaDB/tree/tree_node --
- *   
+ *   Test cases implemented for the primitive test_node class.
+ *   Much functionality is tested implicitly by the tree tests because they
+ *   require a working parent implementation which cannot be provided by the
+ *   given mocks.
  */
 #include <catch/fakeit.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -199,4 +202,3 @@ TEST_CASE("full tree_node's insert smaller element makes the node right-heavy") 
     std::ignore = sut.insert(Test_Key3, Test_Value);
     CHECK(sut.balance_factor() == -1);
 }
-
