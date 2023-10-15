@@ -41,7 +41,7 @@
 #include <memory>
 
 namespace ldb::index::tree {
-    template<class T>
+    template<class NodeT>
     struct tree_node_handler {
         tree_node_handler() = default;
         tree_node_handler(const tree_node_handler& cp) = delete;
@@ -52,26 +52,26 @@ namespace ldb::index::tree {
         operator=(tree_node_handler&& mv) noexcept = delete;
         virtual ~tree_node_handler() noexcept = default;
 
-        virtual std::unique_ptr<T>
-        replace_this_as_child(T* old, std::unique_ptr<T>&& new_) = 0;
+        virtual std::unique_ptr<NodeT>
+        replace_this_as_child(NodeT* old, std::unique_ptr<NodeT>&& new_) = 0;
 
-        virtual std::unique_ptr<T>
-        detach_child(T*) = 0;
+        virtual std::unique_ptr<NodeT>
+        detach_child(NodeT*) = 0;
 
-        virtual std::unique_ptr<T>
+        virtual std::unique_ptr<NodeT>
         detach_left() = 0;
 
-        virtual std::unique_ptr<T>
+        virtual std::unique_ptr<NodeT>
         detach_right() = 0;
 
         virtual void
-        attach_left(std::unique_ptr<T> left) = 0;
+        attach_left(std::unique_ptr<NodeT> left) = 0;
 
         virtual void
-        attach_right(std::unique_ptr<T> right) = 0;
+        attach_right(std::unique_ptr<NodeT> right) = 0;
 
         virtual void
-        increment_side_of_child(T* child) = 0;
+        increment_side_of_child(NodeT* child) = 0;
     };
 }
 
