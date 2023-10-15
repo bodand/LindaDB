@@ -45,6 +45,14 @@ namespace ldb::prof {
     constexpr const static auto color_insert = 0xF0F000;
 }
 
+#ifdef __GNUC__
+#  define LDB_UNREACHABLE __builtin_unreachable()
+#elif defined(_MSC_VER)
+#  define LDB_UNREACHABLE __assume(0)
+#else // ¯\_(ツ)_/¯
+#  define LDB_UNREACHABLE ((void) 0)
+#endif
+
 // When using the profiler and in C++23 or higher
 #if defined(LINDA_DB_PROFILER) && __cplusplus > 202002L
 #  define LDB_CONSTEXPR23 constexpr

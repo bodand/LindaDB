@@ -196,6 +196,7 @@ namespace ldb::index::tree {
             if (_left.get() == child) return detach_left();
             if (_right.get() == child) return detach_right();
             assert(false && "invalid child pointer in detach_child (tree_node)");
+            LDB_UNREACHABLE;
         }
 
         std::unique_ptr<tree_node>
@@ -217,6 +218,7 @@ namespace ldb::index::tree {
                 return owned_old;
             }
             assert(false && "invalid child pointer in replace_this_as_child (tree_node)");
+            LDB_UNREACHABLE;
         }
 
         std::unique_ptr<tree_node>
