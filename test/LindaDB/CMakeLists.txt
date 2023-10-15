@@ -35,6 +35,7 @@
 
 add_covered_test(NAME LindaDB.Test CATCH
                  SOURCES
+                 tree/tree_node.test.cxx
                  tree_payloads/scalar_payload.test.cxx
                  tree_payloads/vector_payload.test.cxx
-                 LIBRARIES LindaDB)
+                 LIBRARIES LindaDB fakeit)

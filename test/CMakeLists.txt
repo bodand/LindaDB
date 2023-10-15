@@ -38,6 +38,10 @@ if (NOT TARGET Catch2::Catch2)
     return()
 endif ()
 
+find_path(FAKEIT_INCLUDE_DIRS "boost/fakeit.hpp")
+add_library(fakeit INTERFACE)
+target_include_directories(fakeit INTERFACE "${FAKEIT_INCLUDE_DIRS}")
+
 include(Catch)
 
 add_subdirectory(LindaDB)
