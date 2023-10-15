@@ -34,5 +34,7 @@
 #   CMake script for handling the LindaDB project's test requirements.
 
 add_covered_test(NAME LindaDB.Test CATCH
-                 SOURCES tree_payloads/scalar_payload.test.cxx
+                 SOURCES
+                 tree_payloads/scalar_payload.test.cxx
+                 tree_payloads/vector_payload.test.cxx
                  LIBRARIES LindaDB)

@@ -38,8 +38,10 @@
 #ifndef LINDADB_VECTOR_PAYLOAD_HXX
 #define LINDADB_VECTOR_PAYLOAD_HXX
 
+#include <array>
 #include <cassert>
 #include <concepts>
+#include <utility>
 
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/profiler.hxx>
@@ -75,8 +77,10 @@ namespace ldb::index::tree::payloads {
         operator<=>(const K& key) const noexcept {
             LDB_PROF_SCOPE("VectorPayload_Ordering");
             if (empty()) return std::weak_ordering::equivalent;
-            if (key < min_key()) return std::weak_ordering::less;
-            if (key > max_key()) return std::weak_ordering::greater;
+            auto mem_min_key = min_key();
+            auto mem_max_key = max_key();
+            if (key < mem_min_key) return std::weak_ordering::greater;
+            if (mem_max_key < key) return std::weak_ordering::less;
             return std::weak_ordering::equivalent;
         }
 
@@ -87,10 +91,10 @@ namespace ldb::index::tree::payloads {
             LDB_PROF_SCOPE("VectorPayload_StrOrdering");
             if (empty()) return std::weak_ordering::equivalent;
             if (key.empty()) return std::weak_ordering::less;
-            if (key[0] < min_key()[0]) return std::weak_ordering::less;
-            if (key[0] > max_key()[0]) return std::weak_ordering::greater;
-            if (key < min_key()) return std::weak_ordering::less;
-            if (key > max_key()) return std::weak_ordering::greater;
+            if (key[0] < min_key()[0]) return std::weak_ordering::greater;
+            if (key[0] > max_key()[0]) return std::weak_ordering::less;
+            if (key < min_key()) return std::weak_ordering::greater;
+            if (key > max_key()) return std::weak_ordering::less;
             return std::weak_ordering::equivalent;
         }
 
@@ -113,11 +117,12 @@ namespace ldb::index::tree::payloads {
         try_get(const K& key) const noexcept(std::is_nothrow_constructible_v<std::optional<V>, V>) {
             LDB_PROF_SCOPE_C("VectorPayload_Search", prof::color_search);
             if (empty()) return std::nullopt;
+            auto data_end_offset = static_cast<std::ptrdiff_t>(_data_sz);
             if (auto it = std::lower_bound(std::begin(_data),
-                                           std::next(std::begin(_data), _data_sz),
+                                           std::next(std::begin(_data), data_end_offset),
                                            key,
                                            compare_pair_to_key);
-                it != std::next(std::begin(_data), _data_sz)) {
+                it != std::next(std::begin(_data), data_end_offset)) {
                 return {it->second};
             }
             return std::nullopt;
@@ -126,7 +131,7 @@ namespace ldb::index::tree::payloads {
         [[nodiscard]] bool
         try_set(const K& key, const V& value) {
             LDB_PROF_SCOPE_C("VectorPayload_Insert", ldb::prof::color_insert);
-            return upsert_kv(false, key, value) == INSERTED;
+            return upsert_kv(true, key, value) & (INSERTED | UPDATED);
         }
 
         [[nodiscard]] std::optional<std::pair<K, V>>
@@ -135,7 +140,9 @@ namespace ldb::index::tree::payloads {
             if (auto res = upsert_kv(true, key, value);
                 res == FULL) {
                 auto squished = _data[0];
-                std::move(std::next(std::begin(_data)), std::next(std::begin(_data), _data_sz), std::begin(_data));
+                std::move(std::next(std::begin(_data)),
+                          std::next(std::begin(_data), static_cast<std::ptrdiff_t>(_data_sz)),
+                          std::begin(_data));
                 res = upsert_kv(false, key, value);
                 assert(res != FAILURE);
                 return {squished};
@@ -147,7 +154,7 @@ namespace ldb::index::tree::payloads {
         friend std::ostream&
         operator<<(std::ostream& os, const vector_payload& pl) {
             os << "(" << pl.capacity() << " " << pl.size();
-            for (int i = 0; i < pl._data_sz; ++i) {
+            for (std::size_t i = 0; i < pl._data_sz; ++i) {
                 os << " (" << pl._data[i].first << " " << pl._data[i].second << ")";
             }
             return os << ")";
@@ -194,11 +201,11 @@ namespace ldb::index::tree::payloads {
                    return store.first < key_cmp;
                };
 
-        enum upsert_status {
-            UPDATED,
-            INSERTED,
-            FAILURE,
-            FULL
+        enum upsert_status : unsigned {
+            UPDATED = 1U,
+            INSERTED = 1U << 1U,
+            FAILURE = 1U << 2U,
+            FULL = 1U << 3U
         };
 
         upsert_status
@@ -216,23 +223,20 @@ namespace ldb::index::tree::payloads {
                 return INSERTED;
             }
 
+            auto data_end_offset = static_cast<std::ptrdiff_t>(_data_sz);
             auto it = std::lower_bound(std::begin(_data),
-                                       std::next(std::begin(_data), _data_sz),
+                                       std::next(std::begin(_data), data_end_offset),
                                        key,
                                        compare_pair_to_key);
             if (it == std::end(_data)) return FULL;
             if (it->first == key) {
-                if (do_upsert) {
-                    it->second = value;
-                    return UPDATED;
-                }
-                else {
-                    return FAILURE;
-                }
+                if (!do_upsert) return FAILURE;
+                it->second = value;
+                return UPDATED;
             }
             if (full()) return FULL;
 
-            std::move_backward(it, std::next(std::begin(_data), _data_sz), std::next(std::begin(_data), _data_sz + 1));
+            std::move_backward(it, std::next(std::begin(_data), data_end_offset), std::next(std::begin(_data), data_end_offset + 1));
             *it = std::make_pair(key, value);
             ++_data_sz;
             return INSERTED;
