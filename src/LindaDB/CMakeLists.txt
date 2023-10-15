@@ -39,11 +39,14 @@ add_library(LindaDB STATIC
             public/ldb/index/tree/payload/vector_payload.hxx
             public/ldb/index/tree/payload.hxx
             public/ldb/index/tree/payload_dispatcher.hxx
+            public/ldb/index/tree/tree_node_handler.hxx
             public/ldb/profiler.hxx
             src/index/tree/payload/scalar_payload.cxx
             src/index/tree/payload/vector_payload.cxx
             src/index/tree/payload.cxx
-            src/index/tree/payload_dispatcher.cxx)
+            src/index/tree/payload_dispatcher.cxx
+            src/index/tree/tree_node_handler.cxx
+)
 add_library(LindaDB-mimalloc STATIC
             src/malloc_overrider.cxx)
 
