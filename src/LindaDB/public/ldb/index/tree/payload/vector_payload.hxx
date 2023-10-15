@@ -143,6 +143,7 @@ namespace ldb::index::tree::payloads {
                 std::move(std::next(std::begin(_data)),
                           std::next(std::begin(_data), static_cast<std::ptrdiff_t>(_data_sz)),
                           std::begin(_data));
+                --_data_sz;
                 res = upsert_kv(false, key, value);
                 assert(res != FAILURE);
                 return {squished};

@@ -30,81 +30,85 @@
  *
  * Originally created: 2023-10-15.
  *
- * test/LindaDB/tree/avl_tree --
+ * test/LindaDB/tree/t_tree --
  *   Tests that perform tests against a tree implementation that behaves as a
  *   simple AVL-Tree with scalar payloads.
  */
-
-#include <algorithm>
 #include <random>
-#include <ranges>
 
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/payload.hxx>
+#include <ldb/index/tree/payload/scalar_payload.hxx>
 #include <ldb/index/tree/tree.hxx>
+#include <ldb/index/tree/tree_node.hxx>
+#include <ldb/index/tree/tree_node_handler.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
-using sut_type = lit::tree<int, int, 1>;
-using bm_type = lit::tree<int, int, 1>;
+using payload_type = lps::scalar_payload<int, int>;
+using sut_type = lit::tree<int, int, 2>;
+using bm_type = lit::tree<int, int>;
 
 // ordering of test keys: Test_Key3 < Test_Key < Test_Key2
-// the test suite relies on this ordering, so even if
-// modifying the keys retain this property
+// do not change these, the rotation test explanations use these values
 constexpr const static auto Test_Key = 42;
 constexpr const static auto Test_Key2 = 420;
 constexpr const static auto Test_Key3 = 7;
 constexpr const static auto Test_Value = 42;
 
-TEST_CASE("avl tree can be default constructed") {
+TEST_CASE("t tree can be default constructed") {
     STATIC_CHECK(std::constructible_from<sut_type>);
 }
 
-TEST_CASE("default avl tree has height 0") {
+TEST_CASE("default t tree has height 0") {
     const sut_type sut;
     CHECK(sut.height() == 0);
 }
 
-TEST_CASE("avl tree with one element has height 1") {
+TEST_CASE("t tree with one element has height 1") {
     sut_type sut;
     sut.insert(Test_Key, Test_Value);
     CHECK(sut.height() == 1);
 }
 
-TEST_CASE("avl tree with three elements has height 2 (inserted increasing)") {
+TEST_CASE("t tree with five elements has height 2 (inserted increasing)") {
     /* Rotation test:
-     *        7                    42
-     *         \                  /  \
-     *          42        -->    7   420
-     *            \
-     *            420
+     *        [7, 8]                    [42, 43]
+     *             \                    /      \
+     *           [42, 43]       -->  [7, 8]   [420]
+     *                  \
+     *                 [420]
      * */
     sut_type sut;
     // this order would cause a simple binary tree to become a list
     sut.insert(Test_Key3, Test_Value);
+    sut.insert(Test_Key3 + 1, Test_Value);
     sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key + 1, Test_Value);
     sut.insert(Test_Key2, Test_Value);
     CHECK(sut.height() == 2);
 }
 
-TEST_CASE("avl tree with three elements has height 2 (inserted decreasing)") {
+TEST_CASE("t tree with five elements has height 2 (inserted decreasing)") {
     /* Rotation test:
-     *        420             42
-     *        /              /  \
-     *       42      -->    7   420
-     *      /
-     *     7
+     *        [420, 421]          [42, 43]
+     *        /                   /      \
+     *   [42, 43]       -->      [7]  [420, 421]
+     *   /
+     *  [7]
      * */
     sut_type sut;
     // this order would cause a simple binary tree to become a list
     sut.insert(Test_Key2, Test_Value);
+    sut.insert(Test_Key2 + 1, Test_Value);
     sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key + 1, Test_Value);
     sut.insert(Test_Key3, Test_Value);
     CHECK(sut.height() == 2);
 }
 
-TEST_CASE("avl tree with three elements has height 2 (inserted correct order)") {
+TEST_CASE("t tree with three elements has height 2 (inserted correct order)") {
     /* no rotation test: there should be no rotation happening here */
     sut_type sut;
     sut.insert(Test_Key, Test_Value);
@@ -113,45 +117,56 @@ TEST_CASE("avl tree with three elements has height 2 (inserted correct order)") 
     CHECK(sut.height() == 2);
 }
 
-TEST_CASE("avl tree with five elements has height 3 (left side)") {
+TEST_CASE("t tree with eight elements has height 3 (left side)") {
     /* Rotation test:
-     *         42                  42
-     *        /  \                /  \
-     *       8   420             7   420
-     *      /           -->     / \
-     *     6                   6   8
-     *      \
-     *       7
+     *         [42, 43]                 [42, 43]
+     *         /      \                 /      \
+     *      [8, 9]   [420]           [  7  ]  [420]
+     *      /              -->       /     \
+     *   [5, 6]                   [5, 6] [8, 9]
+     *        \
+     *       [7]
      * */
     sut_type sut;
     sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key + 1, Test_Value);
     sut.insert(Test_Key2, Test_Value);
     sut.insert(Test_Key3 + 1, Test_Value);
+    sut.insert(Test_Key3 + 2, Test_Value);
     sut.insert(Test_Key3 - 1, Test_Value);
+    sut.insert(Test_Key3 - 2, Test_Value);
     sut.insert(Test_Key3, Test_Value);
     CHECK(sut.height() == 3);
 }
 
-TEST_CASE("avl tree with five elements has height 3 (right side)") {
+TEST_CASE("t tree with eight elements has height 3 (right side)") {
     /* Rotation test:
-     *         42                  42
-     *        /  \                /  \
-     *       7   419             7   420
-     *             \     -->         / \
-     *             421             419 421
-     *             /
-     *           420
+     *      [42, 43]                  [  42, 43  ]
+     *      /      \                  /          \
+     *     [7]  [418, 419]           [7]   [    420    ]
+     *                   \     -->         /           \
+     *                [421, 422]      [418, 419]   [421, 422]
+     *                /
+     *              [420]
      * */
     sut_type sut;
     sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key + 1, Test_Value);
     sut.insert(Test_Key3, Test_Value);
     sut.insert(Test_Key2 - 1, Test_Value);
+    sut.insert(Test_Key2 - 2, Test_Value);
     sut.insert(Test_Key2 + 1, Test_Value);
+    sut.insert(Test_Key2 + 2, Test_Value);
     sut.insert(Test_Key2, Test_Value);
     CHECK(sut.height() == 3);
 }
 
-TEST_CASE("avl tree can find stored element") {
+TEST_CASE("t tree can find stored element") {
+    /*
+     *      [   419   ]
+     *      /         \
+     *   [7, 42]  [420, 421]
+     * */
     sut_type sut;
     sut.insert(Test_Key, Test_Value);
     sut.insert(Test_Key3, Test_Value);
@@ -164,7 +179,7 @@ TEST_CASE("avl tree can find stored element") {
     CHECK(*val == Test_Value);
 }
 
-TEST_CASE("avl tree can find updated element") {
+TEST_CASE("t tree can find updated element") {
     sut_type sut;
     sut.insert(Test_Key, Test_Value + 1);
     sut.insert(Test_Key3, Test_Value);
@@ -178,16 +193,16 @@ TEST_CASE("avl tree can find updated element") {
     CHECK(*val == Test_Value);
 }
 
-TEST_CASE("avl-tree benchmark",
+TEST_CASE("t-tree benchmark",
           "[.benchmark]") {
-    BENCHMARK_ADVANCED("avl-tree insertion/empty tree")
+    BENCHMARK_ADVANCED("t-tree insertion/empty tree")
     (Catch::Benchmark::Chronometer chronometer) {
         bm_type bm;
         chronometer.measure([&bm](int i) {
             bm.insert(i, Test_Value);
         });
     };
-    BENCHMARK_ADVANCED("avl-tree insertion/full layer")
+    BENCHMARK_ADVANCED("t-tree insertion/full layer")
     (Catch::Benchmark::Chronometer chronometer) {
         bm_type bm;
         std::mt19937_64 rng(std::random_device{}());
@@ -199,7 +214,7 @@ TEST_CASE("avl-tree benchmark",
             bm.insert(i, Test_Value);
         });
     };
-    BENCHMARK_ADVANCED("avl-tree insertion/random (has rng overhead)")
+    BENCHMARK_ADVANCED("t-tree insertion/random (has rng overhead)")
     (Catch::Benchmark::Chronometer chronometer) {
         bm_type bm;
         std::mt19937_64 rng(std::random_device{}());

@@ -89,6 +89,11 @@ namespace ldb::index::tree {
             return _root->total_height_inclusive();
         }
 
+        [[nodiscard]] constexpr std::size_t
+        node_capacity() const noexcept {
+            return _root->capacity();
+        }
+
     private:
         using node_type = tree_node<payload_type>;
 
