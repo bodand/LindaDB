@@ -93,7 +93,7 @@ namespace ldb::index::tree {
         }
 
         void
-        dump(std::ostream& os, std::size_t depth = 0) {
+        dump(std::ostream& os, std::size_t depth = 0) const {
             depth += 2;
             os << "(" << _payload << " " << _left_height << " " << _right_height << " " << balance_factor() << "\n"
                << std::string(depth, ' ');
@@ -119,11 +119,11 @@ namespace ldb::index::tree {
         search(const key_type& key) const {
             LDB_PROF_SCOPE_C("TreeNode_Search", prof::color_search);
             auto order = _payload <=> key;
-            if (order < 0) {
+            if (order > 0) {
                 if (!_left.get()) return std::nullopt;
                 return _left.get();
             }
-            if (order > 0) {
+            if (order < 0) {
                 if (!_right.get()) return std::nullopt;
                 return _right.get();
             }
@@ -155,13 +155,13 @@ namespace ldb::index::tree {
                 }
             }
 
-            if (order < 0) {
+            if (order > 0) {
                 if (_left) return _left.get();
                 add_left(key, value);
                 return nullptr;
             }
 
-            if (order > 0) {
+            if (order < 0) {
                 if (_right) return _right.get(); // ->insert(key, value);
                 add_right(key, value);
                 return nullptr;
@@ -275,8 +275,8 @@ namespace ldb::index::tree {
                    && "child is not balanced after rotation(s)");
             assert(abs(balance_factor()) < 2
                    && "node is not balanced after rotation(s)");
-
-            if (parent) parent->increment_side_of_child(this);
+            assert(parent && "you doofus");
+            parent->increment_side_of_child(this);
         }
 
         static tree_node_handler<tree_node>*
