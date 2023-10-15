@@ -110,6 +110,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>
         replace_this_as_child(node_type* old, std::unique_ptr<node_type>&& new_) override {
+            LDB_PROF_SCOPE("Tree_ReplaceRoot");
             assert(new_ != nullptr && "root's node cannot be null");
             if (_root.get() == old) {
                 auto owned_old = std::exchange(_root, std::move(new_));
