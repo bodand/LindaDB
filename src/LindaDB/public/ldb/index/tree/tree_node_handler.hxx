@@ -56,9 +56,6 @@ namespace ldb::index::tree {
         replace_this_as_child(NodeT* old, std::unique_ptr<NodeT>&& new_) = 0;
 
         virtual std::unique_ptr<NodeT>
-        detach_child(NodeT*) = 0;
-
-        virtual std::unique_ptr<NodeT>
         detach_left() = 0;
 
         virtual std::unique_ptr<NodeT>

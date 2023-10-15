@@ -192,14 +192,6 @@ namespace ldb::index::tree {
 
     private:
         std::unique_ptr<tree_node>
-        detach_child(tree_node* child) override {
-            if (_left.get() == child) return detach_left();
-            if (_right.get() == child) return detach_right();
-            assert(false && "invalid child pointer in detach_child (tree_node)");
-            LDB_UNREACHABLE;
-        }
-
-        std::unique_ptr<tree_node>
         replace_this_as_child(tree_node<T>* old, std::unique_ptr<tree_node<T>>&& new_) override {
             if (_left.get() == old) {
                 auto owned_old = std::exchange(_left, std::move(new_));

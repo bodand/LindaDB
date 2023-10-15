@@ -122,13 +122,6 @@ namespace ldb::index::tree {
         }
 
         std::unique_ptr<node_type>
-        detach_child(node_type* child) override {
-            if (_root.get() == child) return detach_left(); // or right
-            assert(false && "invalid child of management object tree (detach_child)");
-            LDB_UNREACHABLE;
-        }
-
-        std::unique_ptr<node_type>
         detach_left() override {
             return std::unique_ptr<node_type>{_root.release()};
         }
