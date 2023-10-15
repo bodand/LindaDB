@@ -199,6 +199,8 @@ TEST_CASE("full scalar_payload compares equivalently to its key") {
     CHECK_FALSE(sut > Test_Key);
     CHECK(sut > Test_Key - 1);
     CHECK(sut < Test_Key + 1);
+    CHECK((Test_Key - 1) <=> sut == std::weak_ordering::less);
+    CHECK((Test_Key + 1) <=> sut == std::weak_ordering::greater);
 }
 
 // NOLINTNEXTLINE
