@@ -74,6 +74,7 @@ namespace ldb::index::tree {
             do {
                 node = node->insert(key, value);
             } while (node != nullptr);
+            _empty = false;
         }
 
         void
@@ -84,6 +85,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] std::size_t
         height() const noexcept {
+            if (_empty) return 0;
             return _root->total_height_inclusive();
         }
 
@@ -158,6 +160,7 @@ namespace ldb::index::tree {
             /* nop */
         }
 
+        bool _empty = true;
         std::unique_ptr<tree_node<payload_type>> _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
     };
 }
