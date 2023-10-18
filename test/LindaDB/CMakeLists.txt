@@ -42,5 +42,3 @@ add_covered_test(NAME LindaDB.Test CATCH
                  tree_payloads/vector_payload.test.cxx
                  LIBRARIES LindaDB)
 
-
-add_executable(magyar main.cxx magyar.hxx)
