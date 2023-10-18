@@ -51,22 +51,29 @@ add_library(LindaDB STATIC
             src/index/tree/tree_node.cxx
             src/index/tree/tree_node_handler.cxx
 )
-add_library(LindaDB-mimalloc STATIC
-            src/malloc_overrider.cxx)
+
+if (LINDA_DB_USE_MIMALLOC)
+    add_library(LindaDB-mimalloc STATIC
+                src/malloc_overrider.cxx)
+    target_include_directories(LindaDB-mimalloc
+                               PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
+                               PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    target_link_libraries(LindaDB-mimalloc
+                          PUBLIC mimalloc-static
+                          PRIVATE internal-warnings internal-lto)
+    target_compile_features(LindaDB-mimalloc PUBLIC cxx_std_20)
+    target_compile_definitions(LindaDB-mimalloc
+                               PUBLIC LINDA_DB_USE_MIMALLOC)
+
+    list(APPEND PROJECT_TARGETS LindaDB-mimalloc)
+    target_link_libraries(LindaDB PUBLIC LindaDB-mimalloc)
+endif ()
 
 target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-target_include_directories(LindaDB-mimalloc
-                           PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
-                           PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-target_link_libraries(LindaDB-mimalloc
-                      PUBLIC mimalloc-static
-                      PRIVATE internal-warnings internal-lto)
 target_link_libraries(LindaDB
-                      PUBLIC mimalloc-static LindaDB-mimalloc
                       PRIVATE internal-coverage internal-warnings internal-lto)
-target_compile_features(LindaDB-mimalloc PUBLIC cxx_std_20)
 target_compile_features(LindaDB PUBLIC cxx_std_20)
 
 if (TARGET Tracy::TracyClient)
@@ -74,4 +81,4 @@ if (TARGET Tracy::TracyClient)
     target_compile_definitions(LindaDB PRIVATE LINDA_DB_PROFILER)
 endif ()
 
-list(APPEND PROJECT_TARGETS LindaDB LindaDB-mimalloc)
+list(APPEND PROJECT_TARGETS LindaDB)

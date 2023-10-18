@@ -89,6 +89,9 @@ endif ()
 option(LINDA_DB_USE_PROFILER
        "While building the LindaDB implementation provide the required orchestration for the Tracy profiler [${LDB_DEFAULT_PROFILER}]"
        ${LDB_DEFAULT_PROFILER})
+option(LINDA_DB_USE_MIMALLOC
+       "Build LindaDB using the mimalloc allocator instead of the system's [YES]"
+       YES)
 
 # coverage data
 add_library(internal-coverage INTERFACE)
