@@ -117,10 +117,6 @@
         "VCPKG_OVERLAY_TRIPLETS": {
           "type": "PATH",
           "value": "${sourceDir}/cmake/triplets"
-        },
-        "VCPKG_INSTALL_OPTIONS": {
-          "type": "STRING",
-          "value": "--clean-after-build;--x-use-aria2"
         }
       }
     },

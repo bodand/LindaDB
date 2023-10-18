@@ -34,6 +34,8 @@
  *   Tests for the scalar_payload class of the tree indices.
  */
 
+#include <sstream>
+
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload/scalar_payload.hxx>
