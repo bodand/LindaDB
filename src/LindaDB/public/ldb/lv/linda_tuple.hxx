@@ -28,51 +28,15 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-15.
+ * Originally created: 2023-10-18.
  *
- * src/LindaDB/public/ldb/index/tree/tree_node_handler --
- *   The generic node handler interface. This allows the uniform handling of
- *   the root node, where the tree object behaves as the node handler instead of
- *   a real parent node.
+ * src/LindaDB/public/ldb/lv/linda_tuple --
+ *   A statically sized element that stores heterogeneous linda_value types,
+ *   as a tuple. The concrete types are unknown until runtime, but the linda_value
+ *   abstraction makes them look homogeneous at compile time on our side.
  */
-#ifndef LINDADB_TREE_NODE_HANDLER_HXX
-#define LINDADB_TREE_NODE_HANDLER_HXX
 
-#include <memory>
+#ifndef LINDADB_LINDA_TUPLE_HXX
+#define LINDADB_LINDA_TUPLE_HXX
 
-namespace ldb::index::tree {
-    template<class NodeT>
-    struct tree_node_handler {
-        tree_node_handler() = default;
-        tree_node_handler(const tree_node_handler& cp) = delete;
-        tree_node_handler(tree_node_handler&& mv) noexcept = delete;
-        tree_node_handler&
-        operator=(const tree_node_handler& cp) = delete;
-        tree_node_handler&
-        operator=(tree_node_handler&& mv) noexcept = delete;
-        virtual ~tree_node_handler() noexcept = default;
-
-        virtual std::unique_ptr<NodeT>
-        replace_this_as_child(NodeT* old, std::unique_ptr<NodeT>&& new_) = 0;
-
-        virtual std::unique_ptr<NodeT>
-        detach_left() = 0;
-
-        virtual std::unique_ptr<NodeT>
-        detach_right() = 0;
-
-        virtual void
-        attach_left(std::unique_ptr<NodeT> left) = 0;
-
-        virtual void
-        attach_right(std::unique_ptr<NodeT> right) = 0;
-
-        virtual void
-        increment_side_of_child(NodeT* child) = 0;
-
-        virtual NodeT*
-        resolve_into_node() noexcept { return nullptr; }
-    };
-}
-
-#endif
+#endif //LINDADB_LINDA_TUPLE_HXX

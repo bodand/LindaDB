@@ -78,7 +78,7 @@ include(cmake/generate_warnings.cmake)
 include(cmake/generate_lto.cmake)
 
 find_program(ASCIIDOCTOR_EXE asciidoctor
-             DOC "The asciidoctor executable used to build documentation")
+        DOC "The asciidoctor executable used to build documentation")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND WIN32)
     set(LDB_DEFAULT_PROFILER NO)
@@ -87,29 +87,40 @@ else ()
 endif ()
 
 option(LINDA_DB_USE_PROFILER
-       "While building the LindaDB implementation provide the required orchestration for the Tracy profiler [${LDB_DEFAULT_PROFILER}]"
-       ${LDB_DEFAULT_PROFILER})
+        "While building the LindaDB implementation provide the required orchestration for the Tracy profiler [${LDB_DEFAULT_PROFILER}]"
+        ${LDB_DEFAULT_PROFILER})
 option(LINDA_DB_USE_MIMALLOC
-       "Build LindaDB using the mimalloc allocator instead of the system's [YES]"
-       YES)
+        "Build LindaDB using the mimalloc allocator instead of the system's [YES]"
+        NO)
 
 # coverage data
 add_library(internal-coverage INTERFACE)
 if (NOT DEFINED ENV{CG_DEPLOYMENT})
     target_compile_options(internal-coverage INTERFACE
-                           $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
-                           $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
+            $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
+            $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
     if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
-        AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+            AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH vs_llvmx64_bindir)
         cmake_path(GET vs_llvmx64_bindir PARENT_PATH vs_llvmx64_dir)
         set(clang_profile_lib "${vs_llvmx64_dir}/lib/clang/16/lib/windows/clang_rt.profile-x86_64.lib")
         target_link_libraries(internal-coverage INTERFACE "${clang_profile_lib}")
     else ()
         target_link_options(internal-coverage INTERFACE
-                            $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
-                            $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
+                $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
+                $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
     endif ()
+endif ()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug"
+        AND CMAKE_CXX_COMPILER_ID MATCHES [[GNU|Clang]])
+    add_compile_options(
+            $<$<PLATFORM_ID:Linux>:-fsanitize=address>
+            $<$<PLATFORM_ID:Linux>:-fno-omit-frame-pointer>
+    )
+    add_link_options(
+            $<$<PLATFORM_ID:Linux>:-fsanitize=address,undefined>
+    )
 endif ()
 
 # warnings
@@ -129,7 +140,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/Zc:__cplusplus)
 endif ()
 if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
-    AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message(STATUS "Using clang-cl: ${CMAKE_CXX_COMPILER}")
     message(STATUS "Injecting /EHsc into clang-cl command-line")
     add_compile_options(/EHsc)
@@ -150,7 +161,7 @@ add_subdirectory(test)
 
 # clang-tidy
 if (CMAKE_GENERATOR MATCHES [[Make|Ninja]]
-    AND (NOT DEFINED ENV{CI} OR DEFINED ENV{CI_DO_CLANG_TIDY}))
+        AND (NOT DEFINED ENV{CI} OR DEFINED ENV{CI_DO_CLANG_TIDY}))
     # CMAKE_EXPORT_COMPILE_COMMANDS is only implemented on Make and Ninja...
     cmake_path(RELATIVE_PATH CMAKE_CURRENT_BINARY_DIR OUTPUT_VARIABLE rel_bindir)
     foreach (tgt IN LISTS PROJECT_TARGETS)
@@ -165,9 +176,9 @@ if (CMAKE_GENERATOR MATCHES [[Make|Ninja]]
             cmake_path(RELATIVE_PATH src BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
             add_test(NAME "clang-tidy whole project/${src}"
-                     COMMAND "clang-tidy" -p "${rel_bindir}" ${src}
-                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-                     COMMAND_EXPAND_LISTS)
+                    COMMAND "clang-tidy" -p "${rel_bindir}" ${src}
+                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+                    COMMAND_EXPAND_LISTS)
         endforeach ()
     endforeach ()
 endif ()

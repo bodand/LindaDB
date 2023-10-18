@@ -181,8 +181,8 @@ namespace ldb::index::tree {
         }
 
         ~tree_node() noexcept override {
-            if (_left) release(_left, this);
-            if (_right) release(_right, this);
+            if (_left) release(&_left, this);
+            if (_right) release(&_right, this);
         }
 
     private:
@@ -190,29 +190,21 @@ namespace ldb::index::tree {
          * WARNING: DO NOT CALL THIS FUNCTION FROM OUTSIDE A TREE_NODE (i.e. FROM THE TREE)
          */
         static void
-        release(std::unique_ptr<tree_node>& sb,
+        release(std::unique_ptr<tree_node>* subtree,
                 tree_node* caller) noexcept {
-            auto* subtree = sb.release();
-            assert(subtree->_parent == caller);
-            while (subtree) {
-                auto* next = subtree->_left.release();
-
-                if (next == nullptr) {
-                    next = subtree->_right.release();
-                    if (!next) {
-                        // THIS IS A HORRID HACK FOR SPEED
-                        next = subtree->_parent->downcast_to_node();
-                    }
-                    std::default_delete<tree_node>{}(subtree);
-                }
-                subtree = next;
-                if (subtree == caller) break;
+            while ((*subtree)->_left && (*subtree)->_right) {
+                subtree = &(*subtree)->_left;
             }
-        }
 
-        tree_node<T>*
-        downcast_to_node() noexcept override {
-            return this;
+            if ((*subtree)->_left) {
+                *subtree = std::move((*subtree)->_left);
+            }
+            else if ((*subtree)->_right) {
+                *subtree = std::move((*subtree)->_right);
+            }
+            else {
+                (*subtree).reset();
+            }
         }
 
         std::unique_ptr<tree_node>
@@ -281,6 +273,7 @@ namespace ldb::index::tree {
                 }
             }
 
+            std::cout << child->_balance_factor << ": " << child->_payload << "\n";
             assert(abs(child->balance_factor()) < 2
                    && "child is not balanced after rotation(s)");
             assert(abs(balance_factor()) < 2

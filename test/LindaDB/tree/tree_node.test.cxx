@@ -92,20 +92,12 @@ TEST_CASE("default tree_node is not full") {
     CHECK_FALSE(sut.full());
 }
 
-//TEST_CASE("empty tree_node has inclusive height of 1") {
-//    Mock<lit::tree_node_handler<sut_type>> mock;
-//    auto* obj = &mock.get();
-//    const sut_type sut{obj};
-//    CHECK(sut.total_height_inclusive() == 1);
-//}
-//
-//TEST_CASE("empty tree_node has inclusive height of 1 after refresh") {
-//    Mock<lit::tree_node_handler<sut_type>> mock;
-//    auto* obj = &mock.get();
-//    sut_type sut{obj};
-//    sut.refresh_heights();
-//    CHECK(sut.total_height_inclusive() == 1);
-//}
+TEST_CASE("empty tree_node is balanced") {
+    Mock<lit::tree_node_handler<sut_type>> mock;
+    auto* obj = &mock.get();
+    const sut_type sut{obj};
+    CHECK(sut.balance_factor() == 0);
+}
 
 TEST_CASE("tree_node has same capacity as its payload") {
     Mock<lit::tree_node_handler<sut_type>> mock;
@@ -193,7 +185,7 @@ TEST_CASE("full tree_node's insert larger element makes the node right-heavy") {
     CHECK(sut.balance_factor() == 1);
 }
 
-TEST_CASE("full tree_node's insert smaller element makes the node right-heavy") {
+TEST_CASE("full tree_node's insert smaller element makes the node left-heavy") {
     Mock<lit::tree_node_handler<sut_type>> mock;
     When(Method(mock, increment_side_of_child)).AlwaysReturn();
     auto* obj = &mock.get();

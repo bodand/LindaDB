@@ -42,6 +42,7 @@
 #include <memory>
 #include <optional>
 #include <ostream>
+#include <sstream>
 #include <variant>
 
 #include <ldb/index/tree/payload_dispatcher.hxx>
@@ -74,13 +75,19 @@ namespace ldb::index::tree {
             do {
                 node = node->insert(key, value);
             } while (node != nullptr);
-            _empty = false;
         }
 
         void
         dump(std::ostream& os) const {
             _root->dump(os);
             os << "\n";
+        }
+
+        [[nodiscard]] std::string
+        dump_string() const {
+            std::ostringstream ss;
+            dump(ss);
+            return ss.str();
         }
 
         [[nodiscard]] constexpr std::size_t
@@ -150,7 +157,6 @@ namespace ldb::index::tree {
             /* nop */
         }
 
-        bool _empty = true;
         std::unique_ptr<tree_node<payload_type>> _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
     };
 }

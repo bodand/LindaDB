@@ -50,6 +50,8 @@ add_library(LindaDB STATIC
             src/index/tree/tree.cxx
             src/index/tree/tree_node.cxx
             src/index/tree/tree_node_handler.cxx
+        public/ldb/lv/linda_value.hxx
+        public/ldb/lv/linda_tuple.hxx
 )
 
 if (LINDA_DB_USE_MIMALLOC)
