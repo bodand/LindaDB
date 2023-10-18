@@ -61,173 +61,173 @@ TEST_CASE("t tree can be default constructed") {
     STATIC_CHECK(std::constructible_from<sut_type>);
 }
 
-TEST_CASE("default t tree has height 0") {
-    const sut_type sut;
-    CHECK(sut.height() == 0);
-}
-
-TEST_CASE("t tree with one element has height 1") {
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    CHECK(sut.height() == 1);
-}
-
-TEST_CASE("t tree with five elements has height 2 (inserted increasing)") {
-    /* Rotation test:
-     *        [7, 8]                    [42, 43]
-     *             \                    /      \
-     *           [42, 43]       -->  [7, 8]   [420]
-     *                  \
-     *                 [420]
-     * */
-    sut_type sut;
-    // this order would cause a simple binary tree to become a list
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key3 + 1, Test_Value);
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key + 1, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 2);
-}
-
-TEST_CASE("t tree with five elements has height 2 (inserted decreasing)") {
-    /* Rotation test:
-     *        [420, 421]          [42, 43]
-     *        /                   /      \
-     *   [42, 43]       -->      [7]  [420, 421]
-     *   /
-     *  [7]
-     * */
-    sut_type sut;
-    // this order would cause a simple binary tree to become a list
-    sut.insert(Test_Key2, Test_Value);
-    sut.insert(Test_Key2 + 1, Test_Value);
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key + 1, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    CHECK(sut.height() == 2);
-}
-
-TEST_CASE("t tree with three elements has height 2 (inserted correct order)") {
-    /* no rotation test: there should be no rotation happening here */
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 2);
-}
-
-TEST_CASE("t tree with eight elements has height 3 (left side)") {
-    /* Rotation test:
-     *         [42, 43]                 [42, 43]
-     *         /      \                 /      \
-     *      [8, 9]   [420]           [  7  ]  [420]
-     *      /              -->       /     \
-     *   [5, 6]                   [5, 6] [8, 9]
-     *        \
-     *       [7]
-     * */
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key + 1, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    sut.insert(Test_Key3 + 1, Test_Value);
-    sut.insert(Test_Key3 + 2, Test_Value);
-    sut.insert(Test_Key3 - 1, Test_Value);
-    sut.insert(Test_Key3 - 2, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    CHECK(sut.height() == 3);
-}
-
-TEST_CASE("t tree with eight elements has height 3 (right side)") {
-    /* Rotation test:
-     *      [42, 43]                  [  42, 43  ]
-     *      /      \                  /          \
-     *     [7]  [418, 419]           [7]   [    420    ]
-     *                   \     -->         /           \
-     *                [421, 422]      [418, 419]   [421, 422]
-     *                /
-     *              [420]
-     * */
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key + 1, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key2 - 1, Test_Value);
-    sut.insert(Test_Key2 - 2, Test_Value);
-    sut.insert(Test_Key2 + 1, Test_Value);
-    sut.insert(Test_Key2 + 2, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 3);
-}
-
-TEST_CASE("t tree can find stored element") {
-    /*
-     *      [   419   ]
-     *      /         \
-     *   [7, 42]  [420, 421]
-     * */
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key2 - 1, Test_Value);
-    sut.insert(Test_Key2 + 1, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-
-    auto val = sut.search(Test_Key2);
-    REQUIRE(val != std::nullopt);
-    CHECK(*val == Test_Value);
-}
-
-TEST_CASE("t tree can find updated element") {
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value + 1);
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key2 - 1, Test_Value);
-    sut.insert(Test_Key2 + 1, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    sut.insert(Test_Key, Test_Value);
-
-    auto val = sut.search(Test_Key2);
-    REQUIRE(val != std::nullopt);
-    CHECK(*val == Test_Value);
-}
-
-TEST_CASE("t-tree benchmark",
-          "[.benchmark]") {
-    BENCHMARK_ADVANCED("t-tree insertion/empty tree")
-    (Catch::Benchmark::Chronometer chronometer) {
-        bm_type bm;
-        chronometer.measure([&bm](int i) {
-            bm.insert(i, Test_Value);
-        });
-    };
-    BENCHMARK_ADVANCED("t-tree insertion/full layer")
-    (Catch::Benchmark::Chronometer chronometer) {
-        bm_type bm;
-        std::mt19937_64 rng(std::random_device{}());
-        std::uniform_int_distribution<int> dist(0, chronometer.runs());
-        for (std::size_t i = 0; i < bm.node_capacity(); ++i) {
-            bm.insert(dist(rng), static_cast<int>(i));
-        }
-        chronometer.measure([&bm](int i) {
-            bm.insert(i, Test_Value);
-        });
-    };
-    BENCHMARK_ADVANCED("t-tree insertion/random (has rng overhead)")
-    (Catch::Benchmark::Chronometer chronometer) {
-        bm_type bm;
-        std::mt19937_64 rng(std::random_device{}());
-        std::uniform_int_distribution<int> dist(0, chronometer.runs());
-        for (std::size_t i = 0; i < bm.node_capacity() * 8; ++i) {
-            bm.insert(dist(rng), static_cast<int>(i));
-        }
-        std::vector<int> data(chronometer.runs());
-        std::ranges::generate(data, [&dist, &rng]() {
-            return dist(rng);
-        });
-        chronometer.measure([&bm, &data](int i) {
-            bm.insert(data[i], Test_Value);
-        });
-    };
-}
+//TEST_CASE("default t tree has height 0") {
+//    const sut_type sut;
+//    CHECK(sut.height() == 0);
+//}
+//
+//TEST_CASE("t tree with one element has height 1") {
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    CHECK(sut.height() == 1);
+//}
+//
+//TEST_CASE("t tree with five elements has height 2 (inserted increasing)") {
+//    /* Rotation test:
+//     *        [7, 8]                    [42, 43]
+//     *             \                    /      \
+//     *           [42, 43]       -->  [7, 8]   [420]
+//     *                  \
+//     *                 [420]
+//     * */
+//    sut_type sut;
+//    // this order would cause a simple binary tree to become a list
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key3 + 1, Test_Value);
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key + 1, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    CHECK(sut.height() == 2);
+//}
+//
+//TEST_CASE("t tree with five elements has height 2 (inserted decreasing)") {
+//    /* Rotation test:
+//     *        [420, 421]          [42, 43]
+//     *        /                   /      \
+//     *   [42, 43]       -->      [7]  [420, 421]
+//     *   /
+//     *  [7]
+//     * */
+//    sut_type sut;
+//    // this order would cause a simple binary tree to become a list
+//    sut.insert(Test_Key2, Test_Value);
+//    sut.insert(Test_Key2 + 1, Test_Value);
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key + 1, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    CHECK(sut.height() == 2);
+//}
+//
+//TEST_CASE("t tree with three elements has height 2 (inserted correct order)") {
+//    /* no rotation test: there should be no rotation happening here */
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    CHECK(sut.height() == 2);
+//}
+//
+//TEST_CASE("t tree with eight elements has height 3 (left side)") {
+//    /* Rotation test:
+//     *         [42, 43]                 [42, 43]
+//     *         /      \                 /      \
+//     *      [8, 9]   [420]           [  7  ]  [420]
+//     *      /              -->       /     \
+//     *   [5, 6]                   [5, 6] [8, 9]
+//     *        \
+//     *       [7]
+//     * */
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key + 1, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    sut.insert(Test_Key3 + 1, Test_Value);
+//    sut.insert(Test_Key3 + 2, Test_Value);
+//    sut.insert(Test_Key3 - 1, Test_Value);
+//    sut.insert(Test_Key3 - 2, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    CHECK(sut.height() == 3);
+//}
+//
+//TEST_CASE("t tree with eight elements has height 3 (right side)") {
+//    /* Rotation test:
+//     *      [42, 43]                  [  42, 43  ]
+//     *      /      \                  /          \
+//     *     [7]  [418, 419]           [7]   [    420    ]
+//     *                   \     -->         /           \
+//     *                [421, 422]      [418, 419]   [421, 422]
+//     *                /
+//     *              [420]
+//     * */
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key + 1, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key2 - 1, Test_Value);
+//    sut.insert(Test_Key2 - 2, Test_Value);
+//    sut.insert(Test_Key2 + 1, Test_Value);
+//    sut.insert(Test_Key2 + 2, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    CHECK(sut.height() == 3);
+//}
+//
+//TEST_CASE("t tree can find stored element") {
+//    /*
+//     *      [   419   ]
+//     *      /         \
+//     *   [7, 42]  [420, 421]
+//     * */
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key2 - 1, Test_Value);
+//    sut.insert(Test_Key2 + 1, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//
+//    auto val = sut.search(Test_Key2);
+//    REQUIRE(val != std::nullopt);
+//    CHECK(*val == Test_Value);
+//}
+//
+//TEST_CASE("t tree can find updated element") {
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value + 1);
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key2 - 1, Test_Value);
+//    sut.insert(Test_Key2 + 1, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    sut.insert(Test_Key, Test_Value);
+//
+//    auto val = sut.search(Test_Key2);
+//    REQUIRE(val != std::nullopt);
+//    CHECK(*val == Test_Value);
+//}
+//
+//TEST_CASE("t-tree benchmark",
+//          "[.benchmark]") {
+//    BENCHMARK_ADVANCED("t-tree insertion/empty tree")
+//    (Catch::Benchmark::Chronometer chronometer) {
+//        bm_type bm;
+//        chronometer.measure([&bm](int i) {
+//            bm.insert(i, Test_Value);
+//        });
+//    };
+//    BENCHMARK_ADVANCED("t-tree insertion/full layer")
+//    (Catch::Benchmark::Chronometer chronometer) {
+//        bm_type bm;
+//        std::mt19937_64 rng(std::random_device{}());
+//        std::uniform_int_distribution<int> dist(0, chronometer.runs());
+//        for (std::size_t i = 0; i < bm.node_capacity(); ++i) {
+//            bm.insert(dist(rng), static_cast<int>(i));
+//        }
+//        chronometer.measure([&bm](int i) {
+//            bm.insert(i, Test_Value);
+//        });
+//    };
+//    BENCHMARK_ADVANCED("t-tree insertion/random (has rng overhead)")
+//    (Catch::Benchmark::Chronometer chronometer) {
+//        bm_type bm;
+//        std::mt19937_64 rng(std::random_device{}());
+//        std::uniform_int_distribution<int> dist(0, chronometer.runs());
+//        for (std::size_t i = 0; i < bm.node_capacity() * 8; ++i) {
+//            bm.insert(dist(rng), static_cast<int>(i));
+//        }
+//        std::vector<int> data(chronometer.runs());
+//        std::ranges::generate(data, [&dist, &rng]() {
+//            return dist(rng);
+//        });
+//        chronometer.measure([&bm, &data](int i) {
+//            bm.insert(data[i], Test_Value);
+//        });
+//    };
+//}

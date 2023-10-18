@@ -69,6 +69,9 @@ namespace ldb::index::tree {
 
         virtual void
         increment_side_of_child(NodeT* child) = 0;
+
+        virtual NodeT*
+        downcast_to_node() noexcept { return nullptr; }
     };
 }
 
