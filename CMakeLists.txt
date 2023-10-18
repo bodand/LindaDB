@@ -134,7 +134,7 @@ endif ()
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
 if (LINDA_DB_USE_PROFILER)
-    find_package(tracy CONFIG REQUIRED)
+    find_package(Tracy CONFIG REQUIRED)
 endif ()
 
 # targets
