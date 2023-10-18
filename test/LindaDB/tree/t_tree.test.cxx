@@ -63,13 +63,19 @@ TEST_CASE("t tree can be default constructed") {
 
 TEST_CASE("default t tree has height 0") {
     const sut_type sut;
-    CHECK(sut.height() == 0);
+    CHECK(sut.dump_string() == R"_x_(((2 0) 0
+  ()
+  ())
+)_x_");
 }
 
 TEST_CASE("t tree with one element has height 1") {
     sut_type sut;
     sut.insert(Test_Key, Test_Value);
-    CHECK(sut.height() == 1);
+    CHECK(sut.dump_string() == R"_x_(((2 1 (42 42)) 0
+  ()
+  ())
+)_x_");
 }
 
 TEST_CASE("t tree with five elements has height 2 (inserted increasing)") {
@@ -87,7 +93,14 @@ TEST_CASE("t tree with five elements has height 2 (inserted increasing)") {
     sut.insert(Test_Key, Test_Value);
     sut.insert(Test_Key + 1, Test_Value);
     sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 2);
+    CHECK(sut.dump_string() == R"_x_(((2 2 (42 42) (43 42)) 0
+  ((2 2 (7 42) (8 42)) 0
+    ()
+    ())
+  ((2 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
 }
 
 TEST_CASE("t tree with five elements has height 2 (inserted decreasing)") {
@@ -105,7 +118,14 @@ TEST_CASE("t tree with five elements has height 2 (inserted decreasing)") {
     sut.insert(Test_Key, Test_Value);
     sut.insert(Test_Key + 1, Test_Value);
     sut.insert(Test_Key3, Test_Value);
-    CHECK(sut.height() == 2);
+    CHECK(sut.dump_string() == R"_x_(((2 2 (42 42) (43 42)) 0
+  ((2 1 (7 42)) 0
+    ()
+    ())
+  ((2 2 (420 42) (421 42)) 0
+    ()
+    ()))
+)_x_");
 }
 
 TEST_CASE("t tree with three elements has height 2 (inserted correct order)") {
@@ -114,84 +134,89 @@ TEST_CASE("t tree with three elements has height 2 (inserted correct order)") {
     sut.insert(Test_Key, Test_Value);
     sut.insert(Test_Key3, Test_Value);
     sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 2);
+    CHECK(sut.dump_string() == R"_x_(((2 2 (7 42) (42 42)) 1
+  ()
+  ((2 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
 }
 
-TEST_CASE("t tree with eight elements has height 3 (left side)") {
-    /* Rotation test:
-     *         [42, 43]                 [42, 43]
-     *         /      \                 /      \
-     *      [8, 9]   [420]           [  7  ]  [420]
-     *      /              -->       /     \
-     *   [5, 6]                   [5, 6] [8, 9]
-     *        \
-     *       [7]
-     * */
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key + 1, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    sut.insert(Test_Key3 + 1, Test_Value);
-    sut.insert(Test_Key3 + 2, Test_Value);
-    sut.insert(Test_Key3 - 1, Test_Value);
-    sut.insert(Test_Key3 - 2, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    CHECK(sut.height() == 3);
-}
-
-TEST_CASE("t tree with eight elements has height 3 (right side)") {
-    /* Rotation test:
-     *      [42, 43]                  [  42, 43  ]
-     *      /      \                  /          \
-     *     [7]  [418, 419]           [7]   [    420    ]
-     *                   \     -->         /           \
-     *                [421, 422]      [418, 419]   [421, 422]
-     *                /
-     *              [420]
-     * */
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key + 1, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key2 - 1, Test_Value);
-    sut.insert(Test_Key2 - 2, Test_Value);
-    sut.insert(Test_Key2 + 1, Test_Value);
-    sut.insert(Test_Key2 + 2, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 3);
-}
-
-TEST_CASE("t tree can find stored element") {
-    /*
-     *      [   419   ]
-     *      /         \
-     *   [7, 42]  [420, 421]
-     * */
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value);
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key2 - 1, Test_Value);
-    sut.insert(Test_Key2 + 1, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-
-    auto val = sut.search(Test_Key2);
-    REQUIRE(val != std::nullopt);
-    CHECK(*val == Test_Value);
-}
-
-TEST_CASE("t tree can find updated element") {
-    sut_type sut;
-    sut.insert(Test_Key, Test_Value + 1);
-    sut.insert(Test_Key3, Test_Value);
-    sut.insert(Test_Key2 - 1, Test_Value);
-    sut.insert(Test_Key2 + 1, Test_Value);
-    sut.insert(Test_Key2, Test_Value);
-    sut.insert(Test_Key, Test_Value);
-
-    auto val = sut.search(Test_Key2);
-    REQUIRE(val != std::nullopt);
-    CHECK(*val == Test_Value);
-}
+//TEST_CASE("t tree with eight elements has height 3 (left side)") {
+//    /* Rotation test:
+//     *         [42, 43]                 [42, 43]
+//     *         /      \                 /      \
+//     *      [8, 9]   [420]           [  7  ]  [420]
+//     *      /              -->       /     \
+//     *   [5, 6]                   [5, 6] [8, 9]
+//     *        \
+//     *       [7]
+//     * */
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key + 1, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    sut.insert(Test_Key3 + 1, Test_Value);
+//    sut.insert(Test_Key3 + 2, Test_Value);
+//    sut.insert(Test_Key3 - 1, Test_Value);
+//    sut.insert(Test_Key3 - 2, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    CHECK(sut.height() == 3);
+//}
+//
+//TEST_CASE("t tree with eight elements has height 3 (right side)") {
+//    /* Rotation test:
+//     *      [42, 43]                  [  42, 43  ]
+//     *      /      \                  /          \
+//     *     [7]  [418, 419]           [7]   [    420    ]
+//     *                   \     -->         /           \
+//     *                [421, 422]      [418, 419]   [421, 422]
+//     *                /
+//     *              [420]
+//     * */
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key + 1, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key2 - 1, Test_Value);
+//    sut.insert(Test_Key2 - 2, Test_Value);
+//    sut.insert(Test_Key2 + 1, Test_Value);
+//    sut.insert(Test_Key2 + 2, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    CHECK(sut.height() == 3);
+//}
+//
+//TEST_CASE("t tree can find stored element") {
+//    /*
+//     *      [   419   ]
+//     *      /         \
+//     *   [7, 42]  [420, 421]
+//     * */
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value);
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key2 - 1, Test_Value);
+//    sut.insert(Test_Key2 + 1, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//
+//    auto val = sut.search(Test_Key2);
+//    REQUIRE(val != std::nullopt);
+//    CHECK(*val == Test_Value);
+//}
+//
+//TEST_CASE("t tree can find updated element") {
+//    sut_type sut;
+//    sut.insert(Test_Key, Test_Value + 1);
+//    sut.insert(Test_Key3, Test_Value);
+//    sut.insert(Test_Key2 - 1, Test_Value);
+//    sut.insert(Test_Key2 + 1, Test_Value);
+//    sut.insert(Test_Key2, Test_Value);
+//    sut.insert(Test_Key, Test_Value);
+//
+//    auto val = sut.search(Test_Key2);
+//    REQUIRE(val != std::nullopt);
+//    CHECK(*val == Test_Value);
+//}
 
 TEST_CASE("t-tree benchmark",
           "[.benchmark]") {

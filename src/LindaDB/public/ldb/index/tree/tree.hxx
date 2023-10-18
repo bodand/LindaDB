@@ -42,6 +42,7 @@
 #include <memory>
 #include <optional>
 #include <ostream>
+#include <sstream>
 #include <variant>
 
 #include <ldb/index/tree/payload_dispatcher.hxx>
@@ -74,7 +75,6 @@ namespace ldb::index::tree {
             do {
                 node = node->insert(key, value);
             } while (node != nullptr);
-            _empty = false;
         }
 
         void
@@ -83,10 +83,11 @@ namespace ldb::index::tree {
             os << "\n";
         }
 
-        [[nodiscard]] std::size_t
-        height() const noexcept {
-            if (_empty) return 0;
-            return _root->total_height_inclusive();
+        [[nodiscard]] std::string
+        dump_string() const {
+            std::ostringstream ss;
+            dump(ss);
+            return ss.str();
         }
 
         [[nodiscard]] constexpr std::size_t
@@ -120,7 +121,6 @@ namespace ldb::index::tree {
             if (_root.get() == old) {
                 auto owned_old = std::exchange(_root, std::move(new_));
                 _root->set_parent(this);
-                _root->refresh_heights();
                 return owned_old;
             }
             assert(false && "invalid child of management object tree (replace_this_as_child)");
@@ -142,7 +142,6 @@ namespace ldb::index::tree {
             assert(_root == nullptr && "child node not null of management object tree (attach_left)");
             _root = std::move(left);
             _root->set_parent(this);
-            _root->refresh_heights();
         }
 
         void
@@ -150,7 +149,6 @@ namespace ldb::index::tree {
             assert(_root == nullptr && "child node not null of management object tree (attach_right)");
             _root = std::move(right);
             _root->set_parent(this);
-            _root->refresh_heights();
         }
 
         void
@@ -159,7 +157,6 @@ namespace ldb::index::tree {
             /* nop */
         }
 
-        bool _empty = true;
         std::unique_ptr<tree_node<payload_type>> _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
     };
 }

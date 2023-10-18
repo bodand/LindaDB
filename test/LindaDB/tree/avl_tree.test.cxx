@@ -63,13 +63,19 @@ TEST_CASE("avl tree can be default constructed") {
 
 TEST_CASE("default avl tree has height 0") {
     const sut_type sut;
-    CHECK(sut.height() == 0);
+    CHECK(sut.dump_string() == R"_x_(((1 0) 0
+  ()
+  ())
+)_x_");
 }
 
 TEST_CASE("avl tree with one element has height 1") {
     sut_type sut;
     sut.insert(Test_Key, Test_Value);
-    CHECK(sut.height() == 1);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) 0
+  ()
+  ())
+)_x_");
 }
 
 TEST_CASE("avl tree with three elements has height 2 (inserted increasing)") {
@@ -85,7 +91,14 @@ TEST_CASE("avl tree with three elements has height 2 (inserted increasing)") {
     sut.insert(Test_Key3, Test_Value);
     sut.insert(Test_Key, Test_Value);
     sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 2);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) 0
+  ((1 1 (7 42)) 0
+    ()
+    ())
+  ((1 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
 }
 
 TEST_CASE("avl tree with three elements has height 2 (inserted decreasing)") {
@@ -101,7 +114,14 @@ TEST_CASE("avl tree with three elements has height 2 (inserted decreasing)") {
     sut.insert(Test_Key2, Test_Value);
     sut.insert(Test_Key, Test_Value);
     sut.insert(Test_Key3, Test_Value);
-    CHECK(sut.height() == 2);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) 0
+  ((1 1 (7 42)) 0
+    ()
+    ())
+  ((1 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
 }
 
 TEST_CASE("avl tree with three elements has height 2 (inserted correct order)") {
@@ -110,7 +130,14 @@ TEST_CASE("avl tree with three elements has height 2 (inserted correct order)") 
     sut.insert(Test_Key, Test_Value);
     sut.insert(Test_Key3, Test_Value);
     sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 2);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) 0
+  ((1 1 (7 42)) 0
+    ()
+    ())
+  ((1 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
 }
 
 TEST_CASE("avl tree with five elements has height 3 (left side)") {
@@ -129,7 +156,18 @@ TEST_CASE("avl tree with five elements has height 3 (left side)") {
     sut.insert(Test_Key3 + 1, Test_Value);
     sut.insert(Test_Key3 - 1, Test_Value);
     sut.insert(Test_Key3, Test_Value);
-    CHECK(sut.height() == 3);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) -1
+  ((1 1 (7 42)) 0
+    ((1 1 (6 42)) 0
+      ()
+      ())
+    ((1 1 (8 42)) 0
+      ()
+      ()))
+  ((1 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
 }
 
 TEST_CASE("avl tree with five elements has height 3 (right side)") {
@@ -148,7 +186,18 @@ TEST_CASE("avl tree with five elements has height 3 (right side)") {
     sut.insert(Test_Key2 - 1, Test_Value);
     sut.insert(Test_Key2 + 1, Test_Value);
     sut.insert(Test_Key2, Test_Value);
-    CHECK(sut.height() == 3);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) 1
+  ((1 1 (7 42)) 0
+    ()
+    ())
+  ((1 1 (420 42)) 0
+    ((1 1 (419 42)) 0
+      ()
+      ())
+    ((1 1 (421 42)) 0
+      ()
+      ())))
+)_x_");
 }
 
 TEST_CASE("avl tree can find stored element") {
@@ -183,8 +232,8 @@ TEST_CASE("avl-tree benchmark",
     BENCHMARK_ADVANCED("avl-tree insertion/empty tree")
     (Catch::Benchmark::Chronometer chronometer) {
         bm_type bm;
-        chronometer.measure([&bm](int i) {
-            bm.insert(i, Test_Value);
+        chronometer.measure([&bm]() {
+            bm.insert(Test_Key, Test_Value);
         });
     };
     BENCHMARK_ADVANCED("avl-tree insertion/full layer")
@@ -195,24 +244,24 @@ TEST_CASE("avl-tree benchmark",
         for (std::size_t i = 0; i < bm.node_capacity(); ++i) {
             bm.insert(dist(rng), static_cast<int>(i));
         }
-        chronometer.measure([&bm](int i) {
-            bm.insert(i, Test_Value);
+        chronometer.measure([&bm]() {
+            bm.insert(Test_Key2, Test_Value);
         });
     };
-    BENCHMARK_ADVANCED("avl-tree insertion/random (has rng overhead)")
-    (Catch::Benchmark::Chronometer chronometer) {
-        bm_type bm;
-        std::mt19937_64 rng(std::random_device{}());
-        std::uniform_int_distribution<int> dist(0, chronometer.runs());
-        for (std::size_t i = 0; i < bm.node_capacity() * 8; ++i) {
-            bm.insert(dist(rng), static_cast<int>(i));
-        }
-        std::vector<int> data(chronometer.runs());
-        std::ranges::generate(data, [&dist, &rng]() {
-            return dist(rng);
-        });
-        chronometer.measure([&bm, &data](int i) {
-            bm.insert(data[i], Test_Value);
-        });
-    };
+//    BENCHMARK_ADVANCED("avl-tree insertion/random")
+//    (Catch::Benchmark::Chronometer chronometer) {
+//        bm_type bm;
+//        std::mt19937_64 rng(std::random_device{}());
+//        std::uniform_int_distribution<int> dist(0, chronometer.runs());
+//        for (std::size_t i = 0; i < bm.node_capacity() * 8; ++i) {
+//            bm.insert(dist(rng), static_cast<int>(i));
+//        }
+//        std::vector<int> data(static_cast<std::size_t>(chronometer.runs()));
+//        std::ranges::generate(data, [&dist, &rng]() {
+//            return dist(rng);
+//        });
+//        chronometer.measure([&bm, &data](int i) {
+//            bm.insert(data[static_cast<std::size_t>(i)], Test_Value);
+//        });
+//    };
 }

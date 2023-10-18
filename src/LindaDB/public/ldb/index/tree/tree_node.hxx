@@ -38,6 +38,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <type_traits>
@@ -69,7 +70,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] factor_type
         balance_factor() const noexcept {
-            return static_cast<factor_type>(_right_height - _left_height);
+            return _balance_factor;
         }
 
         [[nodiscard]] constexpr size_type
@@ -95,7 +96,7 @@ namespace ldb::index::tree {
         void
         dump(std::ostream& os, std::size_t depth = 0) const {
             depth += 2;
-            os << "(" << _payload << " " << _left_height << " " << _right_height << " " << balance_factor() << "\n"
+            os << "(" << _payload << " " << balance_factor() << "\n"
                << std::string(depth, ' ');
             if (_left) {
                 _left->dump(os, depth);
@@ -179,25 +180,39 @@ namespace ldb::index::tree {
             _parent = parent;
         }
 
-        void
-        refresh_heights() {
-            _right_height = _right ? _right->total_height_inclusive() : 0;
-            _left_height = _left ? _left->total_height_inclusive() : 0;
-        }
-
-        [[nodiscard]] auto
-        total_height_inclusive() const noexcept {
-            return std::max(_left_height, _right_height) + 1; // +1 for this' level
+        ~tree_node() noexcept override {
+            if (_left) release(&_left, this);
+            if (_right) release(&_right, this);
         }
 
     private:
+        /**
+         * WARNING: DO NOT CALL THIS FUNCTION FROM OUTSIDE A TREE_NODE (i.e. FROM THE TREE)
+         */
+        static void
+        release(std::unique_ptr<tree_node>* subtree,
+                tree_node* caller) noexcept {
+            while ((*subtree)->_left && (*subtree)->_right) {
+                subtree = &(*subtree)->_left;
+            }
+
+            if ((*subtree)->_left) {
+                *subtree = std::move((*subtree)->_left);
+            }
+            else if ((*subtree)->_right) {
+                *subtree = std::move((*subtree)->_right);
+            }
+            else {
+                (*subtree).reset();
+            }
+        }
+
         std::unique_ptr<tree_node>
         replace_this_as_child(tree_node<T>* old, std::unique_ptr<tree_node<T>>&& new_) override {
             if (_left.get() == old) {
                 auto owned_old = std::exchange(_left, std::move(new_));
                 if (_left) {
                     _left->_parent = this;
-                    _left_height = _left->total_height_inclusive();
                 }
                 return owned_old;
             }
@@ -205,7 +220,6 @@ namespace ldb::index::tree {
                 auto owned_old = std::exchange(_right, std::move(new_));
                 if (_right) {
                     _right->_parent = this;
-                    _right_height = _right->total_height_inclusive();
                 }
                 return owned_old;
             }
@@ -215,13 +229,11 @@ namespace ldb::index::tree {
 
         std::unique_ptr<tree_node>
         detach_left() override {
-            _left_height = 0;
             return std::unique_ptr<tree_node>{_left.release()};
         }
 
         std::unique_ptr<tree_node>
         detach_right() override {
-            _right_height = 0;
             return std::unique_ptr<tree_node>{_right.release()};
         }
 
@@ -231,7 +243,6 @@ namespace ldb::index::tree {
             _left = std::move(left);
             if (_left) {
                 _left->_parent = this;
-                _left_height = _left->total_height_inclusive();
             }
         }
 
@@ -241,7 +252,6 @@ namespace ldb::index::tree {
             _right = std::move(right);
             if (_right) {
                 _right->_parent = this;
-                _right_height = _right->total_height_inclusive();
             }
         }
 
@@ -249,20 +259,21 @@ namespace ldb::index::tree {
         increment_side_of_child(tree_node* child) override {
             auto parent = _parent;
             if (_left.get() == child) {
-                _left_height = _left->total_height_inclusive();
-                if (balance_factor() == -2) {
+                --_balance_factor;
+                if (_balance_factor == -2) {
                     parent = child->balance_factor() > 0 ? rotate_left_right(this, child)
                                                          : rotate_right(this, child);
                 }
             }
             if (_right.get() == child) {
-                _right_height = _right->total_height_inclusive();
-                if (balance_factor() == 2) {
+                ++_balance_factor;
+                if (_balance_factor == 2) {
                     parent = child->balance_factor() < 0 ? rotate_right_left(this, child)
                                                          : rotate_left(this, child);
                 }
             }
 
+            std::cout << child->_balance_factor << ": " << child->_payload << "\n";
             assert(abs(child->balance_factor()) < 2
                    && "child is not balanced after rotation(s)");
             assert(abs(balance_factor()) < 2
@@ -276,11 +287,18 @@ namespace ldb::index::tree {
             LDB_PROF_SCOPE("TreeRotate_Right");
             assert(self->_left.get() == child);
 
-            auto owned_self = self->_parent->replace_this_as_child(self, self->detach_left());
-            owned_self->attach_left(child->detach_right());
-            child->attach_right(std::move(owned_self));
+            auto ret = right_rotate(self, child);
 
-            return child->_parent;
+            if (child->_balance_factor == 0) {
+                self->_balance_factor = 1;
+                child->_balance_factor = -1;
+            }
+            else {
+                self->_balance_factor = 0;
+                child->_balance_factor = 0;
+            }
+
+            return ret;
         }
 
         static tree_node_handler<tree_node>*
@@ -288,11 +306,18 @@ namespace ldb::index::tree {
             LDB_PROF_SCOPE("TreeRotate_Left");
             assert(self->_right.get() == child);
 
-            auto owned_self = self->_parent->replace_this_as_child(self, self->detach_right());
-            owned_self->attach_right(child->detach_left());
-            child->attach_left(std::move(owned_self));
+            auto ret = left_rotate(self, child);
 
-            return child->_parent;
+            if (child->_balance_factor == 0) {
+                self->_balance_factor = 1;
+                child->_balance_factor = -1;
+            }
+            else {
+                self->_balance_factor = 0;
+                child->_balance_factor = 0;
+            }
+
+            return ret;
         }
 
         static tree_node_handler<tree_node>*
@@ -305,7 +330,22 @@ namespace ldb::index::tree {
             auto new_parent = rotate_left(child, inner_node);
             assert(new_parent == self);
             std::ignore = new_parent;
-            return rotate_right(self, inner_node);
+            auto ret = rotate_right(self, inner_node);
+
+            if (inner_node->_balance_factor == 0) {
+                self->_balance_factor = 0;
+                child->_balance_factor = 0;
+            }
+            else if (inner_node->_balance_factor > 0) {
+                self->_balance_factor = -1;
+                child->_balance_factor = 0;
+            }
+            else {
+                self->_balance_factor = 0;
+                child->_balance_factor = -1;
+            }
+
+            return ret;
         }
 
         static tree_node_handler<tree_node>*
@@ -318,18 +358,49 @@ namespace ldb::index::tree {
             auto new_parent = rotate_right(child, inner_node);
             assert(new_parent == self);
             std::ignore = new_parent;
-            return rotate_left(self, inner_node);
+            auto ret = rotate_left(self, inner_node);
+
+            if (inner_node->_balance_factor == 0) {
+                self->_balance_factor = 0;
+                child->_balance_factor = 0;
+            }
+            else if (inner_node->_balance_factor > 0) {
+                self->_balance_factor = -1;
+                child->_balance_factor = 0;
+            }
+            else {
+                self->_balance_factor = 0;
+                child->_balance_factor = -1;
+            }
+
+            return ret;
+        }
+
+        static tree_node_handler<tree_node>*
+        right_rotate(tree_node* self, tree_node* child) {
+            auto owned_self = self->_parent->replace_this_as_child(self, self->detach_left());
+            owned_self->attach_left(child->detach_right());
+            child->attach_right(std::move(owned_self));
+            return child->_parent;
+        }
+
+        static tree_node_handler<tree_node>*
+        left_rotate(tree_node* self, tree_node* child) {
+            auto owned_self = self->_parent->replace_this_as_child(self, self->detach_right());
+            owned_self->attach_right(child->detach_left());
+            child->attach_left(std::move(owned_self));
+            return child->_parent;
         }
 
         void
         increment_left() {
-            ++_left_height;
+            --_balance_factor;
             if (_parent) _parent->increment_side_of_child(this);
         }
 
         void
         increment_right() {
-            ++_right_height;
+            ++_balance_factor;
             if (_parent) _parent->increment_side_of_child(this);
         }
 
@@ -371,9 +442,8 @@ namespace ldb::index::tree {
             _right->insert_to_glb_descent(squished);
         }
 
-        std::size_t _left_height = 0;
-        std::size_t _right_height = 0;
         T _payload{};
+        factor_type _balance_factor = 0;
         tree_node_handler<tree_node<T>>* _parent = nullptr;
         std::unique_ptr<tree_node<T>> _left = nullptr;
         std::unique_ptr<tree_node<T>> _right = nullptr;
