@@ -117,7 +117,7 @@ namespace ldb::index::tree::payloads {
         }
 
         [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<K, P>>
-        force_set(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
+        force_set_lower(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
             LDB_PROF_SCOPE_C("ScalarPayload_InsertAndSquish", ldb::prof::color_insert);
             if (!empty() && kv_key() == key) {
                 kv_value() = value;
@@ -126,6 +126,11 @@ namespace ldb::index::tree::payloads {
             auto res = std::move(_value);
             _value = std::make_pair(key, value);
             return res;
+        }
+
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<K, P>>
+        force_set_upper(const K& key, const P& value) noexcept(noexcept(force_set_lower(key, value))) {
+            return force_set_lower(key, value);
         }
 
     private:

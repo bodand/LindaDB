@@ -107,7 +107,7 @@ TEST_CASE("empty vector_payload can add new key-value") {
 TEST_CASE("empty vector_payload can squish-add new key-value") {
     sut_type<> sut;
 
-    auto succ = sut.force_set(Test_Key, Test_Value);
+    auto succ = sut.force_set_lower(Test_Key, Test_Value);
     CHECK(succ == std::nullopt);
 }
 
@@ -126,9 +126,9 @@ TEST_CASE("empty vector_payload becomes full after adding multiple key-values") 
 TEST_CASE("empty vector_payload becomes full after squish-adding multiple key-values") {
     sut_type<> sut;
 
-    auto succ = sut.force_set(Test_Key, Test_Value);
+    auto succ = sut.force_set_lower(Test_Key, Test_Value);
     REQUIRE(succ == std::nullopt);
-    succ = sut.force_set(Test_Key2, Test_Value);
+    succ = sut.force_set_lower(Test_Key2, Test_Value);
     REQUIRE(succ == std::nullopt);
     CHECK(sut.full());
 }
@@ -153,7 +153,7 @@ TEST_CASE("full vector_payload returns old key-value for squish-add new key-valu
     REQUIRE(succ);
     succ = sut.try_set(Test_Key2, Test_Value);
     REQUIRE(succ);
-    auto old = sut.force_set(Test_Key3, Test_Value);
+    auto old = sut.force_set_lower(Test_Key3, Test_Value);
     REQUIRE(old);
     CHECK((old->first == Test_Key || old->first == Test_Key2)); // NOLINT(*-unchecked-optional-access)
 }
@@ -198,7 +198,7 @@ TEST_CASE("full vector_payload updates the value for the same key with squish-ad
     REQUIRE(succ);
     succ = sut.try_set(Test_Key2, Test_Value);
     REQUIRE(succ);
-    auto old = sut.force_set(Test_Key, Test_Value);
+    auto old = sut.force_set_lower(Test_Key, Test_Value);
     CHECK_FALSE(old);
 }
 
@@ -232,7 +232,7 @@ TEST_CASE("single element vector_payload compares equivalently to its key") {
 TEST_CASE("multi element vector_payload compares equivalently to its min/max keys") {
     // ordering of test keys: Test_Key3 < Test_Key < Test_Key2
     sut_type<> sut(Test_Key3, Test_Value);
-    std::ignore = sut.force_set(Test_Key2, Test_Value);
+    std::ignore = sut.force_set_lower(Test_Key2, Test_Value);
 
     CHECK(sut == Test_Key);
     CHECK(Test_Key == sut);

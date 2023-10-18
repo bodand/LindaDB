@@ -168,7 +168,7 @@ namespace ldb::index::tree {
                 return nullptr;
             }
 
-            if (const auto& squished = _payload.force_set(key, value);
+            if (const auto& squished = _payload.force_set_lower(key, value);
                 squished) { // squished some element out from this layer
                 insert_to_glb(*squished);
             }
@@ -181,17 +181,13 @@ namespace ldb::index::tree {
         }
 
         ~tree_node() noexcept override {
-            if (_left) release(&_left, this);
-            if (_right) release(&_right, this);
+            while (_left) release(&_left);
+            while (_right) release(&_right);
         }
 
     private:
-        /**
-         * WARNING: DO NOT CALL THIS FUNCTION FROM OUTSIDE A TREE_NODE (i.e. FROM THE TREE)
-         */
         static void
-        release(std::unique_ptr<tree_node>* subtree,
-                tree_node* caller) noexcept {
+        release(std::unique_ptr<tree_node>* subtree) noexcept {
             while ((*subtree)->_left && (*subtree)->_right) {
                 subtree = &(*subtree)->_left;
             }
@@ -257,46 +253,55 @@ namespace ldb::index::tree {
 
         void
         increment_side_of_child(tree_node* child) override {
+            assert(child);
+
             auto parent = _parent;
             if (_left.get() == child) {
                 --_balance_factor;
                 if (_balance_factor == -2) {
-                    parent = child->balance_factor() > 0 ? rotate_left_right(this, child)
-                                                         : rotate_right(this, child);
+                    if (child->balance_factor() > 0) {
+                        rotate_left_right(this, child);
+                    }
+                    else {
+                        rotate_right(this, child);
+                    }
+                    parent = nullptr;
+                    _balance_factor = 0;
                 }
             }
             if (_right.get() == child) {
                 ++_balance_factor;
                 if (_balance_factor == 2) {
-                    parent = child->balance_factor() < 0 ? rotate_right_left(this, child)
-                                                         : rotate_left(this, child);
+                    if (child->balance_factor() < 0) {
+                        rotate_right_left(this, child);
+                    }
+                    else {
+                        rotate_left(this, child);
+                    }
+                    parent = nullptr;
+                    _balance_factor = 0;
                 }
             }
 
-            std::cout << child->_balance_factor << ": " << child->_payload << "\n";
-            assert(abs(child->balance_factor()) < 2
+            //            std::cout << child->_balance_factor << ": " << child->_payload << "\n";
+            assert(abs(child->_balance_factor) < 2
                    && "child is not balanced after rotation(s)");
-            assert(abs(balance_factor()) < 2
+            assert(abs(_balance_factor) < 2
                    && "node is not balanced after rotation(s)");
-            assert(parent && "you doofus");
-            parent->increment_side_of_child(this);
+            if (parent) parent->increment_side_of_child(this);
         }
 
         static tree_node_handler<tree_node>*
         rotate_right(tree_node* self, tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_Right");
+            assert(self);
+            assert(child);
             assert(self->_left.get() == child);
 
             auto ret = right_rotate(self, child);
 
-            if (child->_balance_factor == 0) {
-                self->_balance_factor = 1;
-                child->_balance_factor = -1;
-            }
-            else {
-                self->_balance_factor = 0;
-                child->_balance_factor = 0;
-            }
+            self->_balance_factor = 1 * (child->_balance_factor == 0);
+            child->_balance_factor = -1 * (child->_balance_factor == 0);
 
             return ret;
         }
@@ -304,18 +309,14 @@ namespace ldb::index::tree {
         static tree_node_handler<tree_node>*
         rotate_left(tree_node* self, tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_Left");
+            assert(self);
+            assert(child);
             assert(self->_right.get() == child);
 
             auto ret = left_rotate(self, child);
 
-            if (child->_balance_factor == 0) {
-                self->_balance_factor = 1;
-                child->_balance_factor = -1;
-            }
-            else {
-                self->_balance_factor = 0;
-                child->_balance_factor = 0;
-            }
+            self->_balance_factor = 1 * (child->_balance_factor == 0);
+            child->_balance_factor = -1 * (child->_balance_factor == 0);
 
             return ret;
         }
@@ -323,27 +324,21 @@ namespace ldb::index::tree {
         static tree_node_handler<tree_node>*
         rotate_left_right(tree_node* self, tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_LeftRight");
+            assert(self);
+            assert(child);
+            assert(child->_right);
             assert(self->_left.get() == child);
             assert(child->balance_factor() > 0);
 
             auto inner_node = child->_right.get();
-            auto new_parent = rotate_left(child, inner_node);
+            auto new_parent = left_rotate(child, inner_node);
             assert(new_parent == self);
             std::ignore = new_parent;
-            auto ret = rotate_right(self, inner_node);
+            auto ret = right_rotate(self, inner_node);
 
-            if (inner_node->_balance_factor == 0) {
-                self->_balance_factor = 0;
-                child->_balance_factor = 0;
-            }
-            else if (inner_node->_balance_factor > 0) {
-                self->_balance_factor = -1;
-                child->_balance_factor = 0;
-            }
-            else {
-                self->_balance_factor = 0;
-                child->_balance_factor = -1;
-            }
+            self->_balance_factor = -1 * (inner_node->_balance_factor > 0);
+            child->_balance_factor = 1 * (inner_node->_balance_factor < 0);
+            inner_node->_balance_factor = 0;
 
             return ret;
         }
@@ -351,27 +346,21 @@ namespace ldb::index::tree {
         static tree_node_handler<tree_node>*
         rotate_right_left(tree_node* self, tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_RightLeft");
+            assert(self);
+            assert(child);
+            assert(child->_left);
             assert(self->_right.get() == child);
             assert(child->balance_factor() < 0);
 
             auto inner_node = child->_left.get();
-            auto new_parent = rotate_right(child, inner_node);
+            auto new_parent = right_rotate(child, inner_node);
             assert(new_parent == self);
             std::ignore = new_parent;
-            auto ret = rotate_left(self, inner_node);
+            auto ret = left_rotate(self, inner_node);
 
-            if (inner_node->_balance_factor == 0) {
-                self->_balance_factor = 0;
-                child->_balance_factor = 0;
-            }
-            else if (inner_node->_balance_factor > 0) {
-                self->_balance_factor = -1;
-                child->_balance_factor = 0;
-            }
-            else {
-                self->_balance_factor = 0;
-                child->_balance_factor = -1;
-            }
+            self->_balance_factor = -1 * (inner_node->_balance_factor > 0);
+            child->_balance_factor = 1 * (inner_node->_balance_factor < 0);
+            inner_node->_balance_factor = 0;
 
             return ret;
         }
@@ -395,12 +384,14 @@ namespace ldb::index::tree {
         void
         increment_left() {
             --_balance_factor;
+            if (_balance_factor == 0) return;
             if (_parent) _parent->increment_side_of_child(this);
         }
 
         void
         increment_right() {
             ++_balance_factor;
+            if (_balance_factor == 0) return;
             if (_parent) _parent->increment_side_of_child(this);
         }
 
@@ -408,6 +399,8 @@ namespace ldb::index::tree {
         void
         add_left(Args&&... args) {
             LDB_PROF_SCOPE("TreeNode_AddLeft");
+            assert(_balance_factor >= 0);
+            assert(_left == nullptr);
             _left = std::make_unique<tree_node<T>>(static_cast<tree_node_handler<tree_node>*>(this),
                                                    new_node_tag{},
                                                    std::forward<Args>(args)...);
@@ -418,6 +411,8 @@ namespace ldb::index::tree {
         void
         add_right(Args&&... args) {
             LDB_PROF_SCOPE("TreeNode_AddRight");
+            assert(_balance_factor <= 0);
+            assert(_right == nullptr);
             _right = std::make_unique<tree_node<T>>(static_cast<tree_node_handler<tree_node>*>(this),
                                                     new_node_tag{},
                                                     std::forward<Args>(args)...);
@@ -433,13 +428,15 @@ namespace ldb::index::tree {
 
         void
         insert_to_glb_descent(const std::pair<key_type, value_type>& squished) {
-            if (!_right) {
-                auto&& [key, value] = squished;
-                if (auto succ = _payload.try_set(key, value);
-                    succ) return;
-                return add_right(squished.first, squished.second);
-            }
-            _right->insert_to_glb_descent(squished);
+            if (_right) return _right->insert_to_glb_descent(squished);
+
+            auto&& [key, value] = squished;
+            if (auto succ = _payload.try_set(key, value);
+                succ) return;
+
+            auto new_squished = _payload.force_set_upper(key, value);
+            assert(new_squished.has_value());
+            add_right(new_squished->first, new_squished->second);
         }
 
         T _payload{};

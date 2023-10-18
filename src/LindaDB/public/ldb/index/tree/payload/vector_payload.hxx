@@ -135,7 +135,7 @@ namespace ldb::index::tree::payloads {
         }
 
         [[nodiscard]] std::optional<std::pair<K, V>>
-        force_set(const K& key, const V& value) {
+        force_set_lower(const K& key, const V& value) {
             LDB_PROF_SCOPE_C("VectorPayload_InsertAndSquish", ldb::prof::color_insert);
             if (auto res = upsert_kv(true, key, value);
                 res == FULL) {
@@ -143,6 +143,20 @@ namespace ldb::index::tree::payloads {
                 std::move(std::next(std::begin(_data)),
                           std::next(std::begin(_data), static_cast<std::ptrdiff_t>(_data_sz)),
                           std::begin(_data));
+                --_data_sz;
+                res = upsert_kv(false, key, value);
+                assert(res != FAILURE);
+                return {squished};
+            }
+            return std::nullopt;
+        }
+
+        [[nodiscard]] std::optional<std::pair<K, V>>
+        force_set_upper(const K& key, const V& value) {
+            LDB_PROF_SCOPE_C("VectorPayload_InsertAndSquish", ldb::prof::color_insert);
+            if (auto res = upsert_kv(true, key, value);
+                res == FULL) {
+                auto squished = _data.back();
                 --_data_sz;
                 res = upsert_kv(false, key, value);
                 assert(res != FAILURE);

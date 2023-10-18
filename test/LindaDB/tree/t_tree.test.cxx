@@ -142,81 +142,115 @@ TEST_CASE("t tree with three elements has height 2 (inserted correct order)") {
 )_x_");
 }
 
-//TEST_CASE("t tree with eight elements has height 3 (left side)") {
-//    /* Rotation test:
-//     *         [42, 43]                 [42, 43]
-//     *         /      \                 /      \
-//     *      [8, 9]   [420]           [  7  ]  [420]
-//     *      /              -->       /     \
-//     *   [5, 6]                   [5, 6] [8, 9]
-//     *        \
-//     *       [7]
-//     * */
-//    sut_type sut;
-//    sut.insert(Test_Key, Test_Value);
-//    sut.insert(Test_Key + 1, Test_Value);
-//    sut.insert(Test_Key2, Test_Value);
-//    sut.insert(Test_Key3 + 1, Test_Value);
-//    sut.insert(Test_Key3 + 2, Test_Value);
-//    sut.insert(Test_Key3 - 1, Test_Value);
-//    sut.insert(Test_Key3 - 2, Test_Value);
-//    sut.insert(Test_Key3, Test_Value);
-//    CHECK(sut.height() == 3);
-//}
-//
-//TEST_CASE("t tree with eight elements has height 3 (right side)") {
-//    /* Rotation test:
-//     *      [42, 43]                  [  42, 43  ]
-//     *      /      \                  /          \
-//     *     [7]  [418, 419]           [7]   [    420    ]
-//     *                   \     -->         /           \
-//     *                [421, 422]      [418, 419]   [421, 422]
-//     *                /
-//     *              [420]
-//     * */
-//    sut_type sut;
-//    sut.insert(Test_Key, Test_Value);
-//    sut.insert(Test_Key + 1, Test_Value);
-//    sut.insert(Test_Key3, Test_Value);
-//    sut.insert(Test_Key2 - 1, Test_Value);
-//    sut.insert(Test_Key2 - 2, Test_Value);
-//    sut.insert(Test_Key2 + 1, Test_Value);
-//    sut.insert(Test_Key2 + 2, Test_Value);
-//    sut.insert(Test_Key2, Test_Value);
-//    CHECK(sut.height() == 3);
-//}
-//
-//TEST_CASE("t tree can find stored element") {
-//    /*
-//     *      [   419   ]
-//     *      /         \
-//     *   [7, 42]  [420, 421]
-//     * */
-//    sut_type sut;
-//    sut.insert(Test_Key, Test_Value);
-//    sut.insert(Test_Key3, Test_Value);
-//    sut.insert(Test_Key2 - 1, Test_Value);
-//    sut.insert(Test_Key2 + 1, Test_Value);
-//    sut.insert(Test_Key2, Test_Value);
-//
-//    auto val = sut.search(Test_Key2);
-//    REQUIRE(val != std::nullopt);
-//    CHECK(*val == Test_Value);
-//}
-//
-//TEST_CASE("t tree can find updated element") {
-//    sut_type sut;
-//    sut.insert(Test_Key, Test_Value + 1);
-//    sut.insert(Test_Key3, Test_Value);
-//    sut.insert(Test_Key2 - 1, Test_Value);
-//    sut.insert(Test_Key2 + 1, Test_Value);
-//    sut.insert(Test_Key2, Test_Value);
-//    sut.insert(Test_Key, Test_Value);
-//
-//    auto val = sut.search(Test_Key2);
-//    REQUIRE(val != std::nullopt);
-//    CHECK(*val == Test_Value);
-//}
+TEST_CASE("t tree with eight elements has height 3 (left side)") {
+    /* Rotation test:
+     *         [42, 43]                 [42, 43]
+     *         /      \                 /      \
+     *      [8, 9]   [420]           [  7  ]  [420]
+     *      /              -->       /     \
+     *   [5, 6]                   [5, 6] [8, 9]
+     *        \
+     *       [7]
+     * */
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key + 1, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+    sut.insert(Test_Key3 + 1, Test_Value);
+    sut.insert(Test_Key3 + 2, Test_Value);
+    sut.insert(Test_Key3 - 1, Test_Value);
+    sut.insert(Test_Key3 - 2, Test_Value);
+    sut.insert(Test_Key3, Test_Value);
+    CHECK(sut.dump_string() == R"_x_(((2 2 (42 42) (43 42)) -1
+  ((2 1 (7 42)) 0
+    ((2 2 (5 42) (6 42)) 0
+      ()
+      ())
+    ((2 2 (8 42) (9 42)) 0
+      ()
+      ()))
+  ((2 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
+}
+
+TEST_CASE("t tree with eight elements has height 3 (right side)") {
+    /* Rotation test:
+     *      [42, 43]                  [  42, 43  ]
+     *      /      \                  /          \
+     *     [7]  [418, 419]           [7]   [    420    ]
+     *                   \     -->         /           \
+     *                [421, 422]      [418, 419]   [421, 422]
+     *                /
+     *              [420]
+     * */
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key + 1, Test_Value);
+    sut.insert(Test_Key3, Test_Value);
+    sut.insert(Test_Key2 - 1, Test_Value);
+    sut.insert(Test_Key2 - 2, Test_Value);
+    sut.insert(Test_Key2 + 1, Test_Value);
+    sut.insert(Test_Key2 + 2, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+    CHECK(sut.dump_string() == R"_x_(((2 2 (42 42) (43 42)) 1
+  ((2 1 (7 42)) 0
+    ()
+    ())
+  ((2 1 (420 42)) 0
+    ((2 2 (418 42) (419 42)) 0
+      ()
+      ())
+    ((2 2 (421 42) (422 42)) 0
+      ()
+      ())))
+)_x_");
+}
+
+TEST_CASE("t tree can find stored element") {
+    /*
+     *      [   419   ]
+     *      /         \
+     *   [7, 42]  [420, 421]
+     * */
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key3, Test_Value);
+    sut.insert(Test_Key2 - 1, Test_Value);
+    sut.insert(Test_Key2 + 1, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+
+    auto val = sut.search(Test_Key2);
+    REQUIRE(val != std::nullopt);
+    CHECK(*val == Test_Value);
+}
+
+TEST_CASE("t tree can find updated element") {
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value + 1);
+    sut.insert(Test_Key3, Test_Value);
+    sut.insert(Test_Key2 - 1, Test_Value);
+    sut.insert(Test_Key2 + 1, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+    sut.insert(Test_Key, Test_Value);
+
+    auto val = sut.search(Test_Key2);
+    REQUIRE(val != std::nullopt);
+    CHECK(*val == Test_Value);
+}
+
+TEST_CASE("t tree takes random data") {
+    sut_type sut;
+    std::mt19937_64 rng(std::random_device{}());
+    std::uniform_int_distribution<int> dist(0, 12000);
+    auto first = dist(rng);
+    sut.insert(dist(rng), 0);
+    for (std::size_t i = 0; i < 1'999'999; ++i) {
+        sut.insert(dist(rng), static_cast<int>(i));
+    }
+    CHECK(sut.search(first) != std::nullopt);
+}
 
 TEST_CASE("t-tree benchmark",
           "[.benchmark]") {

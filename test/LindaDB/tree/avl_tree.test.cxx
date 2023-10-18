@@ -232,8 +232,8 @@ TEST_CASE("avl-tree benchmark",
     BENCHMARK_ADVANCED("avl-tree insertion/empty tree")
     (Catch::Benchmark::Chronometer chronometer) {
         bm_type bm;
-        chronometer.measure([&bm]() {
-            bm.insert(Test_Key, Test_Value);
+        chronometer.measure([&bm](int i) {
+            bm.insert(i, Test_Value);
         });
     };
     BENCHMARK_ADVANCED("avl-tree insertion/full layer")
@@ -244,24 +244,24 @@ TEST_CASE("avl-tree benchmark",
         for (std::size_t i = 0; i < bm.node_capacity(); ++i) {
             bm.insert(dist(rng), static_cast<int>(i));
         }
-        chronometer.measure([&bm]() {
-            bm.insert(Test_Key2, Test_Value);
+        chronometer.measure([&bm](int i) {
+            bm.insert(i, Test_Value);
         });
     };
-//    BENCHMARK_ADVANCED("avl-tree insertion/random")
-//    (Catch::Benchmark::Chronometer chronometer) {
-//        bm_type bm;
-//        std::mt19937_64 rng(std::random_device{}());
-//        std::uniform_int_distribution<int> dist(0, chronometer.runs());
-//        for (std::size_t i = 0; i < bm.node_capacity() * 8; ++i) {
-//            bm.insert(dist(rng), static_cast<int>(i));
-//        }
-//        std::vector<int> data(static_cast<std::size_t>(chronometer.runs()));
-//        std::ranges::generate(data, [&dist, &rng]() {
-//            return dist(rng);
-//        });
-//        chronometer.measure([&bm, &data](int i) {
-//            bm.insert(data[static_cast<std::size_t>(i)], Test_Value);
-//        });
-//    };
+    BENCHMARK_ADVANCED("avl-tree insertion/random")
+    (Catch::Benchmark::Chronometer chronometer) {
+        bm_type bm;
+        std::mt19937_64 rng(std::random_device{}());
+        std::uniform_int_distribution<int> dist(0, chronometer.runs());
+        for (std::size_t i = 0; i < bm.node_capacity() * 8; ++i) {
+            bm.insert(dist(rng), static_cast<int>(i));
+        }
+        std::vector<int> data(static_cast<std::size_t>(chronometer.runs()));
+        std::ranges::generate(data, [&dist, &rng]() {
+            return dist(rng);
+        });
+        chronometer.measure([&bm, &data](int i) {
+            bm.insert(data[static_cast<std::size_t>(i)], Test_Value);
+        });
+    };
 }

@@ -98,7 +98,7 @@ TEST_CASE("empty scalar_payload can add new key-value") {
 TEST_CASE("empty scalar_payload can squish-add new key-value") {
     lps::scalar_payload<int, int> sut;
 
-    auto succ = sut.force_set(Test_Key, Test_Value);
+    auto succ = sut.force_set_upper(Test_Key, Test_Value);
     CHECK(succ == std::nullopt);
 }
 
@@ -115,7 +115,7 @@ TEST_CASE("empty scalar_payload becomes full after adding key-value") {
 TEST_CASE("empty scalar_payload becomes full after squish-adding key-value") {
     lps::scalar_payload<int, int> sut;
 
-    auto succ = sut.force_set(Test_Key, Test_Value);
+    auto succ = sut.force_set_upper(Test_Key, Test_Value);
     REQUIRE(succ == std::nullopt);
     CHECK(sut.full());
 }
@@ -136,7 +136,7 @@ TEST_CASE("full scalar_payload returns old key-value for squish-add new key-valu
 
     auto succ = sut.try_set(Test_Key, Test_Value);
     REQUIRE(succ);
-    auto old = sut.force_set(Test_Key + 1, Test_Value);
+    auto old = sut.force_set_upper(Test_Key + 1, Test_Value);
     REQUIRE(old);
     CHECK(old->first == Test_Key); // NOLINT(*-unchecked-optional-access)
 }
@@ -166,7 +166,7 @@ TEST_CASE("full scalar_payload updates the value for the same key with squish-ad
 
     auto succ = sut.try_set(Test_Key, Test_Value);
     REQUIRE(succ);
-    auto old = sut.force_set(Test_Key, Test_Value);
+    auto old = sut.force_set_upper(Test_Key, Test_Value);
     CHECK_FALSE(old);
 }
 
