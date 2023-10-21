@@ -35,6 +35,7 @@
 
 add_covered_test(NAME LindaDB.Test CATCH
                  SOURCES
+                 lv/linda_tuple.test.cxx
                  tree/avl_tree.test.cxx
                  tree/t_tree.test.cxx
                  tree/tree_node.test.cxx

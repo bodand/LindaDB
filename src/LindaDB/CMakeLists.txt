@@ -42,6 +42,8 @@ add_library(LindaDB STATIC
             public/ldb/index/tree/tree.hxx
             public/ldb/index/tree/tree_node.hxx
             public/ldb/index/tree/tree_node_handler.hxx
+            public/ldb/lv/linda_tuple.hxx
+            public/ldb/lv/linda_value.hxx
             public/ldb/profiler.hxx
             src/index/tree/payload/scalar_payload.cxx
             src/index/tree/payload/vector_payload.cxx
@@ -50,9 +52,7 @@ add_library(LindaDB STATIC
             src/index/tree/tree.cxx
             src/index/tree/tree_node.cxx
             src/index/tree/tree_node_handler.cxx
-        public/ldb/lv/linda_value.hxx
-        public/ldb/lv/linda_tuple.hxx
-)
+            src/lv/linda_tuple.cxx)
 
 if (LINDA_DB_USE_MIMALLOC)
     add_library(LindaDB-mimalloc STATIC

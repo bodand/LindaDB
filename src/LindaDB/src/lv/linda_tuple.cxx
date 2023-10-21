@@ -28,29 +28,28 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-18.
+ * Originally created: 2023-10-20.
  *
- * src/LindaDB/public/ldb/lv/linda_value --
+ * src/LindaDB/src/lv/linda_tuple --
+ *   Implements the functions of the linda_tuple type.
  */
 
-#ifndef LINDADB_LINDA_VALUE_HXX
-#define LINDADB_LINDA_VALUE_HXX
+#include <ldb/lv/linda_tuple.hxx>
 
-#include <cstdint>
-#include <string>
-#include <variant>
-
-namespace ldb::lv {
-    using linda_value = std::variant<
-           std::int16_t,
-           std::uint16_t,
-           std::int32_t,
-           std::uint32_t,
-           std::int64_t,
-           std::uint64_t,
-           std::string,
-           float,
-           double>;
+ldb::lv::linda_value&
+ldb::lv::linda_tuple::get_at(std::size_t idx) {
+    assert(idx < _size);
+    if (idx < 3) return _data_ref[idx];
+    if (_size == 4 && idx == 3) return std::get<linda_value>(_tail);
+    assert(_size > 4);
+    return std::get<std::vector<linda_value>>(_tail)[idx - 3];
 }
 
-#endif //LINDADB_LINDA_VALUE_HXX
+const ldb::lv::linda_value&
+ldb::lv::linda_tuple::get_at(std::size_t idx) const {
+    assert(idx < _size);
+    if (idx < 3) return _data_ref[idx];
+    if (_size == 4 && idx == 3) return std::get<linda_value>(_tail);
+    assert(_size > 4);
+    return std::get<std::vector<linda_value>>(_tail)[idx - 3];
+}
