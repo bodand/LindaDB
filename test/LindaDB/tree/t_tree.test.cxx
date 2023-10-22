@@ -273,7 +273,7 @@ TEST_CASE("t-tree benchmark",
             bm.insert(i, Test_Value);
         });
     };
-    BENCHMARK_ADVANCED("t-tree insertion/random (has rng overhead)")
+    BENCHMARK_ADVANCED("t-tree insertion/random")
     (Catch::Benchmark::Chronometer chronometer) {
         bm_type bm;
         std::mt19937_64 rng(std::random_device{}());
