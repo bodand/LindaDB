@@ -50,8 +50,6 @@
 #include <ldb/index/tree/tree_node_handler.hxx>
 #include <ldb/profiler.hxx>
 
-#include "tree_node.hxx"
-
 namespace ldb::index::tree {
     template<class NodeT>
     struct tree_node_handler {

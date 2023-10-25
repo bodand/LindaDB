@@ -269,7 +269,7 @@ namespace ldb::index::tree {
             assert(child);
 
             auto parent = _parent;
-            if (_left == child) {
+            if (_left.get() == child) {
                 /* destroy */ detach_left();
                 ++_balance_factor;
                 if (_balance_factor == 2) {
@@ -283,7 +283,7 @@ namespace ldb::index::tree {
                     _balance_factor = 0;
                 }
             }
-            if (_right == child) {
+            if (_right.get() == child) {
                 /* destroy */ detach_right();
                 --_balance_factor;
                 if (_balance_factor == -2) {
@@ -297,7 +297,7 @@ namespace ldb::index::tree {
                     _balance_factor = 0;
                 }
             }
-
+            return nullptr; // TODO
         }
 
         void

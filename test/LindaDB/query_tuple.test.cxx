@@ -59,7 +59,7 @@ TEST_CASE("meta::make_matcher<int> is match_value<int>") {
 }
 
 TEST_CASE("meta::make_matcher<match_type<int>> is match_type<int>") {
-    STATIC_CHECK(std::same_as<decltype(ldb::meta::make_matcher<ldb::match_type<int>>(ldb::ref<int>)),
+    STATIC_CHECK(std::same_as<decltype(ldb::meta::make_matcher<ldb::match_type<int>>(ldb::ref<int>(nullptr))),
                               ldb::match_type<int>>);
 }
 
@@ -71,8 +71,10 @@ TEST_CASE("query_tuple with different size is rejected") {
 
 TEST_CASE("query_tuple with different type field is rejected") {
     const lv::linda_tuple lv("str", 2);
-    const ldb::query_tuple q("str", ldb::ref<long long>);
+    long long val = 0LL;
+    const ldb::query_tuple q("str", ldb::ref(&val));
     CHECK_FALSE(q.match(lv));
+    CHECK(val == 0LL);
 }
 
 TEST_CASE("query_tuple with different value is rejected") {
@@ -83,8 +85,10 @@ TEST_CASE("query_tuple with different value is rejected") {
 
 TEST_CASE("query_tuple with same types is matched") {
     const lv::linda_tuple lv("str", 2);
-    const ldb::query_tuple q("str", ldb::ref<int>);
+    int val = 0;
+    const ldb::query_tuple q("str", ldb::ref(&val));
     CHECK(q.match(lv));
+    CHECK(val == 2);
 }
 
 TEST_CASE("query_tuple with same values is matched") {

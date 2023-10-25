@@ -45,23 +45,23 @@
 namespace ldb {
     template<class T>
     struct match_type {
-        constexpr match_type() noexcept = default;
-        constexpr match_type(const match_type& cp) noexcept = default;
-        constexpr match_type(match_type&&) noexcept = default;
-        constexpr match_type&
-        operator=(const match_type& cp) noexcept = default;
-        constexpr match_type&
-        operator=(match_type&&) noexcept = default;
-
-        ~match_type() noexcept = default;
+        constexpr explicit match_type(T* ref) noexcept : _ref(ref) { }
 
         template<class... Args>
         [[nodiscard]] constexpr bool
         operator()(const std::variant<Args...>& value) const noexcept
             requires((std::same_as<T, Args> || ...))
         {
-            return std::holds_alternative<T>(value);
+            if (auto found = std::get_if<T>(&value);
+                found) {
+                *_ref = *found;
+                return true;
+            }
+            return false;
         }
+
+    private:
+        T* _ref;
     };
 
     template<class T>
@@ -114,7 +114,8 @@ namespace ldb {
     match_value(T t) -> match_value<T>;
 
     template<class T>
-    constexpr const static auto ref = match_type<T>{};
+    auto
+    ref(T* ptr) { return match_type<T>{ptr}; }
 
     namespace meta {
         template<class T>

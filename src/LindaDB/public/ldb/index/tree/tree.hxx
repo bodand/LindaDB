@@ -138,7 +138,7 @@ namespace ldb::index::tree {
         }
 
         std::unique_ptr<node_type>
-        detach_this(tree_node<node_type >* child) override {
+        detach_this(node_type* child) override {
             return std::unique_ptr<node_type>(_root.release());
         }
 
