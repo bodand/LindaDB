@@ -94,8 +94,8 @@ namespace ldb::index::tree::payloads {
         [[nodiscard]] constexpr bool
         have_priority() const noexcept { return false; }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<P>
-        try_get(const K& key) const noexcept(std::is_nothrow_constructible_v<std::optional<P>, P>) {
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
+        try_get(const key_type& key) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
             LDB_PROF_SCOPE_C("ScalarPayload_Search", ldb::prof::color_search);
             if (empty()) return std::nullopt;
             if (kv_key() != key) return std::nullopt;
@@ -103,7 +103,7 @@ namespace ldb::index::tree::payloads {
         }
 
         [[nodiscard]] LDB_CONSTEXPR23 bool
-        try_set(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
+        try_set(const key_type& key, const value_type& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
             LDB_PROF_SCOPE_C("ScalarPayload_Insert", ldb::prof::color_insert);
             if (full()) {
                 if (kv_key() == key) {
@@ -116,7 +116,7 @@ namespace ldb::index::tree::payloads {
             return true;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<K, P>>
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<key_type, value_type>>
         force_set_lower(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
             LDB_PROF_SCOPE_C("ScalarPayload_InsertAndSquish", ldb::prof::color_insert);
             if (!empty() && kv_key() == key) {
@@ -128,9 +128,15 @@ namespace ldb::index::tree::payloads {
             return res;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<K, P>>
-        force_set_upper(const K& key, const P& value) noexcept(noexcept(force_set_lower(key, value))) {
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<key_type, value_type>>
+        force_set_upper(const key_type& key, const value_type& value) noexcept(noexcept(force_set_lower(key, value))) {
             return force_set_lower(key, value);
+        }
+
+        std::optional<value_type>
+        remove(const K& key) {
+            if (kv_key() == key) return kv_value();
+            return std::nullopt;
         }
 
     private:

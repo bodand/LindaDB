@@ -175,6 +175,37 @@ namespace ldb::index::tree {
             return nullptr;
         }
 
+        [[nodiscard]] tree_node*
+        remove(const key_type& key,
+               value_type* value_out) {
+            LDB_PROF_SCOPE_C("TreeNode_Insert", prof::color_insert);
+            auto order = _payload <=> key;
+
+            if (order > 0) {
+                if (_left) return _left.get();
+                return nullptr;
+            }
+
+            if (order < 0) {
+                if (_right) return _right.get();
+                return nullptr;
+            }
+
+            if (auto res = _payload.remove(key);
+                res && value_out) {
+                *value_out = *res;
+                // must remove node
+                if (_payload.empty()) {
+                    if (!_left && !_right) { // no children
+                        _parent->detach_this(this);
+                    }
+                }
+                else if (_payload.size() < 2 && _payload.capacity() >= 2) {
+                }
+            }
+            return nullptr;
+        }
+
         void
         set_parent(tree_node_handler<tree_node<T>>* parent) {
             _parent = parent;
@@ -231,6 +262,42 @@ namespace ldb::index::tree {
         std::unique_ptr<tree_node>
         detach_right() override {
             return std::unique_ptr<tree_node>{_right.release()};
+        }
+
+        std::unique_ptr<tree_node>
+        detach_this(tree_node<T>* child) override {
+            assert(child);
+
+            auto parent = _parent;
+            if (_left == child) {
+                /* destroy */ detach_left();
+                ++_balance_factor;
+                if (_balance_factor == 2) {
+                    if (child->balance_factor() < 0) {
+                        rotate_right_left(this, _right.get());
+                    }
+                    else {
+                        rotate_left(this, _right.get());
+                    }
+                    parent = nullptr;
+                    _balance_factor = 0;
+                }
+            }
+            if (_right == child) {
+                /* destroy */ detach_right();
+                --_balance_factor;
+                if (_balance_factor == -2) {
+                    if (child->balance_factor() > 0) {
+                        rotate_left_right(this, _left.get());
+                    }
+                    else {
+                        rotate_right(this, _left.get());
+                    }
+                    parent = nullptr;
+                    _balance_factor = 0;
+                }
+            }
+
         }
 
         void

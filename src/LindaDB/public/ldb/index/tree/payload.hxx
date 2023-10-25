@@ -66,6 +66,7 @@ namespace ldb::index::tree {
         { payload.try_set(key, value) } -> std::same_as<bool>;
         { payload.force_set_lower(key, value) } -> std::same_as<std::optional<std::pair<typename T::key_type, typename T::value_type>>>;
         { payload.force_set_upper(key, value) } -> std::same_as<std::optional<std::pair<typename T::key_type, typename T::value_type>>>;
+        { payload.remove(key) } -> std::same_as<std::optional<typename T::value_type>>;
 
         { payload <=> key } -> std::same_as<std::weak_ordering>;
         { payload == key } -> std::same_as<bool>;

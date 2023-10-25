@@ -38,7 +38,19 @@
 #ifndef LINDADB_TREE_NODE_HANDLER_HXX
 #define LINDADB_TREE_NODE_HANDLER_HXX
 
+#include <cassert>
+#include <cstdlib>
+#include <iostream>
 #include <memory>
+#include <optional>
+#include <type_traits>
+#include <variant>
+
+#include <ldb/index/tree/payload.hxx>
+#include <ldb/index/tree/tree_node_handler.hxx>
+#include <ldb/profiler.hxx>
+
+#include "tree_node.hxx"
 
 namespace ldb::index::tree {
     template<class NodeT>
@@ -70,8 +82,8 @@ namespace ldb::index::tree {
         virtual void
         increment_side_of_child(NodeT* child) = 0;
 
-        virtual NodeT*
-        resolve_into_node() noexcept { return nullptr; }
+        virtual std::unique_ptr<NodeT>
+        detach_this(NodeT* child) = 0;
     };
 }
 

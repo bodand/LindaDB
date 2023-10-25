@@ -41,13 +41,21 @@
 
 #include <ldb/index/tree/tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
+#include <ldb/query_tuple.hxx>
 
 namespace ldb {
     struct store {
         void out(lv::linda_tuple);
 
+        template<class... Args>
         lv::linda_tuple
-        in();
+        in(query_tuple<Args...> query) {
+            std::apply([&query]<class... Idx>(Idx&&... indices) {
+                return query.try_indexes(std::forward<Idx>(indices)...);
+            },
+                       _header_indices);
+        }
+
         lv::linda_tuple
         rd();
 

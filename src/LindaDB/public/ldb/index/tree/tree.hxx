@@ -137,6 +137,11 @@ namespace ldb::index::tree {
             return std::unique_ptr<node_type>{_root.release()};
         }
 
+        std::unique_ptr<node_type>
+        detach_this(tree_node<node_type >* child) override {
+            return std::unique_ptr<node_type>(_root.release());
+        }
+
         void
         attach_left(std::unique_ptr<node_type> left) override {
             assert(_root == nullptr && "child node not null of management object tree (attach_left)");
