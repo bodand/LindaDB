@@ -227,6 +227,148 @@ TEST_CASE("avl tree can find updated element") {
     CHECK(*val == Test_Value);
 }
 
+TEST_CASE("avl tree can delete single element") {
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    auto val = sut.remove(Test_Key);
+    CHECK(val == Test_Value);
+    CHECK(sut.dump_string() == R"__(((1 0) 0
+  ()
+  ())
+)__");
+}
+
+TEST_CASE("avl tree can delete leaf element") {
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+    auto val = sut.remove(Test_Key2);
+    CHECK(val == Test_Value);
+    CHECK(sut.dump_string() == R"__(((1 1 (42 42)) 0
+  ()
+  ())
+)__");
+}
+
+TEST_CASE("avl tree can delete inner element with left child") {
+    /* delete:
+     *         42                            42
+     *        /  \                          /  \
+     *       8   420                       7   420
+     *      /           -- delete 8 -->
+     *     7
+     * */
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+    sut.insert(Test_Key3 + 1, Test_Value + 1);
+    sut.insert(Test_Key3, Test_Value);
+    auto ret = sut.remove(Test_Key3 + 1);
+    CHECK(ret == Test_Value + 1);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) 0
+  ((1 1 (7 42)) 0
+    ()
+    ())
+  ((1 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
+}
+
+TEST_CASE("avl tree can delete inner element with right child") {
+    /* delete:
+     *         42                            42
+     *        /  \                          /  \
+     *       7   420                       6   420
+     *        \        -- delete 7 -->
+     *         6
+     * */
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+    sut.insert(Test_Key3, Test_Value + 1);
+    sut.insert(Test_Key3 - 1, Test_Value);
+    auto ret = sut.remove(Test_Key3);
+    CHECK(ret == Test_Value + 1);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) 0
+  ((1 1 (6 42)) 0
+    ()
+    ())
+  ((1 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
+}
+
+TEST_CASE("avl tree can delete inner element with two children") {
+    /* Rotation delete:
+     *         42                  42                             42
+     *        /  \                /  \                           /  \
+     *       8   420             7   420                        8   420
+     *      /           -->     / \          -- delete 7 -->   /
+     *     6                   6   8                          6
+     *      \
+     *       7
+     * */
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key2, Test_Value);
+    sut.insert(Test_Key3 + 1, Test_Value);
+    sut.insert(Test_Key3 - 1, Test_Value);
+    sut.insert(Test_Key3, Test_Value + 1);
+    auto ret = sut.remove(Test_Key3);
+    CHECK(ret == Test_Value + 1);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) -1
+  ((1 1 (8 42)) -1
+    ((1 1 (6 42)) 0
+      ()
+      ())
+    ())
+  ((1 1 (420 42)) 0
+    ()
+    ()))
+)_x_");
+}
+
+TEST_CASE("avl tree can delete deep inner element with two children") {
+    /* delete:
+     *       42                              42
+     *      /  \                            /  \
+     *     6   420                         7   420
+     *    / \    \     -- delete 6 -->    / \    \
+     *   5   8   421                     5   8   421
+     *      / \                               \
+     *     7   9                               9
+     * */
+    sut_type sut;
+    sut.insert(Test_Key, Test_Value);
+    sut.insert(Test_Key3 - 1, Test_Value + 1);
+    sut.insert(Test_Key2, Test_Value);
+    sut.insert(Test_Key2 + 1, Test_Value);
+    sut.insert(Test_Key3 - 2, Test_Value);
+    sut.insert(Test_Key3 + 1, Test_Value);
+    sut.insert(Test_Key3, Test_Value);
+    sut.insert(Test_Key3 + 2, Test_Value);
+    auto ret = sut.remove(Test_Key3 - 1);
+    CHECK(ret == Test_Value + 1);
+    CHECK(sut.dump_string() == R"_x_(((1 1 (42 42)) -1
+  ((1 1 (7 42)) 1
+    ((1 1 (5 42)) 0
+      ()
+      ())
+    ((1 1 (8 42)) 1
+      ()
+      ((1 1 (9 42)) 0
+        ()
+        ())))
+  ((1 1 (420 42)) 1
+    ()
+    ((1 1 (421 42)) 0
+      ()
+      ())))
+)_x_");
+}
+
 TEST_CASE("avl-tree benchmark",
           "[.benchmark]") {
     BENCHMARK_ADVANCED("avl-tree insertion/empty tree")

@@ -198,9 +198,41 @@ namespace ldb::index::tree {
                 if (_payload.empty()) {
                     if (!_left && !_right) { // no children
                         _parent->detach_this(this);
+                        return nullptr;
                     }
-                }
-                else if (_payload.size() < 2 && _payload.capacity() >= 2) {
+                    if (_left && !_right) { // only left child
+                        // this line scraps `this`
+                        std::ignore = _parent->replace_this_as_child(this, std::move(_left), update_type::INCREMENT);
+                        return nullptr;
+                    }
+                    if (!_left && _right) { // only right child
+                        // this line scraps `this`
+                        std::ignore = _parent->replace_this_as_child(this, std::move(_right), update_type::DECREMENT);
+                        return nullptr;
+                    }
+                    // both children exist :(
+                    // have both children -> successor must from children -> successor == min_child
+                    auto successor_ref = min_child(&_right);
+                    // successor does not have left node (or that would be the successor)
+                    // and it only may have a single child as its right subtree (or its balance factor
+                    // would be > 1)
+                    assert((*successor_ref)->_left == nullptr);
+                    assert((*successor_ref)->_balance_factor >= 0);
+                    assert((*successor_ref)->_balance_factor <= 1);
+                    auto successor = (*successor_ref)->_parent->replace_this_as_child((*successor_ref).get(), //
+                                                                                      std::move((*successor_ref)->_right),
+                                                                                      update_type::DECREMENT);
+                    successor->_right = nullptr;
+
+                    // successor is always a single node
+                    assert(successor->_left == nullptr);
+                    assert(successor->_right == nullptr);
+                    successor->attach_right(detach_right());
+                    successor->attach_left(detach_left());
+                    successor->_balance_factor = _balance_factor;
+                    // this line scraps `this`
+                    std::ignore = _parent->replace_this_as_child(this, std::move(successor));
+                    return nullptr;
                 }
             }
             return nullptr;
@@ -235,11 +267,15 @@ namespace ldb::index::tree {
         }
 
         std::unique_ptr<tree_node>
-        replace_this_as_child(tree_node<T>* old, std::unique_ptr<tree_node<T>>&& new_) override {
+        replace_this_as_child(tree_node<T>* old, std::unique_ptr<tree_node<T>>&& new_, update_type type) override {
             if (_left.get() == old) {
                 auto owned_old = std::exchange(_left, std::move(new_));
                 if (_left) {
                     _left->_parent = this;
+                    update_balance_factor(static_cast<int>(type), _left.get());
+                }
+                else if (owned_old) {
+                    update_balance_factor(1, nullptr);
                 }
                 return owned_old;
             }
@@ -247,6 +283,10 @@ namespace ldb::index::tree {
                 auto owned_old = std::exchange(_right, std::move(new_));
                 if (_right) {
                     _right->_parent = this;
+                    update_balance_factor(static_cast<int>(type), _right.get());
+                }
+                else if (owned_old) {
+                    update_balance_factor(-1, nullptr);
                 }
                 return owned_old;
             }
@@ -264,40 +304,47 @@ namespace ldb::index::tree {
             return std::unique_ptr<tree_node>{_right.release()};
         }
 
-        std::unique_ptr<tree_node>
+        bool
+        update_balance_factor(int by, tree_node<T>* child) {
+            if (by == 0) return true;
+            _balance_factor += by;
+            if (_balance_factor == 2) {
+                if (child && child->balance_factor() < 0) {
+                    rotate_right_left(this, _right.get());
+                }
+                else {
+                    rotate_left(this, _right.get());
+                }
+                _balance_factor = 0;
+                return true;
+            }
+            if (_balance_factor == -2) {
+                if (child && child->balance_factor() > 0) {
+                    rotate_left_right(this, _left.get());
+                }
+                else {
+                    rotate_right(this, _left.get());
+                }
+                _balance_factor = 0;
+                return true;
+            }
+            return false;
+        }
+
+        void
         detach_this(tree_node<T>* child) override {
             assert(child);
 
             auto parent = _parent;
             if (_left.get() == child) {
                 /* destroy */ detach_left();
-                ++_balance_factor;
-                if (_balance_factor == 2) {
-                    if (child->balance_factor() < 0) {
-                        rotate_right_left(this, _right.get());
-                    }
-                    else {
-                        rotate_left(this, _right.get());
-                    }
-                    parent = nullptr;
-                    _balance_factor = 0;
-                }
+                if (update_balance_factor(1, child)) parent = nullptr;
             }
             if (_right.get() == child) {
                 /* destroy */ detach_right();
-                --_balance_factor;
-                if (_balance_factor == -2) {
-                    if (child->balance_factor() > 0) {
-                        rotate_left_right(this, _left.get());
-                    }
-                    else {
-                        rotate_right(this, _left.get());
-                    }
-                    parent = nullptr;
-                    _balance_factor = 0;
-                }
+                if (update_balance_factor(-1, child)) parent = nullptr;
             }
-            return nullptr; // TODO
+            if (parent) parent->update_side_of_child(this, update_type::DECREMENT);
         }
 
         void
@@ -318,44 +365,33 @@ namespace ldb::index::tree {
             }
         }
 
+        static std::unique_ptr<tree_node>*
+        min_child(std::unique_ptr<tree_node>* node) {
+            assert(node && "node must not be empty");
+            assert((*node) && "*node must not be empty");
+            while ((*node)->_left) {
+                node = &(*node)->_left;
+            }
+            return node;
+        }
+
         void
-        increment_side_of_child(tree_node* child) override {
+        update_side_of_child(tree_node* child, update_type type) override {
             assert(child);
+            if (type == update_type::NO_UPDATE) return;
 
             auto parent = _parent;
-            if (_left.get() == child) {
-                --_balance_factor;
-                if (_balance_factor == -2) {
-                    if (child->balance_factor() > 0) {
-                        rotate_left_right(this, child);
-                    }
-                    else {
-                        rotate_right(this, child);
-                    }
-                    parent = nullptr;
-                    _balance_factor = 0;
-                }
-            }
-            if (_right.get() == child) {
-                ++_balance_factor;
-                if (_balance_factor == 2) {
-                    if (child->balance_factor() < 0) {
-                        rotate_right_left(this, child);
-                    }
-                    else {
-                        rotate_left(this, child);
-                    }
-                    parent = nullptr;
-                    _balance_factor = 0;
-                }
-            }
+            if (_left.get() == child
+                && update_balance_factor(-1 * static_cast<int>(type), child)) parent = nullptr;
 
-            //            std::cout << child->_balance_factor << ": " << child->_payload << "\n";
+            if (_right.get() == child
+                && update_balance_factor(1 * static_cast<int>(type), child)) parent = nullptr;
+
             assert(abs(child->_balance_factor) < 2
                    && "child is not balanced after rotation(s)");
             assert(abs(_balance_factor) < 2
                    && "node is not balanced after rotation(s)");
-            if (parent) parent->increment_side_of_child(this);
+            if (parent) parent->update_side_of_child(this, type);
         }
 
         static tree_node_handler<tree_node>*
@@ -452,14 +488,14 @@ namespace ldb::index::tree {
         increment_left() {
             --_balance_factor;
             if (_balance_factor == 0) return;
-            if (_parent) _parent->increment_side_of_child(this);
+            if (_parent) _parent->update_side_of_child(this, update_type::INCREMENT);
         }
 
         void
         increment_right() {
             ++_balance_factor;
             if (_balance_factor == 0) return;
-            if (_parent) _parent->increment_side_of_child(this);
+            if (_parent) _parent->update_side_of_child(this, update_type::INCREMENT);
         }
 
         template<class... Args>

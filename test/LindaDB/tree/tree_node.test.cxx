@@ -166,18 +166,18 @@ TEST_CASE("empty tree_node's insert returns nullptr (success)") {
 
 TEST_CASE("full tree_node's insert returns nullptr if it was a leaf") {
     Mock<lit::tree_node_handler<sut_type>> mock;
-    When(Method(mock, increment_side_of_child)).AlwaysReturn();
+    When(Method(mock, update_side_of_child)).AlwaysReturn();
     auto* obj = &mock.get();
     sut_type sut{obj, lit::new_node_tag{}, Test_Key, Test_Value};
 
     const auto* res = sut.insert(Test_Key2, Test_Value);
     CHECK(res == nullptr);
-    Verify(Method(mock, increment_side_of_child).Using(&sut)).Once();
+    Verify(Method(mock, update_side_of_child).Using(&sut, Any())).Once();
 }
 
 TEST_CASE("full tree_node's insert larger element makes the node right-heavy") {
     Mock<lit::tree_node_handler<sut_type>> mock;
-    When(Method(mock, increment_side_of_child)).AlwaysReturn();
+    When(Method(mock, update_side_of_child)).AlwaysReturn();
     auto* obj = &mock.get();
     sut_type sut{obj, lit::new_node_tag{}, Test_Key, Test_Value};
 
@@ -187,7 +187,7 @@ TEST_CASE("full tree_node's insert larger element makes the node right-heavy") {
 
 TEST_CASE("full tree_node's insert smaller element makes the node left-heavy") {
     Mock<lit::tree_node_handler<sut_type>> mock;
-    When(Method(mock, increment_side_of_child)).AlwaysReturn();
+    When(Method(mock, update_side_of_child)).AlwaysReturn();
     auto* obj = &mock.get();
     sut_type sut{obj, lit::new_node_tag{}, Test_Key, Test_Value};
 

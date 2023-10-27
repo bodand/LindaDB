@@ -51,8 +51,15 @@
 #include <ldb/profiler.hxx>
 
 namespace ldb::index::tree {
+    enum class update_type : int {
+        NO_UPDATE = 0,
+        INCREMENT = 1,
+        DECREMENT = -1
+    };
+
     template<class NodeT>
     struct tree_node_handler {
+
         tree_node_handler() = default;
         tree_node_handler(const tree_node_handler& cp) = delete;
         tree_node_handler(tree_node_handler&& mv) noexcept = delete;
@@ -63,7 +70,12 @@ namespace ldb::index::tree {
         virtual ~tree_node_handler() noexcept = default;
 
         virtual std::unique_ptr<NodeT>
-        replace_this_as_child(NodeT* old, std::unique_ptr<NodeT>&& new_) = 0;
+        replace_this_as_child(NodeT* old, std::unique_ptr<NodeT>&& new_, update_type type) = 0;
+
+        std::unique_ptr<NodeT>
+        replace_this_as_child(NodeT* old, std::unique_ptr<NodeT>&& new_) {
+            return replace_this_as_child(old, std::move(new_), update_type::NO_UPDATE);
+        }
 
         virtual std::unique_ptr<NodeT>
         detach_left() = 0;
@@ -78,9 +90,9 @@ namespace ldb::index::tree {
         attach_right(std::unique_ptr<NodeT> right) = 0;
 
         virtual void
-        increment_side_of_child(NodeT* child) = 0;
+        update_side_of_child(NodeT* child, update_type upd) = 0;
 
-        virtual std::unique_ptr<NodeT>
+        virtual void
         detach_this(NodeT* child) = 0;
     };
 }

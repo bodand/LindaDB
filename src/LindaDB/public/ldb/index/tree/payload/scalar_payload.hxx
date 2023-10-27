@@ -135,7 +135,7 @@ namespace ldb::index::tree::payloads {
 
         std::optional<value_type>
         remove(const K& key) {
-            if (kv_key() == key) return kv_value();
+            if (kv_key() == key) return kv_value_destructive();
             return std::nullopt;
         }
 
@@ -150,6 +150,14 @@ namespace ldb::index::tree::payloads {
         kv_value() const noexcept {
             assert(!empty());
             return _value->second;
+        }
+
+        [[nodiscard]] value_type
+        kv_value_destructive() noexcept {
+            assert(!empty());
+            auto ret = _value->second;
+            _value.reset();
+            return ret;
         }
 
         [[nodiscard]] key_type&

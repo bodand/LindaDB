@@ -77,6 +77,25 @@ namespace ldb::index::tree {
             } while (node != nullptr);
         }
 
+        V
+        remove(const K& key)
+            requires(std::is_default_constructible_v<V>)
+        {
+            V ret;
+            remove(key, &ret);
+            return ret;
+        }
+
+        void
+        remove(const K& key, V* ret) {
+            LDB_PROF_SCOPE_C("Tree_Remove", prof::color_remove);
+            node_type* node = _root.get();
+            do {
+                node = node->remove(key, ret);
+            } while (node != nullptr);
+            if (!_root) _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
+        }
+
         void
         dump(std::ostream& os) const {
             _root->dump(os);
@@ -115,9 +134,11 @@ namespace ldb::index::tree {
         };
 
         std::unique_ptr<node_type>
-        replace_this_as_child(node_type* old, std::unique_ptr<node_type>&& new_) override {
+        replace_this_as_child(node_type* old, std::unique_ptr<node_type>&& new_, update_type type) override {
             LDB_PROF_SCOPE("Tree_ReplaceRoot");
+            std::ignore = type;
             assert(new_ != nullptr && "root's node cannot be null");
+
             if (_root.get() == old) {
                 auto owned_old = std::exchange(_root, std::move(new_));
                 _root->set_parent(this);
@@ -137,9 +158,10 @@ namespace ldb::index::tree {
             return std::unique_ptr<node_type>{_root.release()};
         }
 
-        std::unique_ptr<node_type>
+        void
         detach_this(node_type* child) override {
-            return std::unique_ptr<node_type>(_root.release());
+            std::ignore = child;
+            _root.reset();
         }
 
         void
@@ -157,8 +179,9 @@ namespace ldb::index::tree {
         }
 
         void
-        increment_side_of_child(node_type* child) override {
+        update_side_of_child(node_type* child, update_type upd) override {
             std::ignore = child;
+            std::ignore = upd;
             /* nop */
         }
 
