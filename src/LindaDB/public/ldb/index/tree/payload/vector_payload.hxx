@@ -62,22 +62,23 @@ namespace ldb::index::tree::payloads {
         constexpr vector_payload(K2&& key, V2&& value)
              : _data_sz(1),
                _data({std::make_pair(std::forward<K2>(key), std::forward<V2>(value))}) { }
+
         constexpr explicit vector_payload(bundle_type&& bundle)
              : _data_sz(1),
                _data({std::move(bundle)}) { }
 
-        vector_payload(const vector_payload& cp)
+        constexpr vector_payload(const vector_payload& cp)
             requires(std::copyable<std::pair<K, value_type>>)
         = default;
-        vector_payload(vector_payload&& mv) noexcept = default;
-        vector_payload&
+        constexpr vector_payload(vector_payload&& mv) noexcept = default;
+        constexpr vector_payload&
         operator=(const vector_payload& cp)
             requires(std::copyable<std::pair<K, value_type>>)
         = default;
-        vector_payload&
+        constexpr vector_payload&
         operator=(vector_payload&& mv) noexcept = default;
 
-        ~vector_payload() noexcept = default;
+        constexpr ~vector_payload() noexcept = default;
 
         [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
         operator<=>(const key_type& key) const noexcept {
@@ -90,7 +91,7 @@ namespace ldb::index::tree::payloads {
             return std::weak_ordering::equivalent;
         }
 
-        [[nodiscard]] std::weak_ordering
+        [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
         operator<=>(const key_type& key) const noexcept
             requires(std::same_as<K, std::string>)
         {
@@ -134,13 +135,13 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] bool
+        [[nodiscard]] LDB_CONSTEXPR23 bool
         try_set(const key_type& key, const value_type& value) {
             LDB_PROF_SCOPE_C("VectorPayload_Insert", ldb::prof::color_insert);
             return upsert_kv(true, key, value) & (INSERTED | UPDATED);
         }
 
-        [[nodiscard]] bool
+        [[nodiscard]] LDB_CONSTEXPR23 bool
         try_set(const bundle_type& bundle) {
             return try_set(bundle.first, bundle.second);
         }
@@ -201,7 +202,7 @@ namespace ldb::index::tree::payloads {
         }
 
     private:
-        friend std::ostream&
+        friend constexpr std::ostream&
         operator<<(std::ostream& os, const vector_payload& pl) {
             os << "(" << pl.capacity() << " " << pl.size();
             for (std::size_t i = 0; i < pl._data_sz; ++i) {
@@ -258,7 +259,7 @@ namespace ldb::index::tree::payloads {
             FULL = 1U << 3U
         };
 
-        upsert_status
+        LDB_CONSTEXPR23 upsert_status
         upsert_kv(bool do_upsert, const key_type& key, const value_type& value) {
             LDB_PROF_SCOPE_C("VectorPayload_Upsert", prof::color_insert);
             if (_data_sz < 2) { // with 0 or 1 elems insertion is trivial
