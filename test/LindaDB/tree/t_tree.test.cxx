@@ -281,12 +281,12 @@ TEST_CASE("t-tree benchmark",
         for (std::size_t i = 0; i < bm.node_capacity() * 8; ++i) {
             bm.insert(dist(rng), static_cast<int>(i));
         }
-        std::vector<int> data(chronometer.runs());
+        std::vector<int> data(static_cast<std::size_t>(chronometer.runs()));
         std::ranges::generate(data, [&dist, &rng]() {
             return dist(rng);
         });
         chronometer.measure([&bm, &data](int i) {
-            bm.insert(data[i], Test_Value);
+            bm.insert(data[static_cast<std::size_t>(i)], Test_Value);
         });
     };
 }
