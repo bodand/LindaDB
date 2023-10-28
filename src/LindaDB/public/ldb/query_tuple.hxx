@@ -38,27 +38,64 @@
 
 #include <concepts>
 #include <cstdint>
+#include <span>
 #include <variant>
 
+#include <ldb/index/tree/tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 
 namespace ldb {
+    namespace meta {
+        struct finder {
+            explicit finder(size_t& idx) : idx(idx) { }
+            std::size_t& idx;
+
+            bool
+            operator()(auto* ptr, std::size_t ptr_idx) const noexcept {
+                if (ptr == nullptr) return false;
+                idx = ptr_idx;
+                return true;
+            }
+            bool
+            operator()(bool same, std::size_t ptr_idx) const noexcept {
+                if (!same) return false;
+                idx = ptr_idx;
+                return true;
+            }
+        };
+    }
+
     template<class T>
     struct match_type {
         constexpr explicit match_type(T* ref) noexcept : _ref(ref) { }
 
         template<class... Args>
-        [[nodiscard]] constexpr bool
+        [[nodiscard]] constexpr auto
         operator()(const std::variant<Args...>& value) const noexcept
             requires((std::same_as<T, Args> || ...))
         {
             if (auto found = std::get_if<T>(&value);
                 found) {
                 *_ref = *found;
-                return true;
+                return std::strong_ordering::equal;
             }
-            return false;
+
+            auto valid_idx = [&value]<std::size_t... Is>(std::index_sequence<Is...>) {
+                std::size_t idx{};
+                (meta::finder(idx)(std::get_if<Args>(&value), Is) || ...);
+                return idx;
+            }(std::make_index_sequence<sizeof...(Args)>());
+            auto t_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
+                std::size_t idx{};
+                (meta::finder(idx)(std::same_as<T, Args>, Is) || ...);
+                return idx;
+            }(std::make_index_sequence<sizeof...(Args)>());
+
+            return valid_idx <=> t_idx;
         }
+
+        constexpr static std::false_type
+        indexable() { return {}; }
 
     private:
         T* _ref;
@@ -74,20 +111,33 @@ namespace ldb {
              : _field(std::forward<U>(field)) { }
 
         template<class... Args>
-        [[nodiscard]] constexpr bool
+        [[nodiscard]] constexpr auto
         operator()(const std::variant<Args...>& value) const noexcept(noexcept(std::declval<T>() == _field))
             requires((std::same_as<T, Args> || ...))
         {
             return std::visit([field = _field]<class V>(V&& val) {
                 if constexpr (std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<V>>) {
-                    return std::forward<V>(val) == field;
+                    return std::forward<V>(val) <=> field;
                 }
                 else {
-                    return false;
+                    auto t_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
+                        std::size_t idx{};
+                        (meta::finder(idx)(std::same_as<T, Args>, Is) || ...);
+                        return idx;
+                    }(std::make_index_sequence<sizeof...(Args)>());
+                    auto v_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
+                        std::size_t idx{};
+                        (meta::finder(idx)(std::same_as<V, Args>, Is) || ...);
+                        return idx;
+                    }(std::make_index_sequence<sizeof...(Args)>());
+                    return v_idx <=> t_idx;
                 }
             },
                               value);
         }
+
+        constexpr static std::true_type
+        indexable() { return {}; }
 
     private:
         T _field;
@@ -101,10 +151,13 @@ namespace ldb {
              : _field(field) { }
 
         template<class... Args2>
-        [[nodiscard]] constexpr bool
+        [[nodiscard]] constexpr auto
         operator()(const std::variant<Args2...>& value) const noexcept(noexcept(_field == value)) {
-            return _field == value;
+            return _field <=> value;
         }
+
+        constexpr static std::true_type
+        indexable() { return {}; }
 
     private:
         std::variant<Args...> _field;
@@ -176,15 +229,40 @@ namespace ldb {
             requires((!std::same_as<Args, query_tuple> && ...))
              : _payload(meta::make_matcher<Args>(std::forward<Args>(args))...) { }
 
-        [[nodiscard]] bool
-        match(const lv::linda_tuple& lt) const { // todo noexcept
-            if (lt.size() != sizeof...(Matcher)) return false;
-            return [&lt, &payload = _payload]<std::size_t... Is>(std::index_sequence<Is...> /*indices*/) {
-                return (std::get<Is>(payload)(lt[Is]) && ...);
-            }(std::make_index_sequence<sizeof...(Matcher)>());
+        template<class V>
+        std::optional<std::optional<V>>
+        try_read_indices(std::span<index::tree::tree<lv::linda_value, V>> indices) {
         }
 
     private:
+        struct matcher {
+            explicit matcher(std::partial_ordering& ordering) : ordering(ordering) { }
+            std::partial_ordering& ordering;
+
+            bool
+            operator()(std::partial_ordering order) const noexcept {
+                if (std::is_eq(order)) return true;
+                ordering = order;
+                return false;
+            }
+        };
+
+        friend constexpr std::partial_ordering
+        operator<=>(const lv::linda_tuple& lt, const query_tuple& query) {
+            if (lt.size() != sizeof...(Matcher)) return lt.size() <=> sizeof...(Matcher);
+            return [&lt, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
+                std::partial_ordering order = std::strong_ordering::equal;
+                (matcher(order)(std::get<Is>(payload)(lt[Is])) && ...);
+                return order;
+            }(std::make_index_sequence<sizeof...(Matcher)>());
+        }
+
+        friend constexpr bool
+        operator==(const lv::linda_tuple& lt, const query_tuple& query) {
+            return (lt <=> query) == 0;
+        }
+
+        std::array<bool, sizeof...(Matcher)> _indexable{meta::matcher_type<Matcher>::indexable()...};
         std::tuple<meta::matcher_type<Matcher>...> _payload;
     };
 

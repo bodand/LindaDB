@@ -63,42 +63,80 @@ TEST_CASE("meta::make_matcher<match_type<int>> is match_type<int>") {
                               ldb::match_type<int>>);
 }
 
-TEST_CASE("query_tuple with different size is rejected") {
+TEST_CASE("query_tuple with different size is compared correctly") {
     const lv::linda_tuple lv("str", 2);
     const ldb::query_tuple q("str");
-    CHECK_FALSE(q.match(lv));
+
+    SECTION("not equal") {
+        CHECK(lv != q);
+        CHECK_FALSE(lv == q);
+    }
+    SECTION("tuple greater query") {
+        CHECK(lv > q);
+    }
 }
 
-TEST_CASE("query_tuple with different type field is rejected") {
+TEST_CASE("query_tuple with greater type field is compared correctly") {
     const lv::linda_tuple lv("str", 2);
     long long val = 0LL;
     const ldb::query_tuple q("str", ldb::ref(&val));
-    CHECK_FALSE(q.match(lv));
+
+    SECTION("not equal") {
+        CHECK_FALSE(lv == q);
+        CHECK(lv != q);
+    }
+    SECTION("tuple less query") {
+        CHECK(lv < q);
+    }
+
     CHECK(val == 0LL);
 }
 
-TEST_CASE("query_tuple with different value is rejected") {
+TEST_CASE("query_tuple with lesser type field is compared correctly") {
+    const lv::linda_tuple lv("str", 2);
+    short val = 0;
+    const ldb::query_tuple q("str", ldb::ref(&val));
+
+    SECTION("not equal") {
+        CHECK_FALSE(lv == q);
+        CHECK(lv != q);
+    }
+    SECTION("tuple greater query") {
+        CHECK(lv > q);
+    }
+
+    CHECK(val == 0LL);
+}
+
+TEST_CASE("query_tuple with greater value is compared correctly") {
     const lv::linda_tuple lv("str", 2);
     const ldb::query_tuple q("str", 3);
-    CHECK_FALSE(q.match(lv));
+
+    SECTION("not equal") {
+        CHECK_FALSE(lv == q);
+        CHECK(lv != q);
+    }
+    SECTION("tuple less query") {
+        CHECK(lv < q);
+    }
 }
 
 TEST_CASE("query_tuple with same types is matched") {
     const lv::linda_tuple lv("str", 2);
     int val = 0;
     const ldb::query_tuple q("str", ldb::ref(&val));
-    CHECK(q.match(lv));
+    CHECK(lv == q);
     CHECK(val == 2);
 }
 
 TEST_CASE("query_tuple with same values is matched") {
     const lv::linda_tuple lv("str", 2);
     const ldb::query_tuple q("str", 2);
-    CHECK(q.match(lv));
+    CHECK(lv == q);
 }
 
 TEST_CASE("query_tuple with same values with linda_values is matched") {
     const lv::linda_tuple lv("str", 2);
     const ldb::query_tuple q(lv::linda_value("str"), lv::linda_value(2));
-    CHECK(q.match(lv));
+    CHECK(lv == q);
 }
