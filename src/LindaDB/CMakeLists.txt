@@ -35,6 +35,7 @@
 #   components.
 
 add_library(LindaDB STATIC
+            public/ldb/index/tree/payload/chime_payload.hxx
             public/ldb/index/tree/payload/scalar_payload.hxx
             public/ldb/index/tree/payload/vector_payload.hxx
             public/ldb/index/tree/payload.hxx
@@ -46,6 +47,7 @@ add_library(LindaDB STATIC
             public/ldb/lv/linda_value.hxx
             public/ldb/profiler.hxx
             public/ldb/query_tuple.hxx
+            src/index/tree/payload/chime_payload.cxx
             src/index/tree/payload/scalar_payload.cxx
             src/index/tree/payload/vector_payload.cxx
             src/index/tree/payload.cxx
