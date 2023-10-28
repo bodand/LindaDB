@@ -35,8 +35,8 @@
  */
 
 
-#include <tuple>
 #include <sstream>
+#include <tuple>
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/payload.hxx>
@@ -271,20 +271,27 @@ TEST_CASE("full chime_payload as string contains its key and value") {
 // NOLINTNEXTLINE
 TEST_CASE("empty chime_payload returns nullopt in try_get") {
     const sut_type<> sut;
-    CHECK(sut.try_get(Test_Key) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
-TEST_CASE("full chime_payload returns nullopt in try_get with different key") {
+TEST_CASE("chime_payload returns nullopt in try_get with different key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(Test_Key + 1) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_query(Test_Key + 1)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
-TEST_CASE("full chime_payload returns Some(value) in try_get with correct key") {
+TEST_CASE("chime_payload returns Some(value) in try_get with correct key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(Test_Key) != std::nullopt);
-    CHECK(sut.try_get(Test_Key) == std::optional{Test_Value});
+    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::optional{Test_Value});
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload returns Some(value) in try_get with correct key and matcher") {
+    const sut_type<> sut(Test_Key, Test_Value);
+    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::value_query(Test_Key, Test_Value)) == std::optional{Test_Value});
 }
 
 TEST_CASE("multi-element chime_payload remains sorted after insert") {

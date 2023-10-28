@@ -45,6 +45,7 @@
 #include <cassert>
 #include <concepts>
 
+#include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/profiler.hxx>
 
@@ -98,11 +99,13 @@ namespace ldb::index::tree::payloads {
         [[nodiscard]] constexpr bool
         have_priority() const noexcept { return false; }
 
+        template<index_query<value_type> Q>
         [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
-        try_get(const key_type& key) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
+        try_get(Q query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
             LDB_PROF_SCOPE_C("ScalarPayload_Search", ldb::prof::color_search);
             if (empty()) return std::nullopt;
-            if (kv_key() != key) return std::nullopt;
+            if (kv_key() != query.key()) return std::nullopt;
+            if (kv_value() != query) return std::nullopt;
             return {kv_value()};
         }
 
@@ -154,9 +157,11 @@ namespace ldb::index::tree::payloads {
             return force_set_upper(std::move(key), std::move(value));
         }
 
+        template<index_query<value_type> Q>
         std::optional<value_type>
-        remove(const K& key) {
-            if (kv_key() == key) return kv_value_destructive();
+        remove(Q query) {
+            if (kv_key() == query.key()
+                && kv_value() == query) return kv_value_destructive();
             return std::nullopt;
         }
 

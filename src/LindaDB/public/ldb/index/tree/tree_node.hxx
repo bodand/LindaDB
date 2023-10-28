@@ -129,10 +129,11 @@ namespace ldb::index::tree {
             os << ")";
         }
 
+        template<index_query<value_type> Q>
         [[nodiscard]] std::variant<tree_node*, std::optional<value_type>>
-        search(const key_type& key) const {
+        search(const Q& query) const {
             LDB_PROF_SCOPE_C("TreeNode_Search", prof::color_search);
-            auto order = _payload <=> key;
+            auto order = _payload <=> query.key();
             if (order > 0) {
                 if (!_left.get()) return std::nullopt;
                 return _left.get();
@@ -141,7 +142,7 @@ namespace ldb::index::tree {
                 if (!_right.get()) return std::nullopt;
                 return _right.get();
             }
-            return _payload.try_get(key);
+            return _payload.try_get(query);
         }
 
         [[nodiscard]] tree_node*
@@ -183,17 +184,18 @@ namespace ldb::index::tree {
 
             if (auto squished = _payload.force_set_lower(key, value);
                 squished) { // squished some element out from this layer
-                auto&&bundle = *squished;
+                auto bundle = *squished;
                 insert_to_glb(std::move(bundle));
             }
             return nullptr;
         }
 
+        template<index_query<value_type> Q>
         [[nodiscard]] tree_node*
-        remove(const key_type& key,
-               value_type* value_out) {
+        remove(const Q& query,
+               std::optional<value_type>* value_out) {
             LDB_PROF_SCOPE_C("TreeNode_Insert", prof::color_insert);
-            auto order = _payload <=> key;
+            auto order = _payload <=> query.key();
 
             if (order > 0) {
                 if (_left) return _left.get();
@@ -205,9 +207,9 @@ namespace ldb::index::tree {
                 return nullptr;
             }
 
-            if (auto res = _payload.remove(key);
-                res && value_out) {
-                *value_out = *res;
+            if (auto res = _payload.remove(query);
+                res) {
+                if (value_out) *value_out = *res;
                 // must remove node
                 if (_payload.empty()) {
                     if (!_left && !_right) { // no children
@@ -249,6 +251,7 @@ namespace ldb::index::tree {
                     return nullptr;
                 }
             }
+            if (value_out) *value_out = std::nullopt;
             return nullptr;
         }
 

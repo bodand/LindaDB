@@ -55,15 +55,18 @@ namespace ldb::index::tree {
              std::size_t Clustering = 0>
     struct tree final : private tree_node_handler<tree_node<typename payload_dispatcher<K, V, Clustering>::type>> {
         using payload_type = typename payload_dispatcher<K, V, Clustering>::type;
+        using key_type = payload_type::key_type;
+        using value_type = payload_type::value_type;
 
-        [[nodiscard]] std::optional<V>
-        search(const K& key) const {
+        template<index_query<value_type> Q>
+        [[nodiscard]] std::optional<value_type>
+        search(const Q& query) const {
             LDB_PROF_SCOPE_C("Tree_Search", prof::color_search);
             std::optional<V> res;
             node_type* node = _root.get();
             while (node != nullptr) {
                 std::visit(search_obj{res, node},
-                           node->search(key));
+                           node->search(query));
             }
             return res;
         }
@@ -77,21 +80,21 @@ namespace ldb::index::tree {
             } while (node != nullptr);
         }
 
-        V
-        remove(const K& key)
-            requires(std::is_default_constructible_v<V>)
-        {
-            V ret;
-            remove(key, &ret);
+        template<index_query<value_type> Q>
+        std::optional<value_type>
+        remove(const Q& query) {
+            std::optional<value_type> ret;
+            remove(query, &ret);
             return ret;
         }
 
+        template<index_query<value_type> Q>
         void
-        remove(const K& key, V* ret) {
+        remove(const Q& query, std::optional<value_type>* ret) {
             LDB_PROF_SCOPE_C("Tree_Remove", prof::color_remove);
             node_type* node = _root.get();
             do {
-                node = node->remove(key, ret);
+                node = node->remove(query, ret);
             } while (node != nullptr);
             if (!_root) _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
         }

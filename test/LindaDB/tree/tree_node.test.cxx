@@ -135,7 +135,7 @@ TEST_CASE("empty tree_node's search returns nullopt") {
     auto* obj = &mock.get();
     const sut_type sut{obj};
 
-    auto res = sut.search(Test_Key);
+    auto res = sut.search(lit::any_value_query(Test_Key));
     CHECK(std::get<std::optional<int>>(res) == std::nullopt);
 }
 
@@ -143,7 +143,7 @@ TEST_CASE("leaf tree_node with key to left returns nullopt") {
     Mock<lit::tree_node_handler<sut_type>> mock;
     auto* obj = &mock.get();
     const sut_type sut{obj, lit::new_node_tag{}, Test_Key, Test_Value};
-    auto res = sut.search(Test_Key3);
+    auto res = sut.search(lit::any_value_query(Test_Key3));
     CHECK(std::get<std::optional<int>>(res) == std::nullopt);
 }
 
@@ -151,7 +151,7 @@ TEST_CASE("leaf tree_node with key to right returns nullopt") {
     Mock<lit::tree_node_handler<sut_type>> mock;
     auto* obj = &mock.get();
     const sut_type sut{obj, lit::new_node_tag{}, Test_Key, Test_Value};
-    auto res = sut.search(Test_Key2);
+    auto res =  sut.search(lit::any_value_query(Test_Key2));
     CHECK(std::get<std::optional<int>>(res) == std::nullopt);
 }
 

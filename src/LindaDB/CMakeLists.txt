@@ -38,6 +38,7 @@ add_library(LindaDB STATIC
             public/ldb/index/tree/payload/chime_payload.hxx
             public/ldb/index/tree/payload/scalar_payload.hxx
             public/ldb/index/tree/payload/vector_payload.hxx
+            public/ldb/index/tree/index_query.hxx
             public/ldb/index/tree/payload.hxx
             public/ldb/index/tree/payload_dispatcher.hxx
             public/ldb/index/tree/tree.hxx
@@ -50,6 +51,7 @@ add_library(LindaDB STATIC
             src/index/tree/payload/chime_payload.cxx
             src/index/tree/payload/scalar_payload.cxx
             src/index/tree/payload/vector_payload.cxx
+            src/index/tree/index_query.cxx
             src/index/tree/payload.cxx
             src/index/tree/payload_dispatcher.cxx
             src/index/tree/tree.cxx

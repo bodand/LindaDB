@@ -46,6 +46,7 @@
 #include <utility>
 #include <vector>
 
+#include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/profiler.hxx>
 
@@ -129,17 +130,18 @@ namespace ldb::index::tree::payloads {
             return std::weak_ordering::equivalent;
         }
 
+        template<index_query<value_type> Q>
         [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
-        try_get(const key_type& key) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
+        try_get(const Q& query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
             LDB_PROF_SCOPE_C("ChimePayload_Search", prof::color_search);
             if (empty()) return std::nullopt;
             auto data_end = next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
             if (auto it = std::ranges::lower_bound(begin(_keys),
                                                    data_end,
-                                                   key);
+                                                   query.key());
                 it != data_end) {
                 const auto col_idx = static_cast<std::size_t>(std::distance(begin(_keys), it));
-                return _sets[col_idx].get();
+                return _sets[col_idx].get(query);
             }
             return std::nullopt;
         }
@@ -222,16 +224,17 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
+        template<index_query<value_type> Q>
         LDB_CONSTEXPR23 std::optional<value_type>
-        remove(const key_type& key) {
+        remove(const Q& query) {
             LDB_PROF_SCOPE_C("VectorPayload_Remove", prof::color_remove);
             assert(!empty());
             auto key_end = next(begin(_keys), _data_sz);
-            auto it = std::ranges::lower_bound(begin(_keys), key_end, key);
+            auto it = std::ranges::lower_bound(begin(_keys), key_end, query.key());
             if (it == key_end) return std::nullopt;
 
             const auto col_idx = distance(begin(_keys), it);
-            auto random_result = _sets[col_idx].pop();
+            auto res = _sets[col_idx].pop(query);
 
             if (_sets[col_idx].empty()) {
                 const auto data_it = next(begin(_sets), col_idx);
@@ -240,7 +243,7 @@ namespace ldb::index::tree::payloads {
                 std::ranges::rotate(data_it, data_it + 1, data_end);
                 --_data_sz;
             }
-            return random_result;
+            return res;
         }
 
     private:
@@ -266,18 +269,27 @@ namespace ldb::index::tree::payloads {
                 });
             }
 
-            [[nodiscard]] constexpr value_type
-            pop() {
+            template<index_query<value_type> Q>
+            [[nodiscard]] constexpr std::optional<value_type>
+            pop(Q query) {
                 assert(!empty());
-                auto cp = _values.back();
-                _values.pop_back();
-                return cp;
+                if (auto it = std::ranges::lower_bound(_values, query);
+                    it != _values.end()) {
+
+                    auto cp = *it;
+                    _values.erase(it);
+                    return cp;
+                }
+                return std::nullopt;
             }
 
-            [[nodiscard]] constexpr value_type
-            get() const {
+            template<index_query<value_type> Q>
+            [[nodiscard]] constexpr std::optional<value_type>
+            get(const Q& query) const {
                 assert(!empty());
-                return _values.back();
+                if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
+                    it != _values.end()) return *it;
+                return std::nullopt;
             }
 
             [[nodiscard]] constexpr bool

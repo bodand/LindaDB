@@ -226,18 +226,18 @@ TEST_CASE("full scalar_payload as string contains its key and value") {
 // NOLINTNEXTLINE
 TEST_CASE("empty scalar_payload returns nullopt in try_get") {
     const lps::scalar_payload<int, int> sut;
-    CHECK(sut.try_get(Test_Key) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full scalar_payload returns nullopt in try_get with different key") {
     const lps::scalar_payload<int, int> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(Test_Key + 1) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_query(Test_Key + 1)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full scalar_payload returns Some(value) in try_get with correct key") {
     const lps::scalar_payload<int, int> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(Test_Key) != std::nullopt);
-    CHECK(sut.try_get(Test_Key) == std::optional{Test_Value});
+    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::optional{Test_Value});
 }

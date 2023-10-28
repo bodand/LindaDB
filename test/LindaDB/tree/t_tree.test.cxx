@@ -221,7 +221,7 @@ TEST_CASE("t tree can find stored element") {
     sut.insert(Test_Key2 + 1, Test_Value);
     sut.insert(Test_Key2, Test_Value);
 
-    auto val = sut.search(Test_Key2);
+    auto val = sut.search(lit::any_value_query(Test_Key2));
     REQUIRE(val != std::nullopt);
     CHECK(*val == Test_Value);
 }
@@ -235,7 +235,7 @@ TEST_CASE("t tree can find updated element") {
     sut.insert(Test_Key2, Test_Value);
     sut.insert(Test_Key, Test_Value);
 
-    auto val = sut.search(Test_Key2);
+    auto val = sut.search(lit::any_value_query(Test_Key));
     REQUIRE(val != std::nullopt);
     CHECK(*val == Test_Value);
 }
@@ -249,7 +249,7 @@ TEST_CASE("t tree takes random data") {
     for (std::size_t i = 0; i < 1'999'999; ++i) {
         sut.insert(dist(rng), static_cast<int>(i));
     }
-    CHECK(sut.search(first) != std::nullopt);
+    CHECK(sut.search(lit::any_value_query(first)) != std::nullopt);
 }
 
 TEST_CASE("t-tree benchmark",

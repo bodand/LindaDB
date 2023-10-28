@@ -42,6 +42,8 @@
 #include <optional>
 #include <ostream>
 
+#include <ldb/index/tree/index_query.hxx>
+
 namespace ldb::index::tree {
     // clang-format off
     template<class T>
@@ -64,15 +66,16 @@ namespace ldb::index::tree {
     && requires(T payload,
                 typename T::key_type key,
                 typename T::value_type value,
-                typename T::bundle_type bundle) {
-        { payload.try_get(key) } -> std::same_as<std::optional<typename T::value_type>>;
+                typename T::bundle_type bundle,
+                any_value_query<typename T::key_type> query) {
+        { payload.try_get(query) } -> std::same_as<std::optional<typename T::value_type>>;
         { payload.try_set(key, value) } -> std::same_as<bool>;
         { payload.try_set(bundle) } -> std::same_as<bool>;
         { payload.force_set_lower(key, value) } -> std::same_as<std::optional<typename T::bundle_type>>;
         { payload.force_set_lower(std::move(bundle)) } -> std::same_as<std::optional<typename T::bundle_type>>;
         { payload.force_set_upper(key, value) } -> std::same_as<std::optional<typename T::bundle_type>>;
         { payload.force_set_upper(std::move(bundle)) } -> std::same_as<std::optional<typename T::bundle_type>>;
-        { payload.remove(key) } -> std::same_as<std::optional<typename T::value_type>>;
+        { payload.remove(query) } -> std::same_as<std::optional<typename T::value_type>>;
 
         { payload <=> key } -> std::same_as<std::weak_ordering>;
         { payload == key } -> std::same_as<bool>;

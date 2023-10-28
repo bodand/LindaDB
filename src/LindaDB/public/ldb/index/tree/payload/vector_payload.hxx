@@ -120,16 +120,18 @@ namespace ldb::index::tree::payloads {
         [[nodiscard]] constexpr bool
         have_priority() const noexcept { return _data_sz < 2; }
 
+        template<index_query<value_type> Q>
         [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
-        try_get(const key_type& key) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
+        try_get(Q query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
             LDB_PROF_SCOPE_C("VectorPayload_Search", prof::color_search);
             if (empty()) return std::nullopt;
             auto data_end_offset = static_cast<std::ptrdiff_t>(_data_sz);
             if (auto it = std::lower_bound(std::begin(_data),
                                            std::next(std::begin(_data), data_end_offset),
-                                           key,
+                                           query.key(),
                                            compare_pair_to_key);
-                it != std::next(std::begin(_data), data_end_offset)) {
+                it != std::next(std::begin(_data), data_end_offset)
+                && it->second == query) {
                 return {it->second};
             }
             return std::nullopt;
@@ -189,13 +191,15 @@ namespace ldb::index::tree::payloads {
             return force_set_upper(std::move(key), std::move(value));
         }
 
+        template<index_query<value_type> Q>
         LDB_CONSTEXPR23 std::optional<value_type>
-        remove(const key_type& key) {
+        remove(Q query) {
             LDB_PROF_SCOPE_C("VectorPayload_Remove", prof::color_remove);
             assert(!empty());
             auto data_end = std::next(begin(_data), _data_sz);
-            auto it = std::ranges::lower_bound(begin(_data), data_end, key);
+            auto it = std::ranges::lower_bound(begin(_data), data_end, query.key());
             if (it == data_end) return std::nullopt;
+            if (it->second != query) return std::nullopt;
             std::ranges::rotate(it, it + 1, data_end);
             --_data_sz;
             return _data.back();
