@@ -54,6 +54,7 @@ namespace ldb::index::tree::payloads {
         using key_type = K;
         using value_type = V;
         using size_type = std::size_t;
+        using bundle_type = std::pair<key_type, value_type>;
 
         constexpr vector_payload() = default;
 
@@ -61,6 +62,9 @@ namespace ldb::index::tree::payloads {
         constexpr vector_payload(K2&& key, V2&& value)
              : _data_sz(1),
                _data({std::make_pair(std::forward<K2>(key), std::forward<V2>(value))}) { }
+        constexpr explicit vector_payload(bundle_type&& bundle)
+             : _data_sz(1),
+               _data({std::move(bundle)}) { }
 
         vector_payload(const vector_payload& cp)
             requires(std::copyable<std::pair<K, value_type>>)
@@ -136,7 +140,12 @@ namespace ldb::index::tree::payloads {
             return upsert_kv(true, key, value) & (INSERTED | UPDATED);
         }
 
-        [[nodiscard]] std::optional<std::pair<key_type, value_type>>
+        [[nodiscard]] bool
+        try_set(const bundle_type& bundle) {
+            return try_set(bundle.first, bundle.second);
+        }
+
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
         force_set_lower(const key_type& key, const value_type& value) {
             LDB_PROF_SCOPE_C("VectorPayload_InsertAndSquish", ldb::prof::color_insert);
             if (auto res = upsert_kv(true, key, value);
@@ -153,7 +162,7 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] std::optional<std::pair<key_type, value_type>>
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
         force_set_upper(const key_type& key, const value_type& value) {
             LDB_PROF_SCOPE_C("VectorPayload_InsertAndSquish", ldb::prof::color_insert);
             if (auto res = upsert_kv(true, key, value);
@@ -167,8 +176,21 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        std::optional<value_type>
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        force_set_lower(bundle_type&& bundle) {
+            auto&& [key, value] = std::move(bundle);
+            return force_set_lower(std::move(key), std::move(value));
+        }
+
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        force_set_upper(bundle_type&& bundle) {
+            auto&& [key, value] = std::move(bundle);
+            return force_set_upper(std::move(key), std::move(value));
+        }
+
+        LDB_CONSTEXPR23 std::optional<value_type>
         remove(const key_type& key) {
+            LDB_PROF_SCOPE_C("VectorPayload_Remove", prof::color_remove);
             assert(!empty());
             auto data_end = std::next(begin(_data), _data_sz);
             auto it = std::ranges::lower_bound(begin(_data), data_end, key);
@@ -253,9 +275,9 @@ namespace ldb::index::tree::payloads {
 
             auto data_end_offset = static_cast<std::ptrdiff_t>(_data_sz);
             auto it = std::lower_bound(std::begin(_data),
-                                               std::next(begin(_data), data_end_offset),
-                                               key,
-                                               compare_pair_to_key);
+                                       std::next(begin(_data), data_end_offset),
+                                       key,
+                                       compare_pair_to_key);
             if (it == end(_data)) return FULL;
             if (it->first == key) {
                 if (!do_upsert) return FAILURE;

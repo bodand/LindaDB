@@ -49,6 +49,7 @@ namespace ldb::index::tree {
         typename T::key_type;
         typename T::value_type;
         typename T::size_type;
+        typename T::bundle_type;
 
         { payload.capacity() } -> std::same_as<typename T::size_type>;
         { payload.size() } -> std::same_as<typename T::size_type>;
@@ -58,14 +59,19 @@ namespace ldb::index::tree {
     }
     && std::constructible_from<T>
     && std::constructible_from<T, typename T::key_type, typename T::value_type>
+    && std::constructible_from<T, std::add_rvalue_reference_t<typename T::bundle_type>>
     && std::equality_comparable<typename T::key_type>
     && requires(T payload,
                 typename T::key_type key,
-                typename T::value_type value) {
+                typename T::value_type value,
+                typename T::bundle_type bundle) {
         { payload.try_get(key) } -> std::same_as<std::optional<typename T::value_type>>;
         { payload.try_set(key, value) } -> std::same_as<bool>;
-        { payload.force_set_lower(key, value) } -> std::same_as<std::optional<std::pair<typename T::key_type, typename T::value_type>>>;
-        { payload.force_set_upper(key, value) } -> std::same_as<std::optional<std::pair<typename T::key_type, typename T::value_type>>>;
+        { payload.try_set(bundle) } -> std::same_as<bool>;
+        { payload.force_set_lower(key, value) } -> std::same_as<std::optional<typename T::bundle_type>>;
+        { payload.force_set_lower(std::move(bundle)) } -> std::same_as<std::optional<typename T::bundle_type>>;
+        { payload.force_set_upper(key, value) } -> std::same_as<std::optional<typename T::bundle_type>>;
+        { payload.force_set_upper(std::move(bundle)) } -> std::same_as<std::optional<typename T::bundle_type>>;
         { payload.remove(key) } -> std::same_as<std::optional<typename T::value_type>>;
 
         { payload <=> key } -> std::same_as<std::weak_ordering>;

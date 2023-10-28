@@ -68,6 +68,19 @@ namespace ldb::index::tree {
              : _payload(std::forward<Args>(args)...),
                _parent(parent) { }
 
+        tree_node(const tree_node& cp) = default;
+        tree_node(tree_node&& mv) noexcept = default;
+
+        tree_node&
+        operator=(const tree_node& cp) = default;
+        tree_node&
+        operator=(tree_node&& mv) noexcept = default;
+
+        ~tree_node() noexcept override {
+            while (_left) release(&_left);
+            while (_right) release(&_right);
+        }
+
         [[nodiscard]] factor_type
         balance_factor() const noexcept {
             return _balance_factor;
@@ -168,9 +181,10 @@ namespace ldb::index::tree {
                 return nullptr;
             }
 
-            if (const auto& squished = _payload.force_set_lower(key, value);
+            if (auto squished = _payload.force_set_lower(key, value);
                 squished) { // squished some element out from this layer
-                insert_to_glb(*squished);
+                auto&&bundle = *squished;
+                insert_to_glb(std::move(bundle));
             }
             return nullptr;
         }
@@ -243,12 +257,9 @@ namespace ldb::index::tree {
             _parent = parent;
         }
 
-        ~tree_node() noexcept override {
-            while (_left) release(&_left);
-            while (_right) release(&_right);
-        }
-
     private:
+        using squished_type = T::bundle_type;
+
         static void
         release(std::unique_ptr<tree_node>* subtree) noexcept {
             while ((*subtree)->_left && (*subtree)->_right) {
@@ -523,23 +534,22 @@ namespace ldb::index::tree {
         }
 
         void
-        insert_to_glb(const std::pair<key_type, value_type>& squished) {
+        insert_to_glb(squished_type&& squished) {
             LDB_PROF_SCOPE("TreeNode_InsertToGlb");
-            if (_left) return _left->insert_to_glb_descent(squished);
-            add_left(squished.first, squished.second);
+            if (_left) return _left->insert_to_glb_descent(std::move(squished));
+            add_left(std::move(squished));
         }
 
         void
-        insert_to_glb_descent(const std::pair<key_type, value_type>& squished) {
-            if (_right) return _right->insert_to_glb_descent(squished);
+        insert_to_glb_descent(squished_type&& squished) {
+            if (_right) return _right->insert_to_glb_descent(std::move(squished));
 
-            auto&& [key, value] = squished;
-            if (auto succ = _payload.try_set(key, value);
+            if (auto succ = _payload.try_set(squished);
                 succ) return;
 
-            auto new_squished = _payload.force_set_upper(key, value);
+            auto new_squished = _payload.force_set_upper(std::move(squished));
             assert(new_squished.has_value());
-            add_right(new_squished->first, new_squished->second);
+            add_right(std::move(*new_squished));
         }
 
         T _payload{};

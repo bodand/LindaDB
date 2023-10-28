@@ -54,11 +54,15 @@ namespace ldb::index::tree::payloads {
         using key_type = K;
         using value_type = P;
         using size_type = unsigned;
+        using bundle_type = std::pair<key_type, value_type>;
 
         template<class K2 = K, class P2 = P>
         constexpr scalar_payload(K2&& key, P2&& value) noexcept(std::is_nothrow_move_constructible_v<K>)
             requires(std::constructible_from<std::pair<K, P>, std::pair<K2, P2>>)
              : _value(std::make_pair(std::forward<K2>(key), std::forward<P2>(value))) { }
+
+        constexpr explicit scalar_payload(bundle_type&& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
+             : _value(std::move(bundle)) { }
 
         constexpr scalar_payload() = default;
 
@@ -116,7 +120,12 @@ namespace ldb::index::tree::payloads {
             return true;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<key_type, value_type>>
+        [[nodiscard]] LDB_CONSTEXPR23 bool
+        try_set(const bundle_type& bundle) noexcept(noexcept(try_set(bundle.first, bundle.second))) {
+            return try_set(bundle.first, bundle.second);
+        }
+
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
         force_set_lower(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
             LDB_PROF_SCOPE_C("ScalarPayload_InsertAndSquish", ldb::prof::color_insert);
             if (!empty() && kv_key() == key) {
@@ -128,9 +137,21 @@ namespace ldb::index::tree::payloads {
             return res;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<std::pair<key_type, value_type>>
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
         force_set_upper(const key_type& key, const value_type& value) noexcept(noexcept(force_set_lower(key, value))) {
             return force_set_lower(key, value);
+        }
+
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        force_set_lower(bundle_type&& bundle) noexcept(noexcept(force_set_lower(bundle.first, bundle.second))) {
+            auto&& [key, value] = std::move(bundle);
+            return force_set_lower(std::move(key), std::move(value));
+        }
+
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        force_set_upper(bundle_type&& bundle) noexcept(noexcept(force_set_upper(bundle.first, bundle.second))) {
+            auto&& [key, value] = std::move(bundle);
+            return force_set_upper(std::move(key), std::move(value));
         }
 
         std::optional<value_type>
