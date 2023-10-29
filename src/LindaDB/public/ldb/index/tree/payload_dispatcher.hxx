@@ -39,6 +39,7 @@
 
 #include <cstdlib>
 
+#include <ldb/index/tree/payload/chime_payload.hxx>
 #include <ldb/index/tree/payload/scalar_payload.hxx>
 #include <ldb/index/tree/payload/vector_payload.hxx>
 
@@ -67,7 +68,7 @@ namespace ldb::index::tree {
     template<class K, class V, std::size_t Clustering = 0>
     struct payload_dispatcher {
         constexpr const static std::size_t overhead_size = 48ULL;
-        using type = payloads::vector_payload<
+        using type = payloads::chime_payload<
                K,
                V,
                cluster_for_minimized_overhead_effect(sizeof(K) + sizeof(V), overhead_size, Clustering)>;

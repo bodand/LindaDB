@@ -39,15 +39,15 @@
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/payload.hxx>
-#include <ldb/index/tree/payload/scalar_payload.hxx>
+#include <ldb/index/tree/payload/vector_payload.hxx>
 #include <ldb/index/tree/tree.hxx>
 #include <ldb/index/tree/tree_node.hxx>
 #include <ldb/index/tree/tree_node_handler.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
-using payload_type = lps::scalar_payload<int, int>;
-using sut_type = lit::tree<int, int, 2>;
+using payload_type = lps::vector_payload<int, int, 2>;
+using sut_type = lit::tree<int, int, 2, payload_type>;
 using bm_type = lit::tree<int, int>;
 
 // ordering of test keys: Test_Key3 < Test_Key < Test_Key2

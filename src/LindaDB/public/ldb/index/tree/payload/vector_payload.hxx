@@ -81,27 +81,13 @@ namespace ldb::index::tree::payloads {
         constexpr ~vector_payload() noexcept = default;
 
         [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
-        operator<=>(const key_type& key) const noexcept {
+        operator<=>(const auto& key) const noexcept {
             LDB_PROF_SCOPE("VectorPayload_Ordering");
             if (empty()) return std::weak_ordering::equivalent;
             auto mem_min_key = min_key();
             auto mem_max_key = max_key();
             if (key < mem_min_key) return std::weak_ordering::greater;
             if (mem_max_key < key) return std::weak_ordering::less;
-            return std::weak_ordering::equivalent;
-        }
-
-        [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
-        operator<=>(const key_type& key) const noexcept
-            requires(std::same_as<K, std::string>)
-        {
-            LDB_PROF_SCOPE("VectorPayload_StrOrdering");
-            if (empty()) return std::weak_ordering::equivalent;
-            if (key.empty()) return std::weak_ordering::less;
-            if (key[0] < min_key()[0]) return std::weak_ordering::greater;
-            if (key[0] > max_key()[0]) return std::weak_ordering::less;
-            if (key < min_key()) return std::weak_ordering::greater;
-            if (key > max_key()) return std::weak_ordering::less;
             return std::weak_ordering::equivalent;
         }
 
@@ -252,7 +238,7 @@ namespace ldb::index::tree::payloads {
         }
 
         constexpr const static auto compare_pair_to_key =
-               [](const std::pair<key_type, value_type>& store, const key_type& key_cmp) noexcept(noexcept(store.first < key_cmp)) {
+               [](const std::pair<key_type, value_type>& store, const auto& key_cmp) noexcept(noexcept(store.first < key_cmp)) {
                    return store.first < key_cmp;
                };
 

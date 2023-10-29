@@ -35,6 +35,7 @@
 #   components.
 
 add_library(LindaDB STATIC
+            public/ldb/data/chunked_list.hxx
             public/ldb/index/tree/payload/chime_payload.hxx
             public/ldb/index/tree/payload/scalar_payload.hxx
             public/ldb/index/tree/payload/vector_payload.hxx
@@ -48,6 +49,8 @@ add_library(LindaDB STATIC
             public/ldb/lv/linda_value.hxx
             public/ldb/profiler.hxx
             public/ldb/query_tuple.hxx
+            public/ldb/store.hxx
+            src/data/chunked_list.cxx
             src/index/tree/payload/chime_payload.cxx
             src/index/tree/payload/scalar_payload.cxx
             src/index/tree/payload/vector_payload.cxx
@@ -57,7 +60,8 @@ add_library(LindaDB STATIC
             src/index/tree/tree.cxx
             src/index/tree/tree_node.cxx
             src/index/tree/tree_node_handler.cxx
-            src/lv/linda_tuple.cxx)
+            src/lv/linda_tuple.cxx
+            src/store.cxx)
 
 if (LINDA_DB_USE_MIMALLOC)
     add_library(LindaDB-mimalloc STATIC

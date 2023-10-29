@@ -28,52 +28,22 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-18.
+ * Originally created: 2023-10-27.
  *
- * src/LindaDB/public/ldb/store --
- *   
+ * src/LindaDB/src/store --
+ *   Implements the functionality of ldb::store.
  */
-#ifndef LINDADB_STORE_HXX
-#define LINDADB_STORE_HXX
 
-#include <algorithm>
-#include <array>
-#include <list>
+#include <ldb/store.hxx>
 
-#include <ldb/index/tree/tree.hxx>
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query_tuple.hxx>
 
-namespace ldb {
-    struct store {
-        void
-        out(const lv::linda_tuple&);
-
-        template<class... Args>
-        std::optional<lv::linda_tuple>
-        rdp(query_tuple<Args...> query) {
-            if constexpr (sizeof...(Args) != 0) {
-                if (auto idx_res = query.try_read_indices(std::span(_header_indices));
-                    idx_res.has_value()) {
-                    if (*idx_res) return ***idx_res; // Maybe Maybe Iterator -> 3 deref
-                    return std::nullopt;
-                }
-            }
-            auto it = std::ranges::find_if(_data, [&query](const auto& stored) {
-                return stored == query;
-            });
-            if (it == _data.end()) return std::nullopt;
-            return *it;
-        }
-
-    private:
-        // does not invalidate existing pointers / todo? replace with a skip-list of some kind
-        using storage_type = std::list<lv::linda_tuple>;
-        using pointer_type = storage_type::const_iterator;
-
-        std::array<index::tree::tree<lv::linda_value, pointer_type>, 3> _header_indices{};
-        storage_type _data{};
-    };
+void
+ldb::store::out(const lv::linda_tuple& tuple) {
+//    _data.push_front(tuple);
+//    auto new_it = _data.cbegin();
+//    for (std::size_t i = 0;
+//         i < _header_indices.size() && i < tuple.size();
+//         ++i) {
+//        _header_indices[i].insert(tuple[i], new_it);
+//    }
 }
-
-#endif

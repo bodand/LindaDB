@@ -78,7 +78,7 @@ namespace ldb::index::tree::payloads {
         operator=(scalar_payload&& mv) noexcept = default;
 
         [[nodiscard]] std::weak_ordering
-        operator<=>(const K& other) const noexcept(noexcept(kv_key() <=> other)) {
+        operator<=>(const auto& other) const noexcept(noexcept(kv_key() <=> other)) {
             LDB_PROF_SCOPE("ScalarPayload_Ordering");
             if (empty()) return std::weak_ordering::equivalent;
             return kv_key() <=> other;

@@ -52,9 +52,10 @@
 namespace ldb::index::tree {
     template<class K,
              class V,
-             std::size_t Clustering = 0>
-    struct tree final : private tree_node_handler<tree_node<typename payload_dispatcher<K, V, Clustering>::type>> {
-        using payload_type = typename payload_dispatcher<K, V, Clustering>::type;
+             std::size_t Clustering = 0,
+             class PayloadType = typename payload_dispatcher<K, V, Clustering>::type>
+    struct tree final : private tree_node_handler<tree_node<PayloadType>> {
+        using payload_type = PayloadType;
         using key_type = payload_type::key_type;
         using value_type = payload_type::value_type;
 

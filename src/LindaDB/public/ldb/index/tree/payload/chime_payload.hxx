@@ -106,7 +106,7 @@ namespace ldb::index::tree::payloads {
 
 
         [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
-        operator<=>(const key_type& key) const noexcept {
+        operator<=>(const auto& key) const noexcept {
             LDB_PROF_SCOPE("ChimePayload_Ordering");
             if (empty()) return std::weak_ordering::equivalent;
             auto mem_min_key = min_key();
@@ -116,29 +116,15 @@ namespace ldb::index::tree::payloads {
             return std::weak_ordering::equivalent;
         }
 
-        [[nodiscard]] std::weak_ordering
-        operator<=>(const key_type& key) const noexcept
-            requires(std::same_as<K, std::string>)
-        {
-            LDB_PROF_SCOPE("ChimePayload_StrOrdering");
-            if (empty()) return std::weak_ordering::equivalent;
-            if (key.empty()) return std::weak_ordering::less;
-            if (key[0] < min_key()[0]) return std::weak_ordering::greater;
-            if (key[0] > max_key()[0]) return std::weak_ordering::less;
-            if (key < min_key()) return std::weak_ordering::greater;
-            if (key > max_key()) return std::weak_ordering::less;
-            return std::weak_ordering::equivalent;
-        }
-
         template<index_query<value_type> Q>
         [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
         try_get(const Q& query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
             LDB_PROF_SCOPE_C("ChimePayload_Search", prof::color_search);
             if (empty()) return std::nullopt;
             auto data_end = next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
-            if (auto it = std::ranges::lower_bound(begin(_keys),
-                                                   data_end,
-                                                   query.key());
+            if (auto it = std::lower_bound(begin(_keys),
+                                           data_end,
+                                           query.key());
                 it != data_end) {
                 const auto col_idx = static_cast<std::size_t>(std::distance(begin(_keys), it));
                 return _sets[col_idx].get(query);
@@ -216,7 +202,7 @@ namespace ldb::index::tree::payloads {
             auto [key, data] = std::move(bundle);
             if (auto res = upsert_kv(key, data);
                 res == FULL) {
-                auto squished = bundle_type{.key = _keys.back(), .data = _sets.back()};
+                auto squished = bundle_type{.key = _keys.back(), .data = _sets.back().flush()};
                 --_data_sz;
                 res = upsert_kv(std::move(key), std::move(data));
                 return {squished};

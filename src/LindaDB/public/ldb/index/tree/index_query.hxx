@@ -59,7 +59,7 @@ namespace ldb::index::tree {
         explicit any_value_query(key_type key) noexcept(std::is_nothrow_move_constructible_v<key_type>)
              : _key(std::move(key)) { }
 
-        const key_type&
+        [[nodiscard]] const key_type&
         key() const noexcept { return _key; }
 
     private:
@@ -86,7 +86,7 @@ namespace ldb::index::tree {
     template<class K, class V>
     struct value_query {
         using key_type = K;
-        using value_type = K;
+        using value_type = V;
 
         explicit value_query(key_type key,
                              value_type value) noexcept(std::is_nothrow_move_constructible_v<key_type>
@@ -94,7 +94,7 @@ namespace ldb::index::tree {
              : _key(std::move(key)),
                _value(std::move(value)) { }
 
-        const key_type&
+        [[nodiscard]] const key_type&
         key() const noexcept { return _key; }
 
     private:
@@ -102,12 +102,12 @@ namespace ldb::index::tree {
         value_type _value;
 
         friend constexpr auto
-        operator<=>(const value_type& a, const value_query& b) noexcept {
+        operator<=>(const auto& a, const value_query& b) noexcept {
             return a <=> b._value;
         }
         
         friend constexpr auto
-        operator==(const value_type& a, const value_query& b) noexcept {
+        operator==(const auto& a, const value_query& b) noexcept {
             return a == b._value;
         }
     };
