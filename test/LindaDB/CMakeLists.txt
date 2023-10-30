@@ -35,6 +35,7 @@
 
 add_covered_test(NAME LindaDB.Test CATCH
                  SOURCES
+                 data/chunked_list.test.cxx
                  lv/linda_tuple.test.cxx
                  tree/avl_tree.test.cxx
                  tree/t_tree.test.cxx
@@ -43,5 +44,6 @@ add_covered_test(NAME LindaDB.Test CATCH
                  tree_payloads/scalar_payload.test.cxx
                  tree_payloads/vector_payload.test.cxx
                  query_tuple.test.cxx
+                 store.test.cxx
                  LIBRARIES LindaDB)
 
