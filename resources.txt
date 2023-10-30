@@ -1,0 +1,6 @@
+https://www.db.bme.hu/adatb-elmelete/03_imdb.pdf
+https://en.wikipedia.org/wiki/AVL_tree
+https://en.wikipedia.org/wiki/T-tree
+https://stroustrup.com/lock-free-vector.pdf
+Anthony Williams: "C++ Concurrency in Action, Second Edition", Manning
+Robert Robey, Yuliana Zamora: "Parallel and High Performance Computing", Manning
