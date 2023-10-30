@@ -234,22 +234,6 @@ namespace ldb::data {
             _chunks.clear();
         }
 
-        void
-        push_back(const T& obj) {
-            if (_chunks.empty() || _chunks.back()->full()) {
-                _chunks.emplace_back(std::make_unique<data_chunk>(this, ChunkSize));
-            }
-            _chunks.back()->push(obj);
-        }
-
-        template<class... Args>
-        void
-        emplace_back(Args&&... args) {
-            if (_chunks.empty() || _chunks.back()->full()) {
-                _chunks.emplace_back(std::make_unique<data_chunk>(this, ChunkSize));
-            }
-            _chunks.back()->emplace(std::forward<Args>(args)...);
-        }
 
     private:
         using ssize_type = std::make_signed_t<size_type>;
@@ -304,21 +288,26 @@ namespace ldb::data {
             }
 
             template<class... Args>
-            void
+            auto
             emplace(Args&&... args) noexcept(std::is_nothrow_constructible_v<value_type, Args...>) {
                 auto next_idx = static_cast<unsigned>(std::countr_one(_valids));
+                assert(next_idx != ChunkSize);
+                assert(!valid_at_index(next_idx));
                 _valids |= (1U << next_idx);
                 std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
                                   std::forward<Args>(args)...);
+                return next_idx;
             }
 
-            void
+            auto
             push(const_reference obj) noexcept(std::is_nothrow_copy_constructible_v<value_type>) {
                 auto next_idx = static_cast<unsigned>(std::countr_one(_valids));
                 assert(next_idx != ChunkSize);
+                assert(!valid_at_index(next_idx));
                 _valids |= (1U << next_idx);
                 std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
                                   obj);
+                return next_idx;
             }
 
             void
@@ -426,6 +415,8 @@ namespace ldb::data {
                 if (!is_end() && other.is_end()) return std::strong_ordering::less;
                 if (is_end() && !other.is_end()) return std::strong_ordering::greater;
                 if (is_end() && other.is_end()) return std::strong_ordering::equal;
+                if (_chunk == nullptr
+                    && other._chunk == nullptr) return std::strong_ordering::equal;
 
                 if (const auto chunk_idx_order = (*_chunk) <=> (*other._chunk);
                     !std::is_eq(chunk_idx_order)) return chunk_idx_order;
@@ -435,6 +426,10 @@ namespace ldb::data {
             [[nodiscard]] constexpr auto
             operator==(const iterator_impl& other) const noexcept {
                 return std::is_eq(*this <=> other);
+            }
+            [[nodiscard]] constexpr auto
+            operator!=(const iterator_impl& other) const noexcept {
+                return std::is_neq(*this <=> other);
             }
 
             constexpr iterator_impl() = default;
@@ -519,7 +514,27 @@ namespace ldb::data {
 
         [[nodiscard]] constexpr iterator
         end() const noexcept {
-            return iterator(_chunks.back().get(), _chunks.size() - 1);
+            if (_chunks.empty()) return iterator();
+            return iterator(_chunks.back().get(), _chunks.back()->size());
+        }
+
+        iterator
+        push_back(const T& obj) {
+            if (_chunks.empty() || _chunks.back()->full()) {
+                _chunks.emplace_back(std::make_unique<data_chunk>(this, _chunks.size()));
+            }
+            auto inserted_idx = _chunks.back()->push(obj);
+            return iterator(_chunks.back().get(), inserted_idx);
+        }
+
+        template<class... Args>
+        iterator
+        emplace_back(Args&&... args) {
+            if (_chunks.empty() || _chunks.back()->full()) {
+                _chunks.emplace_back(std::make_unique<data_chunk>(this, _chunks.size()));
+            }
+            auto inserted_idx = _chunks.back()->emplace(std::forward<Args>(args)...);
+            return iterator(_chunks.back().get(), inserted_idx);
         }
 
         constexpr void

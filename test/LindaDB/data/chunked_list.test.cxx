@@ -175,6 +175,13 @@ TEST_CASE("chunked_list is empty after clear") {
     CHECK(data.empty());
 }
 
+TEST_CASE("empty chunked_list can be iterated over") {
+    const ld::chunked_list<int> data;
+    for (int const& _ : data) {
+        FAIL("value in empty chunked_list");
+    }
+}
+
 TEST_CASE("chunked_list can be iterated over") {
     ld::chunked_list<int> data;
     for (int i = 0; i < 32; ++i) {

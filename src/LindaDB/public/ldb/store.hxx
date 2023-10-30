@@ -40,6 +40,7 @@
 #include <array>
 #include <list>
 
+#include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query_tuple.hxx>
@@ -68,8 +69,8 @@ namespace ldb {
 
     private:
         // does not invalidate existing pointers / todo? replace with a skip-list of some kind
-        using storage_type = std::list<lv::linda_tuple>;
-        using pointer_type = storage_type::const_iterator;
+        using storage_type = data::chunked_list<lv::linda_tuple>;
+        using pointer_type = storage_type::iterator;
 
         std::array<index::tree::tree<lv::linda_value, pointer_type>, 3> _header_indices{};
         storage_type _data{};

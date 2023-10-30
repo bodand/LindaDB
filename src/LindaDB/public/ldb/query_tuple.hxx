@@ -223,7 +223,7 @@ namespace ldb {
 
         template<class TW>
         concept tuple_wrapper = requires(const TW& tw) {
-            { *tw } -> std::same_as<const lv::linda_tuple&>;
+            { *tw } -> std::same_as<lv::linda_tuple&>;
         };
     }
 

@@ -39,11 +39,10 @@
 
 void
 ldb::store::out(const lv::linda_tuple& tuple) {
-//    _data.push_front(tuple);
-//    auto new_it = _data.cbegin();
-//    for (std::size_t i = 0;
-//         i < _header_indices.size() && i < tuple.size();
-//         ++i) {
-//        _header_indices[i].insert(tuple[i], new_it);
-//    }
+    auto new_it = _data.push_back(tuple);
+    for (std::size_t i = 0;
+         i < _header_indices.size() && i < tuple.size();
+         ++i) {
+        _header_indices[i].insert(tuple[i], new_it);
+    }
 }
