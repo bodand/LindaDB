@@ -34,8 +34,6 @@ cmake_minimum_required(VERSION 3.22)
 enable_language(C)
 enable_language(CXX)
 
-add_compile_options(-ftemplate-backtrace-limit=0)
-
 # CMake policies ###############################################################
 # Set CMake policies to the expected behavior.
 
@@ -93,7 +91,7 @@ option(LINDA_DB_USE_PROFILER
         ${LDB_DEFAULT_PROFILER})
 option(LINDA_DB_USE_MIMALLOC
         "Build LindaDB using the mimalloc allocator instead of the system's [YES]"
-        NO)
+        YES)
 
 # coverage data
 add_library(internal-coverage INTERFACE)

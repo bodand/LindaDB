@@ -63,22 +63,20 @@ add_library(LindaDB STATIC
             src/lv/linda_tuple.cxx
             src/store.cxx)
 
-if (LINDA_DB_USE_MIMALLOC)
-    add_library(LindaDB-mimalloc STATIC
-                src/malloc_overrider.cxx)
-    target_include_directories(LindaDB-mimalloc
-                               PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
-                               PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-    target_link_libraries(LindaDB-mimalloc
-                          PUBLIC mimalloc-static
-                          PRIVATE internal-warnings internal-lto)
-    target_compile_features(LindaDB-mimalloc PUBLIC cxx_std_20)
-    target_compile_definitions(LindaDB-mimalloc
-                               PUBLIC LINDA_DB_USE_MIMALLOC)
+add_library(LindaDB-malloc STATIC
+            src/malloc_overrider.cxx)
+target_include_directories(LindaDB-malloc
+                           PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
+                           PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(LindaDB-malloc
+                      PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:mimalloc-static>
+                      PRIVATE internal-warnings internal-lto)
+target_compile_features(LindaDB-malloc PUBLIC cxx_std_20)
+target_compile_definitions(LindaDB-malloc
+                           PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
 
-    list(APPEND PROJECT_TARGETS LindaDB-mimalloc)
-    target_link_libraries(LindaDB PUBLIC LindaDB-mimalloc)
-endif ()
+list(APPEND PROJECT_TARGETS LindaDB-malloc)
+target_link_libraries(LindaDB PUBLIC LindaDB-malloc)
 
 target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
@@ -88,8 +86,11 @@ target_link_libraries(LindaDB
 target_compile_features(LindaDB PUBLIC cxx_std_20)
 
 if (TARGET Tracy::TracyClient)
-    target_link_libraries(LindaDB PRIVATE Tracy::TracyClient)
-    target_compile_definitions(LindaDB PRIVATE LINDA_DB_PROFILER)
+    target_link_libraries(LindaDB PUBLIC Tracy::TracyClient)
+    target_compile_definitions(LindaDB PUBLIC LINDA_DB_PROFILER)
+
+    target_link_libraries(LindaDB-malloc PUBLIC Tracy::TracyClient)
+    target_compile_definitions(LindaDB-malloc PUBLIC LINDA_DB_PROFILER)
 endif ()
 
 list(APPEND PROJECT_TARGETS LindaDB)

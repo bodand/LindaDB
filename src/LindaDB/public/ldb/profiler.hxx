@@ -44,6 +44,9 @@ namespace ldb::prof {
     [[maybe_unused]] constexpr const static auto color_search = 0xF0F000;
     [[maybe_unused]] constexpr const static auto color_insert = 0x00F0F0;
     [[maybe_unused]] constexpr const static auto color_remove = 0xFF0020;
+    [[maybe_unused]] constexpr const static auto color_out = 0xF0F310;
+    [[maybe_unused]] constexpr const static auto color_in = 0xF111AA;
+    [[maybe_unused]] constexpr const static auto color_rd = 0x123ABC;
 }
 
 #ifdef __GNUC__
@@ -89,6 +92,26 @@ namespace ldb::prof {
 #  define LDB_PROF_DEALLOC TracyFree
 #else
 #  define LDB_PROF_DEALLOC(...) ((void) 0)
+#endif
+
+#ifdef TracyLockable
+#  define LDB_MUTEX TracyLockable
+#else
+#  define LDB_MUTEX(mtx, var) mtx var
+#endif
+
+#ifdef TracySharedLockable
+#  define LDB_SMUTEX TracySharedLockable
+#else
+#  define LDB_SMUTEX(mtx, var) mtx var
+#endif
+
+#ifdef LockMark
+#  define LDB_LOCK(lck, mtx) std::unique_lock lck{mtx}; LockMark(mtx)
+#  define LDB_SLOCK(lck, mtx) std::shared_lock lck{mtx}; LockMark(mtx)
+#else
+#  define LDB_SLOCK(lck, mtx) std::unique_lock lck{mtx}
+#  define LDB_SLOCK(lck, mtx) std::shared_lock lck{mtx}
 #endif
 
 #endif

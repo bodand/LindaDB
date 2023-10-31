@@ -31,18 +31,6 @@
  * Originally created: 2023-10-27.
  *
  * src/LindaDB/src/store --
- *   Implements the functionality of ldb::store.
  */
 
 #include <ldb/store.hxx>
-
-
-void
-ldb::store::out(const lv::linda_tuple& tuple) {
-    auto new_it = _data.push_back(tuple);
-    for (std::size_t i = 0;
-         i < _header_indices.size() && i < tuple.size();
-         ++i) {
-        _header_indices[i].insert(tuple[i], new_it);
-    }
-}

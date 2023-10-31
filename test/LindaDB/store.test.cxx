@@ -35,7 +35,9 @@
  */
 
 
+#include <chrono>
 #include <concepts>
+#include <random>
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/lv/linda_tuple.hxx>
@@ -43,6 +45,7 @@
 #include <ldb/store.hxx>
 
 namespace lv = ldb::lv;
+using namespace std::literals;
 
 TEST_CASE("store is default constructible") {
     STATIC_CHECK(std::constructible_from<ldb::store>);
@@ -263,3 +266,73 @@ TEST_CASE("store can repeat inp calls for missing tuple") {
         CHECK_FALSE(ret.has_value());
     }
 }
+
+TEST_CASE("store does not deadlock trivially when out is called on a waiting in") {
+    static std::uniform_int_distribution<unsigned> time_dist(10'000'000U, 300'000'000U);
+    static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
+    static std::mt19937_64 rng(std::random_device{}());
+    constexpr const static auto repeat_count = 12;
+    ldb::store store;
+    int rand;
+    auto query = ldb::query_tuple("asd", ldb::ref(&rand));
+
+    const auto adder = std::jthread([&store]() {
+        for (int i = 0; i < repeat_count; ++i) {
+            std::cout << "[" << i + 1 << "/" << repeat_count << "] ";
+            auto val = lv::linda_tuple("asd", val_dist(rng));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
+            store.out(val);
+        }
+    });
+
+    for (int i = 0; i < repeat_count; ++i) {
+        auto ret = store.in(query);
+        CHECK(ret[0] == lv::linda_value("asd"));
+        CHECK(rand >= 100'000);
+        CHECK(rand <= 300'000);
+        std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng) / 2));
+    }
+}
+
+//TEST_CASE("parallel reads/writes do not deadlock trivially") {
+//    static std::uniform_int_distribution<unsigned> time_dist(10'000'000U, 300'000'000U);
+//    static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
+//    static std::mt19937_64 rng(std::random_device{}());
+//    constexpr const static auto repeat_count = 12;
+//    ldb::store store;
+//
+//    auto adder = [&store]() {
+//        for (int i = 0; i < repeat_count; ++i) {
+//            std::cout << "[" << i + 1 << "/" << repeat_count << "] ";
+//            auto val = lv::linda_tuple("asd", val_dist(rng));
+//            std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
+//            store.out(val);
+//        }
+//    };
+//    auto gatherer = [&store]() {
+//        for (int i = 0; i < repeat_count; ++i) {
+//            int rand{};
+//            auto query = ldb::query_tuple("asd", ldb::ref(&rand));
+//            std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)) / 2);
+//            auto ret = store.in(query);
+//            CHECK(ret[0] == lv::linda_value("asd"));
+//            CHECK(rand >= 100'000);
+//            CHECK(rand <= 300'000);
+//        }
+//    };
+//
+//    const std::array thread_owner{
+//           std::jthread(adder),
+////           std::jthread(adder),
+////           std::jthread(adder),
+////           std::jthread(adder),
+////           std::jthread(adder),
+////           std::jthread(adder),
+////           std::jthread(adder),
+//           std::jthread(gatherer),
+////           std::jthread(gatherer),
+////           std::jthread(gatherer),
+////           std::jthread(gatherer),
+////           std::jthread(gatherer),
+//    };
+//}

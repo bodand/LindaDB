@@ -247,8 +247,9 @@ namespace ldb::index::tree::payloads {
                 requires(!std::same_as<SetV, chime_value_set>)
                  : _values{std::forward<SetV>(value)} { }
 
-            constexpr void
+            LDB_CONSTEXPR23 void
             push(std::span<const value_type> val) {
+                LDB_PROF_SCOPE("ChimeValueSet_Push");
                 _values.reserve(_values.size() + val.size());
                 std::ranges::for_each(val, [&](const auto& item) {
                     auto it = std::ranges::lower_bound(_values, item);
@@ -257,8 +258,9 @@ namespace ldb::index::tree::payloads {
             }
 
             template<index_query<value_type> Q>
-            [[nodiscard]] constexpr std::optional<value_type>
+            [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
             pop(Q query) {
+                LDB_PROF_SCOPE("ChimeValueSet_Push");
                 assert(!empty());
                 if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
                     it != _values.end()) {
@@ -271,16 +273,18 @@ namespace ldb::index::tree::payloads {
             }
 
             template<index_query<value_type> Q>
-            [[nodiscard]] constexpr std::optional<value_type>
+            [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
             get(const Q& query) const {
+                LDB_PROF_SCOPE("ChimeValueSet_Get");
                 assert(!empty());
                 if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
                     it != _values.end()) return *it;
                 return std::nullopt;
             }
 
-            [[nodiscard]] constexpr bool
+            [[nodiscard]] LDB_CONSTEXPR23 bool
             check(const value_type& val) const {
+                LDB_PROF_SCOPE("ChimeValueSet_Check");
                 return std::ranges::binary_search(_values, val);
             }
 
@@ -289,8 +293,9 @@ namespace ldb::index::tree::payloads {
                 return _values.empty();
             }
 
-            std::vector<value_type>
+            LDB_CONSTEXPR23 std::vector<value_type>
             flush() {
+                LDB_PROF_SCOPE("ChimeValueSet_Flush");
                 auto res = std::move(_values);
                 _values = std::vector<value_type>();
                 return res;

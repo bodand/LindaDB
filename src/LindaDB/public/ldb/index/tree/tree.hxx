@@ -42,6 +42,7 @@
 #include <memory>
 #include <optional>
 #include <ostream>
+#include <shared_mutex>
 #include <sstream>
 #include <variant>
 
@@ -189,6 +190,7 @@ namespace ldb::index::tree {
             /* nop */
         }
 
+        mutable LDB_SMUTEX(std::shared_mutex, _mtx);
         std::unique_ptr<tree_node<payload_type>> _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
     };
 }

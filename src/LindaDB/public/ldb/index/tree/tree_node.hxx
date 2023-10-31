@@ -59,14 +59,18 @@ namespace ldb::index::tree {
         using size_type = typename T::size_type;
 
         explicit tree_node(tree_node_handler<tree_node>* parent) noexcept(std::is_nothrow_default_constructible_v<T>)
-             : _parent(parent) { }
+             : _parent(parent) {
+            LDB_PROF_SCOPE("TreeNode_New");
+        }
 
         template<class... Args>
         explicit tree_node(tree_node_handler<tree_node>* parent,
                            new_node_tag /*x*/,
                            Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
              : _payload(std::forward<Args>(args)...),
-               _parent(parent) { }
+               _parent(parent) {
+            LDB_PROF_SCOPE("TreeNode_NewValue");
+        }
 
         tree_node(const tree_node& cp) = default;
         tree_node(tree_node&& mv) noexcept = default;
@@ -77,6 +81,7 @@ namespace ldb::index::tree {
         operator=(tree_node&& mv) noexcept = default;
 
         ~tree_node() noexcept override {
+            LDB_PROF_SCOPE("TreeNode_Destroy");
             while (_left) release(&_left);
             while (_right) release(&_right);
         }
@@ -194,7 +199,7 @@ namespace ldb::index::tree {
         [[nodiscard]] tree_node*
         remove(const Q& query,
                std::optional<value_type>* value_out) {
-            LDB_PROF_SCOPE_C("TreeNode_Insert", prof::color_insert);
+            LDB_PROF_SCOPE_C("TreeNode_Remove", prof::color_remove);
             auto order = _payload <=> query.key();
 
             if (order > 0) {
@@ -212,6 +217,7 @@ namespace ldb::index::tree {
                 if (value_out) *value_out = *res;
                 // must remove node
                 if (_payload.empty()) {
+                    LDB_PROF_SCOPE_C("TreeNode_CleanupEmpty", prof::color_remove);
                     if (!_left && !_right) { // no children
                         _parent->detach_this(this);
                         return nullptr;
@@ -265,6 +271,7 @@ namespace ldb::index::tree {
 
         static void
         release(std::unique_ptr<tree_node>* subtree) noexcept {
+            LDB_PROF_SCOPE("TreeNode_ReleaseSubtree");
             while ((*subtree)->_left && (*subtree)->_right) {
                 subtree = &(*subtree)->_left;
             }
@@ -282,7 +289,9 @@ namespace ldb::index::tree {
 
         std::unique_ptr<tree_node>
         replace_this_as_child(tree_node<T>* old, std::unique_ptr<tree_node<T>>&& new_, update_type type) override {
+            LDB_PROF_SCOPE("TreeNode_ReplaceThisAsChild");
             if (_left.get() == old) {
+                LDB_PROF_SCOPE("TreeNode_ReplaceLeft");
                 auto owned_old = std::exchange(_left, std::move(new_));
                 if (_left) {
                     _left->_parent = this;
@@ -294,6 +303,7 @@ namespace ldb::index::tree {
                 return owned_old;
             }
             if (_right.get() == old) {
+                LDB_PROF_SCOPE("TreeNode_ReplaceRight");
                 auto owned_old = std::exchange(_right, std::move(new_));
                 if (_right) {
                     _right->_parent = this;
@@ -310,16 +320,19 @@ namespace ldb::index::tree {
 
         std::unique_ptr<tree_node>
         detach_left() override {
+            LDB_PROF_SCOPE("TreeNode_DetachLeft");
             return std::unique_ptr<tree_node>{_left.release()};
         }
 
         std::unique_ptr<tree_node>
         detach_right() override {
+            LDB_PROF_SCOPE("TreeNode_DetachRight");
             return std::unique_ptr<tree_node>{_right.release()};
         }
 
         bool
         update_balance_factor(int by, tree_node<T>* child) {
+            LDB_PROF_SCOPE("TreeNode_UpdateBalanceFactor");
             if (by == 0) return true;
             _balance_factor += by;
             if (_balance_factor == 2) {
@@ -347,6 +360,7 @@ namespace ldb::index::tree {
 
         void
         detach_this(tree_node<T>* child) override {
+            LDB_PROF_SCOPE("TreeNode_DetachThis");
             assert(child);
 
             auto parent = _parent;
@@ -363,6 +377,7 @@ namespace ldb::index::tree {
 
         void
         attach_left(std::unique_ptr<tree_node> left) override {
+            LDB_PROF_SCOPE("TreeNode_AttachLeft");
             assert(_left == nullptr && "attaching to non-empty left of node");
             _left = std::move(left);
             if (_left) {
@@ -372,6 +387,7 @@ namespace ldb::index::tree {
 
         void
         attach_right(std::unique_ptr<tree_node> right) override {
+            LDB_PROF_SCOPE("TreeNode_AttachRight");
             assert(_right == nullptr && "attaching to non-empty right of node");
             _right = std::move(right);
             if (_right) {
@@ -381,6 +397,7 @@ namespace ldb::index::tree {
 
         static std::unique_ptr<tree_node>*
         min_child(std::unique_ptr<tree_node>* node) {
+            LDB_PROF_SCOPE("TreeNode_MinChild");
             assert(node && "node must not be empty");
             assert((*node) && "*node must not be empty");
             while ((*node)->_left) {
@@ -391,6 +408,7 @@ namespace ldb::index::tree {
 
         void
         update_side_of_child(tree_node* child, update_type type) override {
+            LDB_PROF_SCOPE("TreeNode_UpdateSideOfChild");
             assert(child);
             if (type == update_type::NO_UPDATE) return;
 
