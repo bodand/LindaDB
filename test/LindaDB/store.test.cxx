@@ -77,6 +77,25 @@ TEST_CASE("store can store and rdp by value a nonempty tuple without index") {
     CHECK(*ret == tuple);
 }
 
+TEST_CASE("store for rdp of non-existent tuple by value a nonempty tuple without index") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 5, 4, 3, 2, 1);
+    store.out(tuple);
+    std::string name;
+    int var1;
+    int var2;
+    int var3;
+    int var4;
+    auto ret = store.rdp(ldb::query_tuple(
+           ldb::ref(&name), // asd
+           ldb::ref(&var1), // 5
+           ldb::ref(&var2), // 4
+           ldb::ref(&var3), // 3
+           ldb::ref(&var4), // 2
+           0));
+    REQUIRE_FALSE(ret.has_value());
+}
+
 TEST_CASE("store can store and rdp by type a nonempty tuple") {
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
@@ -95,7 +114,7 @@ TEST_CASE("store can store and rdp cannot retrieve tuple with mismatched type") 
     auto tuple = lv::linda_tuple("asd", 2);
     store.out(tuple);
 
-    long long val = 0LL;
+    std::int64_t val = 0LL;
     auto ret = store.rdp(ldb::query_tuple("asd", ldb::ref(&val)));
 
     CHECK(val == 0LL);
@@ -134,6 +153,113 @@ TEST_CASE("store can repeat rdp calls for missing tuple") {
 
     for (int i = 0; i < 15; ++i) {
         auto ret = store.rdp(ldb::query_tuple("asd", 3));
+        CHECK_FALSE(ret.has_value());
+    }
+}
+
+TEST_CASE("store can store and inp by value a nonempty tuple") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out(tuple);
+    auto ret = store.inp(ldb::query_tuple("asd", 2));
+    REQUIRE(ret.has_value());
+    CHECK(*ret == tuple);
+}
+
+TEST_CASE("store can store and inp by value a nonempty tuple without index") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 5, 4, 3, 2, 1);
+    store.out(tuple);
+    std::string name;
+    int var1;
+    int var2;
+    int var3;
+    int var4;
+    auto ret = store.inp(ldb::query_tuple(
+           ldb::ref(&name), // asd
+           ldb::ref(&var1), // 5
+           ldb::ref(&var2), // 4
+           ldb::ref(&var3), // 3
+           ldb::ref(&var4), // 2
+           1));
+    REQUIRE(ret.has_value());
+}
+
+TEST_CASE("store for inp of non-existent tuple by value a nonempty tuple without index") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 5, 4, 3, 2, 1);
+    store.out(tuple);
+    std::string name;
+    int var1;
+    int var2;
+    int var3;
+    int var4;
+    auto ret = store.inp(ldb::query_tuple(
+           ldb::ref(&name), // asd
+           ldb::ref(&var1), // 5
+           ldb::ref(&var2), // 4
+           ldb::ref(&var3), // 3
+           ldb::ref(&var4), // 2
+           0));
+    REQUIRE_FALSE(ret.has_value());
+}
+
+TEST_CASE("store can store and inp by type a nonempty tuple") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out(tuple);
+
+    int val = 0;
+    auto ret = store.inp(ldb::query_tuple("asd", ldb::ref(&val)));
+
+    CHECK(lv::linda_value(val) == tuple[1]);
+    REQUIRE(ret.has_value());
+    CHECK(*ret == tuple);
+}
+
+TEST_CASE("store can store and inp cannot retrieve tuple with mismatched type") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out(tuple);
+
+    std::int64_t val = 0LL;
+    auto ret = store.inp(ldb::query_tuple("asd", ldb::ref(&val)));
+
+    CHECK(val == 0LL);
+    CHECK_FALSE(ret.has_value());
+}
+
+TEST_CASE("store can store and inp cannot retrieve tuple with mismatched value") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out(tuple);
+
+    auto ret = store.inp(ldb::query_tuple("asd", 3));
+
+    CHECK_FALSE(ret.has_value());
+}
+
+TEST_CASE("store cannot repeat inp calls for existing tuple: only first succeeds") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out(tuple);
+
+    int val = 0;
+    auto ret = store.inp(ldb::query_tuple("asd", ldb::ref(&val)));
+    CHECK(lv::linda_value(val) == tuple[1]);
+    REQUIRE(ret.has_value());
+    CHECK(*ret == tuple);
+    auto ret2 = store.inp(ldb::query_tuple("asd", ldb::ref(&val)));
+    CHECK_FALSE(ret2.has_value());
+}
+
+TEST_CASE("store can repeat inp calls for missing tuple") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out(tuple);
+
+    for (int i = 0; i < 15; ++i) {
+        auto ret = store.inp(ldb::query_tuple("asd", 3));
         CHECK_FALSE(ret.has_value());
     }
 }

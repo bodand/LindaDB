@@ -252,6 +252,26 @@ namespace ldb {
             return ret;
         }
 
+        template<class V, std::size_t C, class P, auto Ext = std::dynamic_extent>
+        std::pair<std::size_t, std::optional<std::optional<V>>>
+        try_read_and_remove_indices(std::span<index::tree::tree<lv::linda_value, V, C, P>, Ext> indices) {
+            std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
+            std::size_t index_idx{};
+
+            [this, &index_idx, &ret, &indices]<std::size_t... Is>(std::index_sequence<Is...>) {
+                auto aggregator = [this, &index_idx, &ret, &indices]<std::size_t Idx>() constexpr {
+                    if (!_indexable[Idx]) return true;
+                    if (indices.size() < Idx) return false;
+                    index_idx = Idx;
+                    ret = std::optional(indices[Idx].remove(index::tree::value_query(std::get<Idx>(_payload), *this)));
+                    return !*ret;
+                };
+                (aggregator.template operator()<Is>() && ...);
+            }(std::make_index_sequence<sizeof...(Matcher)>());
+
+            return {index_idx, ret};
+        }
+
     private:
         struct matcher {
             explicit matcher(std::partial_ordering& ordering) : ordering(ordering) { }

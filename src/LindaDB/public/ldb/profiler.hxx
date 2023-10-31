@@ -41,9 +41,9 @@
 #endif
 
 namespace ldb::prof {
-    constexpr const static auto color_search = 0xF0F000;
-    constexpr const static auto color_insert = 0x00F0F0;
-    constexpr const static auto color_remove = 0xFF0020;
+    [[maybe_unused]] constexpr const static auto color_search = 0xF0F000;
+    [[maybe_unused]] constexpr const static auto color_insert = 0x00F0F0;
+    [[maybe_unused]] constexpr const static auto color_remove = 0xFF0020;
 }
 
 #ifdef __GNUC__

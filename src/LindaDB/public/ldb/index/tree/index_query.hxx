@@ -106,7 +106,7 @@ namespace ldb::index::tree {
             return a <=> b._value;
         }
         
-        friend constexpr auto
+        friend constexpr bool
         operator==(const auto& a, const value_query& b) noexcept {
             return a == b._value;
         }

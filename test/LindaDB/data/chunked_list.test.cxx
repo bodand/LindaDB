@@ -178,6 +178,7 @@ TEST_CASE("chunked_list is empty after clear") {
 TEST_CASE("empty chunked_list can be iterated over") {
     const ld::chunked_list<int> data;
     for (int const& _ : data) {
+        std::ignore = _;
         FAIL("value in empty chunked_list");
     }
 }
@@ -189,6 +190,18 @@ TEST_CASE("chunked_list can be iterated over") {
     }
     for (int const& it : data) {
         CHECK(it > 0);
+    }
+}
+
+TEST_CASE("chunked_list can be deleted from using an iterator") {
+    ld::chunked_list<int> data;
+    for (int i = 0; i < 32; ++i) {
+        data.emplace_back(i);
+    }
+    auto it = data.begin();
+    data.erase(std::next(it, 3));
+    for (int const& it : data) {
+        CHECK(it != 3);
     }
 }
 

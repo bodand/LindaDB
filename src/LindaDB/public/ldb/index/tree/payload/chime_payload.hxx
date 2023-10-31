@@ -41,6 +41,7 @@
 #include <array>
 #include <concepts>
 #include <cstdlib>
+#include <iterator>
 #include <ranges>
 #include <shared_mutex>
 #include <utility>
@@ -114,22 +115,6 @@ namespace ldb::index::tree::payloads {
             if (key < mem_min_key) return std::weak_ordering::greater;
             if (mem_max_key < key) return std::weak_ordering::less;
             return std::weak_ordering::equivalent;
-        }
-
-        template<index_query<value_type> Q>
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
-        try_get(const Q& query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
-            LDB_PROF_SCOPE_C("ChimePayload_Search", prof::color_search);
-            if (empty()) return std::nullopt;
-            auto data_end = next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
-            if (auto it = std::lower_bound(begin(_keys),
-                                           data_end,
-                                           query.key());
-                it != data_end) {
-                const auto col_idx = static_cast<std::size_t>(std::distance(begin(_keys), it));
-                return _sets[col_idx].get(query);
-            }
-            return std::nullopt;
         }
 
         [[nodiscard]] bool
@@ -211,20 +196,36 @@ namespace ldb::index::tree::payloads {
         }
 
         template<index_query<value_type> Q>
+        [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
+        try_get(const Q& query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
+            LDB_PROF_SCOPE_C("ChimePayload_Search", prof::color_search);
+            if (empty()) return std::nullopt;
+            auto data_end = std::next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
+            if (auto it = std::lower_bound(begin(_keys),
+                                           data_end,
+                                           query.key());
+                it != data_end) {
+                const auto col_idx = static_cast<std::size_t>(std::distance(begin(_keys), it));
+                return _sets[col_idx].get(query);
+            }
+            return std::nullopt;
+        }
+
+        template<index_query<value_type> Q>
         LDB_CONSTEXPR23 std::optional<value_type>
         remove(const Q& query) {
-            LDB_PROF_SCOPE_C("VectorPayload_Remove", prof::color_remove);
-            assert(!empty());
-            auto key_end = next(begin(_keys), _data_sz);
-            auto it = std::ranges::lower_bound(begin(_keys), key_end, query.key());
+            LDB_PROF_SCOPE_C("ChimePayload_Remove", prof::color_remove);
+            if (empty()) return std::nullopt;
+            auto key_end = std::next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
+            auto it = std::lower_bound(begin(_keys), key_end, query.key());
             if (it == key_end) return std::nullopt;
 
-            const auto col_idx = distance(begin(_keys), it);
+            const auto col_idx = static_cast<size_type>(std::distance(begin(_keys), it));
             auto res = _sets[col_idx].pop(query);
 
             if (_sets[col_idx].empty()) {
-                const auto data_it = next(begin(_sets), col_idx);
-                const auto data_end = next(begin(_sets), _data_sz);
+                const auto data_it = std::next(begin(_sets), static_cast<std::ptrdiff_t>(col_idx));
+                const auto data_end = std::next(begin(_sets), static_cast<std::ptrdiff_t>(_data_sz));
                 std::ranges::rotate(it, it + 1, key_end);
                 std::ranges::rotate(data_it, data_it + 1, data_end);
                 --_data_sz;
@@ -259,7 +260,7 @@ namespace ldb::index::tree::payloads {
             [[nodiscard]] constexpr std::optional<value_type>
             pop(Q query) {
                 assert(!empty());
-                if (auto it = std::ranges::lower_bound(_values, query);
+                if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
                     it != _values.end()) {
 
                     auto cp = *it;
@@ -402,11 +403,11 @@ namespace ldb::index::tree::payloads {
 
             auto data_end_offset = static_cast<std::ptrdiff_t>(_data_sz);
             auto it = std::ranges::lower_bound(begin(_keys),
-                                               next(begin(_keys), data_end_offset),
+                                               std::next(begin(_keys), data_end_offset),
                                                key);
             if (it == end(_keys)) return FULL;
 
-            auto col_idx = static_cast<std::size_t>(distance(begin(_keys), it));
+            auto col_idx = static_cast<std::size_t>(std::distance(begin(_keys), it));
             if (*it == key) {
                 _sets[col_idx].push(value);
                 return UPDATED;
@@ -414,11 +415,11 @@ namespace ldb::index::tree::payloads {
             if (full()) return FULL;
 
             std::ranges::move_backward(it,
-                                       next(begin(_keys), data_end_offset),
-                                       next(begin(_keys), data_end_offset + 1));
-            std::ranges::move_backward(next(begin(_sets), static_cast<std::ptrdiff_t>(col_idx)),
-                                       next(begin(_sets), data_end_offset),
-                                       next(begin(_sets), data_end_offset + 1));
+                                       std::next(begin(_keys), data_end_offset),
+                                       std::next(begin(_keys), data_end_offset + 1));
+            std::ranges::move_backward(std::next(begin(_sets), static_cast<std::ptrdiff_t>(col_idx)),
+                                       std::next(begin(_sets), data_end_offset),
+                                       std::next(begin(_sets), data_end_offset + 1));
             *it = key;
             _sets[col_idx].push(value);
             ++_data_sz;

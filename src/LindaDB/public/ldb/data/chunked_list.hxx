@@ -240,8 +240,8 @@ namespace ldb::data {
         using chunk_size_t = meta::count_size_t<ChunkSize>;
         static_assert(std::is_unsigned_v<chunk_size_t>);
 
-        friend struct iterator_impl;
-        friend struct data_chunk;
+        struct iterator_impl;
+        struct data_chunk;
 
         struct data_chunk {
             [[nodiscard]] constexpr unsigned
@@ -268,7 +268,6 @@ namespace ldb::data {
 
             [[nodiscard]] constexpr reference
             operator[](size_type idx) noexcept {
-                assert(idx >= 0);
                 assert(idx < ChunkSize);
                 assert(valid_at_index(idx));
                 return *std::bit_cast<pointer>(&_data[idx * sizeof(T)]);
@@ -355,6 +354,7 @@ namespace ldb::data {
             }
 
         private:
+            friend chunked_list;
             chunked_list* _owner;
             size_type _chunk_index;
             chunk_size_t _valids{};
@@ -362,11 +362,11 @@ namespace ldb::data {
         };
 
         struct iterator_impl {
-            using difference_type = difference_type;
-            using value_type = value_type;
-            using reference = reference;
-            using pointer = pointer;
-            using iterator_category = std::random_access_iterator_tag;
+            using difference_type = chunked_list::difference_type;
+            using value_type = chunked_list::value_type;
+            using reference = chunked_list::reference;
+            using pointer = chunked_list::pointer;
+            using iterator_category = std::bidirectional_iterator_tag;
 
             constexpr reference
             operator*() const noexcept(noexcept((*_chunk)[_index])) {
@@ -509,7 +509,8 @@ namespace ldb::data {
         [[nodiscard]] constexpr iterator
         begin() const noexcept {
             if (_chunks.size() == 0) return iterator();
-            return iterator(_chunks[0].get(), 0);
+            return iterator(_chunks[0].get(),
+                            static_cast<unsigned>(std::countr_zero(_chunks[0]->_valids)));
         }
 
         [[nodiscard]] constexpr iterator
@@ -538,8 +539,17 @@ namespace ldb::data {
         }
 
         constexpr void
-        erase(iterator it) const noexcept {
-            // todo
+        erase(iterator it) noexcept {
+            auto chunk = it._chunk;
+            const auto i = it._index;
+            assert(chunk);
+            assert(chunk->valid_at_index(i));
+
+            chunk->destroy_at_index(i);
+            if (chunk->empty()) {
+                _chunks.erase(next(_chunks.begin(),
+                                   static_cast<difference_type>(chunk->_chunk_index)));
+            }
         }
     };
 }

@@ -78,7 +78,7 @@ TEST_CASE("query_tuple with different size is compared correctly") {
 
 TEST_CASE("query_tuple with greater type field is compared correctly") {
     const lv::linda_tuple lv("str", 2);
-    long long val = 0LL;
+    std::int64_t val = 0LL;
     const ldb::query_tuple q("str", ldb::ref(&val));
 
     SECTION("not equal") {

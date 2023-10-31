@@ -53,12 +53,34 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         rdp(query_tuple<Args...> query) {
-            if constexpr (sizeof...(Args) != 0) {
-                if (auto idx_res = query.try_read_indices(std::span(_header_indices));
-                    idx_res.has_value()) {
-                    if (*idx_res) return ***idx_res; // Maybe Maybe Iterator -> 3 deref
-                    return std::nullopt;
+            if (auto index_res = query.try_read_indices(std::span(_header_indices));
+                index_res.has_value()) {
+                if (*index_res) return ***index_res; // Maybe Maybe Iterator -> 3 deref
+                return std::nullopt;
+            }
+            auto it = std::ranges::find_if(_data, [&query](const auto& stored) {
+                return stored == query;
+            });
+            if (it == _data.end()) return std::nullopt;
+            return *it;
+        }
+
+        template<class... Args>
+        std::optional<lv::linda_tuple>
+        inp(query_tuple<Args...> query) {
+            if (auto [index_idx, index_res] = query.try_read_and_remove_indices(std::span(_header_indices));
+                index_res.has_value()) {
+                if (!*index_res) return std::nullopt;
+                auto it = **index_res;
+                auto res = *it;
+                for (std::size_t i = 0U;
+                     auto& idx : _header_indices) {
+                    if (i == index_idx) continue;
+                    idx.remove(index::tree::value_query(res[i], it));
+                    ++i;
                 }
+                _data.erase(it);
+                return res;
             }
             auto it = std::ranges::find_if(_data, [&query](const auto& stored) {
                 return stored == query;
@@ -68,11 +90,10 @@ namespace ldb {
         }
 
     private:
-        // does not invalidate existing pointers / todo? replace with a skip-list of some kind
         using storage_type = data::chunked_list<lv::linda_tuple>;
         using pointer_type = storage_type::iterator;
 
-        std::array<index::tree::tree<lv::linda_value, pointer_type>, 3> _header_indices{};
+        std::array<index::tree::tree<lv::linda_value, pointer_type>, 2> _header_indices{};
         storage_type _data{};
     };
 }
