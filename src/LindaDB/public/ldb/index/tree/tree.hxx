@@ -64,6 +64,7 @@ namespace ldb::index::tree {
         [[nodiscard]] std::optional<value_type>
         search(const Q& query) const {
             LDB_PROF_SCOPE_C("Tree_Search", prof::color_search);
+            LDB_SLOCK(lck, _mtx);
             std::optional<V> res;
             node_type* node = _root.get();
             while (node != nullptr) {
@@ -76,6 +77,7 @@ namespace ldb::index::tree {
         void
         insert(const K& key, const V& value) {
             LDB_PROF_SCOPE_C("Tree_Insert", prof::color_search);
+            LDB_LOCK(lck, _mtx);
             node_type* node = _root.get();
             do {
                 node = node->insert(key, value);
@@ -94,6 +96,7 @@ namespace ldb::index::tree {
         void
         remove(const Q& query, std::optional<value_type>* ret) {
             LDB_PROF_SCOPE_C("Tree_Remove", prof::color_remove);
+            LDB_LOCK(lck, _mtx);
             node_type* node = _root.get();
             do {
                 node = node->remove(query, ret);
@@ -103,6 +106,7 @@ namespace ldb::index::tree {
 
         void
         dump(std::ostream& os) const {
+            LDB_SLOCK(lck, _mtx);
             _root->dump(os);
             os << "\n";
         }
@@ -114,8 +118,9 @@ namespace ldb::index::tree {
             return ss.str();
         }
 
-        [[nodiscard]] constexpr std::size_t
+        [[nodiscard]] LDB_CONSTEXPR23 std::size_t
         node_capacity() const noexcept {
+            LDB_SLOCK(lck, _mtx);
             return _root->capacity();
         }
 

@@ -109,9 +109,11 @@ namespace ldb::prof {
 #ifdef LockMark
 #  define LDB_LOCK(lck, mtx) std::unique_lock lck{mtx}; LockMark(mtx)
 #  define LDB_SLOCK(lck, mtx) std::shared_lock lck{mtx}; LockMark(mtx)
+#  define LDB_TNAME(name) tracy::SetThreadName(name)
 #else
-#  define LDB_SLOCK(lck, mtx) std::unique_lock lck{mtx}
+#  define LDB_LOCK(lck, mtx) std::unique_lock lck{mtx}
 #  define LDB_SLOCK(lck, mtx) std::shared_lock lck{mtx}
+#  define LDB_TNAME(name) (void)name
 #endif
 
 #endif

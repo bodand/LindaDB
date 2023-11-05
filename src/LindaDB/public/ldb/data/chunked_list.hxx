@@ -67,6 +67,8 @@
 #include <cstdlib>
 #include <memory>
 #include <numeric>
+#include <shared_mutex>
+#include <mutex>
 #include <ranges>
 #include <type_traits>
 #include <vector>
@@ -183,12 +185,14 @@ namespace ldb::data {
         [[nodiscard]] LDB_CONSTEXPR23 bool
         empty() const noexcept {
             LDB_PROF_SCOPE("ChunkedList_Empty");
+            LDB_SLOCK(lck, _mtx);
             return _chunks.empty() || (_chunks.size() == 1 && _chunks[0]->empty());
         }
 
         [[nodiscard]] LDB_CONSTEXPR23 auto
         size() const noexcept {
             LDB_PROF_SCOPE("ChunkedList_Size");
+            LDB_SLOCK(lck, _mtx);
             return std::reduce(
                    _chunks.begin(),
                    _chunks.end(),
@@ -212,14 +216,16 @@ namespace ldb::data {
                    });
         }
 
-        [[nodiscard]] constexpr bool
+        [[nodiscard]] LDB_CONSTEXPR23 bool
         capacity() const noexcept {
+            LDB_SLOCK(lck, _mtx);
             return _chunks.size() * ChunkSize;
         }
 
         [[nodiscard]] LDB_CONSTEXPR23 reference
         operator[](size_type idx) noexcept {
             LDB_PROF_SCOPE("ChunkedList_RandomAccess");
+            LDB_SLOCK(lck, _mtx);
             // todo fix holes
             const auto chunk_idx = idx / ChunkSize;
             const auto inner_idx = idx % ChunkSize;
@@ -229,14 +235,16 @@ namespace ldb::data {
         [[nodiscard]] LDB_CONSTEXPR23 const_reference
         operator[](size_type idx) const noexcept {
             LDB_PROF_SCOPE("ChunkedList_RandomAccess");
+            LDB_SLOCK(lck, _mtx);
             // todo fix holes
             const auto chunk_idx = idx / ChunkSize;
             const auto inner_idx = idx % ChunkSize;
             return (*_chunks[chunk_idx])[inner_idx];
         }
 
-        constexpr void
+        LDB_CONSTEXPR23 void
         clear() {
+            LDB_LOCK(lck, _mtx);
             _chunks.clear();
         }
 
@@ -519,7 +527,7 @@ namespace ldb::data {
             return _chunks[next_pos].get();
         }
 
-        mutable LDB_SMUTEX(std::shared_mutex, _chunks_mtx);
+        mutable LDB_SMUTEX(std::shared_mutex, _mtx);
         std::vector<std::unique_ptr<data_chunk>> _chunks;
 
     public:
@@ -528,6 +536,7 @@ namespace ldb::data {
         [[nodiscard]] LDB_CONSTEXPR23 iterator
         begin() const noexcept {
             LDB_PROF_SCOPE("ChunkedList_Begin");
+            LDB_SLOCK(lck, _mtx);
             if (_chunks.size() == 0) return iterator();
             return iterator(_chunks[0].get(),
                             static_cast<unsigned>(std::countr_zero(_chunks[0]->_valids)));
@@ -536,6 +545,7 @@ namespace ldb::data {
         [[nodiscard]] LDB_CONSTEXPR23 iterator
         end() const noexcept {
             LDB_PROF_SCOPE("ChunkedList_End");
+            LDB_SLOCK(lck, _mtx);
             if (_chunks.empty()) return iterator();
             return iterator(_chunks.back().get(), _chunks.back()->size());
         }
@@ -543,6 +553,7 @@ namespace ldb::data {
         iterator
         push_back(const T& obj) {
             LDB_PROF_SCOPE("ChunkedList_PushBack");
+            LDB_LOCK(lck, _mtx);
             auto& back = [this]() -> decltype(auto) {
                 LDB_PROF_SCOPE("ChunkedList_PushBack_CS");
                 if (_chunks.empty() || _chunks.back()->full()) {
@@ -558,6 +569,7 @@ namespace ldb::data {
         iterator
         emplace_back(Args&&... args) {
             LDB_PROF_SCOPE("ChunkedList_EmplaceBack");
+            LDB_LOCK(lck, _mtx);
             auto& back = [this]() -> decltype(auto) {
                 LDB_PROF_SCOPE("ChunkedList_EmplaceBack_CS");
                 if (_chunks.empty() || _chunks.back()->full()) {
@@ -572,6 +584,7 @@ namespace ldb::data {
         LDB_CONSTEXPR23 void
         erase(iterator it) noexcept {
             LDB_PROF_SCOPE("ChunkedList_Erase");
+            LDB_LOCK(lck, _mtx);
             auto chunk = it._chunk;
             const auto i = it._index;
             assert(chunk);
