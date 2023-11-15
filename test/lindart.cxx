@@ -28,61 +28,34 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-18.
+ * Originally created: 2023-11-08.
  *
- * src/LindaDB/public/ldb/lv/linda_value --
+ * test/lindart --
+ *   
  */
 
-#ifndef LINDADB_LINDA_VALUE_HXX
-#define LINDADB_LINDA_VALUE_HXX
+#include <ldb/query_tuple.hxx>
+#include <ldb/store.hxx>
+#include <lrt/runtime.hxx>
 
-#include <cstdint>
-#include <string>
-#include <variant>
+#include <mpi.h>
 
-namespace ldb::lv {
-    using linda_value = std::variant<
-           std::int16_t,
-           std::uint16_t,
-           std::int32_t,
-           std::uint32_t,
-           std::int64_t,
-           std::uint64_t,
-           std::string,
-           float,
-           double>;
+int
+main(int argc, char** argv) {
+    lrt::runtime rt(&argc, &argv);
+    auto& store = rt.store();
 
-    namespace helper {
-        struct printer {
-            explicit printer(std::ostream& os) : _os(os) { }
-
-            template<std::integral T>
-            void
-            operator()(T i) {
-                _os << i;
-            }
-
-            template<std::floating_point T>
-            void
-            operator()(T f) {
-                _os << f;
-            }
-
-            void
-            operator()(std::string_view str) {
-                _os << str;
-            }
-
-        private:
-            std::ostream& _os;
-        };
+    int rank, size;
+    std::string data;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (rank == 0) {
+        store.in(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));
+        std::cout << "rank0: " << data << "\n";
     }
-
-    inline std::ostream&
-    operator<<(std::ostream& os, const linda_value& lv) {
-        std::visit(helper::printer(os), lv);
-        return os;
+    else {
+        data = "Hello World!";
+        store.out(ldb::lv::linda_tuple{"rank", rank + 1, data});
+        std::cout << "rank" << rank << ": finishing\n";
     }
 }
-
-#endif //LINDADB_LINDA_VALUE_HXX

@@ -28,61 +28,52 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-18.
+ * Originally created: 2023-11-06.
  *
- * src/LindaDB/public/ldb/lv/linda_value --
+ * src/LindaRT/public/lrt/runtime --
+ *   The runtime object for handling the required resources for the LindaRT.
  */
+#ifndef LINDADB_RUNTIME_HXX
+#define LINDADB_RUNTIME_HXX
 
-#ifndef LINDADB_LINDA_VALUE_HXX
-#define LINDADB_LINDA_VALUE_HXX
+#include <atomic>
+#include <thread>
 
-#include <cstdint>
-#include <string>
-#include <variant>
+#include <ldb/store.hxx>
 
-namespace ldb::lv {
-    using linda_value = std::variant<
-           std::int16_t,
-           std::uint16_t,
-           std::int32_t,
-           std::uint32_t,
-           std::int64_t,
-           std::uint64_t,
-           std::string,
-           float,
-           double>;
+namespace lrt {
+    struct runtime {
+        runtime(int* argc, char*** argv);
 
-    namespace helper {
-        struct printer {
-            explicit printer(std::ostream& os) : _os(os) { }
+        runtime(const runtime& cp) = delete;
+        runtime(runtime&& mv) noexcept = delete;
+        runtime&
+        operator=(const runtime& cp) = delete;
+        runtime&
+        operator=(runtime&& mv) noexcept = delete;
 
-            template<std::integral T>
-            void
-            operator()(T i) {
-                _os << i;
-            }
+        ~runtime() noexcept;
 
-            template<std::floating_point T>
-            void
-            operator()(T f) {
-                _os << f;
-            }
+        ldb::store&
+        store() noexcept { return _store; }
 
-            void
-            operator()(std::string_view str) {
-                _os << str;
-            }
+        const ldb::store&
+        store() const noexcept { return _store; }
 
-        private:
-            std::ostream& _os;
-        };
-    }
+    private:
+        inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
 
-    inline std::ostream&
-    operator<<(std::ostream& os, const linda_value& lv) {
-        std::visit(helper::printer(os), lv);
-        return os;
-    }
+        void
+        initialize_types();
+
+        void
+        recv_thread_worker();
+
+        int _rank;
+        std::atomic_flag _recv_start = ATOMIC_FLAG_INIT;
+        std::thread _recv_thr;
+        ldb::store _store{};
+    };
 }
 
-#endif //LINDADB_LINDA_VALUE_HXX
+#endif

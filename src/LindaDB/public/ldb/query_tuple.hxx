@@ -111,6 +111,9 @@ namespace ldb {
             requires(!std::same_as<U, match_value>)
              : _field(std::forward<U>(field)) { }
 
+        explicit constexpr match_value(T& field)
+             : _field(field) { }
+
         template<class... Args>
         [[nodiscard]] friend constexpr auto
         operator<=>(const std::variant<Args...>& value, const match_value& mv) noexcept(noexcept(std::declval<T>() == mv._field))
@@ -240,7 +243,7 @@ namespace ldb {
 
         template<class V, std::size_t C, class P, auto Ext = std::dynamic_extent>
         std::optional<std::optional<V>>
-        try_read_indices(std::span<index::tree::tree<lv::linda_value, V, C, P>, Ext> indices) const {
+        try_read_indices(std::span<const index::tree::tree<lv::linda_value, V, C, P>, Ext> indices) const {
             LDB_PROF_SCOPE("QueryTuple_ReadIndex");
             std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
 

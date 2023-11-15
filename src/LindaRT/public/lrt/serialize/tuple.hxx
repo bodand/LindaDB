@@ -28,61 +28,25 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-18.
+ * Originally created: 2023-11-06.
  *
- * src/LindaDB/public/ldb/lv/linda_value --
+ * src/LindaRT/public/lrt/serialize/tuple --
+ *   Helper function to de-/serialize linda tuples.
  */
+#ifndef LINDADB_TUPLE_HXX
+#define LINDADB_TUPLE_HXX
 
-#ifndef LINDADB_LINDA_VALUE_HXX
-#define LINDADB_LINDA_VALUE_HXX
+#include <memory>
 
-#include <cstdint>
-#include <string>
-#include <variant>
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/linda_value.hxx>
 
-namespace ldb::lv {
-    using linda_value = std::variant<
-           std::int16_t,
-           std::uint16_t,
-           std::int32_t,
-           std::uint32_t,
-           std::int64_t,
-           std::uint64_t,
-           std::string,
-           float,
-           double>;
+namespace lrt {
+    std::pair<std::unique_ptr<std::byte[]>, std::size_t>
+    serialize(const ldb::lv::linda_tuple& tuple);
 
-    namespace helper {
-        struct printer {
-            explicit printer(std::ostream& os) : _os(os) { }
-
-            template<std::integral T>
-            void
-            operator()(T i) {
-                _os << i;
-            }
-
-            template<std::floating_point T>
-            void
-            operator()(T f) {
-                _os << f;
-            }
-
-            void
-            operator()(std::string_view str) {
-                _os << str;
-            }
-
-        private:
-            std::ostream& _os;
-        };
-    }
-
-    inline std::ostream&
-    operator<<(std::ostream& os, const linda_value& lv) {
-        std::visit(helper::printer(os), lv);
-        return os;
-    }
+    ldb::lv::linda_tuple
+    deserialize(std::span<std::byte> buf);
 }
 
-#endif //LINDADB_LINDA_VALUE_HXX
+#endif

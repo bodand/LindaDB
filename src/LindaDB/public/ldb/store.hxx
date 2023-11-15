@@ -38,8 +38,10 @@
 
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <list>
 
+#include <ldb/support/move_only_function.hxx>
 #include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
@@ -49,6 +51,21 @@ namespace ldb {
     struct store {
         void
         out(const lv::linda_tuple& tuple) {
+            LDB_PROF_SCOPE_C("Store_out", prof::color_out);
+            std::optional<move_only_function<void()>> wait_bcast{};
+            if (_start_bcast) wait_bcast = (*_start_bcast)(tuple);
+            auto new_it = _data.push_back(tuple);
+            for (std::size_t i = 0;
+                 i < _header_indices.size() && i < tuple.size();
+                 ++i) {
+                _header_indices[i].insert(tuple[i], new_it);
+            }
+            if (wait_bcast) (*wait_bcast)();
+            _wait.notify_all();
+        }
+
+        void
+        out_nosignal(const lv::linda_tuple& tuple) {
             LDB_PROF_SCOPE_C("Store_out", prof::color_out);
             auto new_it = _data.push_back(tuple);
             for (std::size_t i = 0;
@@ -61,14 +78,14 @@ namespace ldb {
 
         template<class... Args>
         std::optional<lv::linda_tuple>
-        rdp(const query_tuple<Args...>& query) {
+        rdp(const query_tuple<Args...>& query) const {
             LDB_PROF_SCOPE_C("Store_rdp", prof::color_rd);
             return try_read(query);
         }
 
         template<class... Args>
         lv::linda_tuple
-        rd(const query_tuple<Args...>& query) {
+        rd(const query_tuple<Args...>& query) const {
             LDB_PROF_SCOPE_C("Store_rd", prof::color_rd);
             for (;;) {
                 if (auto read = try_read(query)) return *read;
@@ -95,13 +112,19 @@ namespace ldb {
             }
         }
 
+        template<class Fn>
+        void
+        set_broadcast(Fn&& fn) {
+            _start_bcast = std::forward<Fn>(fn);
+        }
+
     private:
         using storage_type = data::chunked_list<lv::linda_tuple>;
         using pointer_type = storage_type::iterator;
 
         template<class... Args>
         std::optional<lv::linda_tuple>
-        try_read(const query_tuple<Args...>& query) {
+        try_read(const query_tuple<Args...>& query) const {
             LDB_PROF_SCOPE("Store_inner_TryRead");
             if (auto index_res = query.try_read_indices(std::span(_header_indices));
                 index_res.has_value()) {
@@ -140,9 +163,10 @@ namespace ldb {
             return *it;
         }
 
-        LDB_MUTEX(std::mutex, _wait_mtx);
-        std::condition_variable_any _wait;
+        mutable LDB_MUTEX(std::mutex, _wait_mtx);
+        mutable std::condition_variable_any _wait;
         std::array<index::tree::tree<lv::linda_value, pointer_type>, 2> _header_indices{};
+        std::optional<std::function<move_only_function<void()>(lv::linda_tuple)>> _start_bcast;
         storage_type _data{};
     };
 }

@@ -9,6 +9,14 @@
     "mimalloc",
     "tracy",
     "catch2",
-    "fakeit"
+    "fakeit",
+    {
+      "name": "openmpi",
+      "platform": "!(windows | uwp)"
+    },
+    {
+      "name": "msmpi",
+      "platform": "windows"
+    }
   ]
 }

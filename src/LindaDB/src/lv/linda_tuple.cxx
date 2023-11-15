@@ -53,3 +53,14 @@ ldb::lv::linda_tuple::get_at(std::size_t idx) const {
     assert(_size > 4);
     return std::get<std::vector<linda_value>>(_tail)[idx - 3];
 }
+
+std::ostream&
+ldb::lv::operator<<(std::ostream& os, const ldb::lv::linda_tuple& tuple) {
+    os << "(";
+    for (std::size_t i = 0; i < tuple.size(); ++i) {
+        os << tuple.get_at(i);
+        if (i != tuple.size() - 1) os << ", ";
+    }
+    os << ")";
+    return os;
+}

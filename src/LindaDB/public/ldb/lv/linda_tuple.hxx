@@ -42,6 +42,8 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <ostream>
+#include <span>
 #include <vector>
 
 #include <ldb/lv/linda_value.hxx>
@@ -76,6 +78,24 @@ namespace ldb::lv {
                _data_ref{std::move(lv1), std::move(lv2), std::move(lv3)},
                _tail(std::vector<linda_value>{lv4, linda_value(std::forward<Args>(lvn))...}) { }
 
+        explicit linda_tuple(std::span<linda_value> vals)
+             : _size(vals.size()),
+               _data_ref() {
+            if (vals.empty()) return;
+            if (vals.size() <= 3) {
+                std::ranges::copy(vals, _data_ref.begin());
+            }
+            else {
+                std::ranges::copy(begin(vals), std::next(begin(vals), 3), _data_ref.begin());
+                if (vals.size() == 4) {
+                    _tail = vals[3];
+                }
+                else {
+                    _tail = std::vector<linda_value>(std::next(begin(vals), 3), end(vals));
+                }
+            }
+        }
+
         [[nodiscard]] std::size_t
         size() const noexcept {
             return _size;
@@ -94,6 +114,11 @@ namespace ldb::lv {
 
         [[nodiscard]] const linda_value&
         operator[](std::size_t idx) const { return get_at(idx); }
+
+    private:
+    public:
+        friend std::ostream&
+        operator<<(std::ostream& os, const linda_tuple& tuple);
 
     private:
         [[nodiscard]] linda_value&

@@ -30,26 +30,11 @@
 #
 # Originally created: 2023-10-14.
 #
-# test/CMakeLists.txt --
-#   The main orchestrator project file for handling the test-cases of LindaDB.
+# test/LindaDB/CMakeLists.txt --
+#   CMake script for handling the LindaDB project's test requirements.
 
-if (NOT TARGET Catch2::Catch2)
-    message(STATUS "Catch2 not present -- skipping tests")
-    return()
-endif ()
+add_covered_test(NAME LindaRT.Test CATCH
+                 SOURCES
+                 serialize_tuple.test.cxx
+                 LIBRARIES LindaRT)
 
-find_path(FAKEIT_INCLUDE_DIRS "boost/fakeit.hpp")
-add_library(fakeit INTERFACE)
-target_include_directories(fakeit INTERFACE "${FAKEIT_INCLUDE_DIRS}")
-
-include(Catch)
-
-add_subdirectory(LindaDB)
-add_subdirectory(LindaRT)
-
-find_package(MPI REQUIRED)
-add_executable(lindart-test lindart.cxx)
-target_link_libraries(lindart-test PUBLIC MPI::MPI_CXX LindaRT)
-
-add_test(NAME "LindaRT-MPI"
-         COMMAND "${MPIEXEC_EXECUTABLE}" -n 2 $<TARGET_FILE:lindart-test>)
