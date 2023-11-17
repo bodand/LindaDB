@@ -66,10 +66,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
-#include <numeric>
-#include <shared_mutex>
 #include <mutex>
+#include <numeric>
 #include <ranges>
+#include <shared_mutex>
 #include <type_traits>
 #include <vector>
 
@@ -117,7 +117,8 @@ namespace ldb::data {
         using difference_type = std::ptrdiff_t;
         using size_type = std::size_t;
 
-        constexpr chunked_list() = default;
+        constexpr
+        chunked_list() = default;
 
         constexpr explicit(false) chunked_list(std::initializer_list<T> initializer_list)
              : _chunks(1 + ((initializer_list.size() - 1) / ChunkSize)) {
@@ -130,7 +131,8 @@ namespace ldb::data {
             }
         }
 
-        constexpr chunked_list(size_type count, const value_type& value)
+        constexpr
+        chunked_list(size_type count, const value_type& value)
              : _chunks(1 + ((count - 1) / ChunkSize)) {
             std::ranges::generate(_chunks, [] { return std::make_unique<data_chunk>(); });
             for (size_type i = 0; i < count; ++i) {
@@ -139,7 +141,8 @@ namespace ldb::data {
             }
         }
 
-        constexpr explicit chunked_list(size_type count)
+        constexpr explicit
+        chunked_list(size_type count)
              : _chunks(1 + ((count - 1) / ChunkSize)) {
             std::ranges::generate(_chunks, [] { return std::make_unique<data_chunk>(); });
             for (size_type i = 0; i < count; ++i) {
@@ -159,13 +162,15 @@ namespace ldb::data {
             }
         }
 
-        constexpr chunked_list(const chunked_list& cp)
+        constexpr
+        chunked_list(const chunked_list& cp)
              : _chunks(cp._chunks.size()) {
             std::ranges::transform(cp._chunks, _chunks.begin(), [](const auto& chunk_ptr) {
                 return std::make_unique<data_chunk>(*chunk_ptr);
             });
         }
-        constexpr chunked_list(chunked_list&& cp) noexcept = default;
+        constexpr
+        chunked_list(chunked_list&& cp) noexcept = default;
 
         constexpr chunked_list&
         operator=(const chunked_list& cp) {
@@ -180,7 +185,9 @@ namespace ldb::data {
         constexpr chunked_list&
         operator=(chunked_list&& cp) noexcept = default;
 
+        // clang-format off
         constexpr ~chunked_list() noexcept = default;
+        // clang-format on
 
         [[nodiscard]] LDB_CONSTEXPR23 bool
         empty() const noexcept {
@@ -220,26 +227,6 @@ namespace ldb::data {
         capacity() const noexcept {
             LDB_SLOCK(lck, _mtx);
             return _chunks.size() * ChunkSize;
-        }
-
-        [[nodiscard]] LDB_CONSTEXPR23 reference
-        operator[](size_type idx) noexcept {
-            LDB_PROF_SCOPE("ChunkedList_RandomAccess");
-            LDB_SLOCK(lck, _mtx);
-            // todo fix holes
-            const auto chunk_idx = idx / ChunkSize;
-            const auto inner_idx = idx % ChunkSize;
-            return (*_chunks[chunk_idx])[inner_idx];
-        }
-
-        [[nodiscard]] LDB_CONSTEXPR23 const_reference
-        operator[](size_type idx) const noexcept {
-            LDB_PROF_SCOPE("ChunkedList_RandomAccess");
-            LDB_SLOCK(lck, _mtx);
-            // todo fix holes
-            const auto chunk_idx = idx / ChunkSize;
-            const auto inner_idx = idx % ChunkSize;
-            return (*_chunks[chunk_idx])[inner_idx];
         }
 
         LDB_CONSTEXPR23 void
@@ -291,7 +278,6 @@ namespace ldb::data {
             [[nodiscard]] LDB_CONSTEXPR23 const_reference
             operator[](size_type idx) const noexcept {
                 LDB_PROF_SCOPE("ChunkedList_DataChunk_RandomAccess");
-                assert(idx >= 0);
                 assert(idx < ChunkSize);
                 assert(valid_at_index(idx));
                 return *std::bit_cast<const_pointer>(&_data[idx * sizeof(T)]);
@@ -365,7 +351,8 @@ namespace ldb::data {
                 return _chunk_index == 0;
             }
 
-            ~data_chunk() noexcept {
+            ~
+            data_chunk() noexcept {
                 LDB_PROF_SCOPE("ChunkedList_DataChunk_Destroy");
                 if (empty()) return;
                 for (std::size_t i = 0; i < ChunkSize; ++i) {
@@ -466,7 +453,8 @@ namespace ldb::data {
 
         private:
             friend chunked_list;
-            constexpr iterator_impl(data_chunk* chunk, size_t index)
+            constexpr
+            iterator_impl(data_chunk* chunk, size_t index)
                  : _chunk(chunk),
                    _index(index) { }
 
@@ -591,10 +579,10 @@ namespace ldb::data {
             assert(chunk->valid_at_index(i));
 
             chunk->destroy_at_index(i);
-            if (chunk->empty()) {
-                _chunks.erase(next(_chunks.begin(),
-                                   static_cast<difference_type>(chunk->_chunk_index)));
-            }
+            // if (chunk->empty()) {
+            //     _chunks.erase(next(_chunks.begin(),
+            //                        static_cast<difference_type>(chunk->_chunk_index)));
+            // }
         }
     };
 }

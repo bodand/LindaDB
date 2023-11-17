@@ -44,6 +44,7 @@
 #include <cstddef>
 #include <ostream>
 #include <span>
+#include <sstream>
 #include <vector>
 
 #include <ldb/lv/linda_value.hxx>
@@ -115,12 +116,16 @@ namespace ldb::lv {
         [[nodiscard]] const linda_value&
         operator[](std::size_t idx) const { return get_at(idx); }
 
+        std::string
+        dump_string() const {
+            std::stringstream ss;
+            ss << *this;
+            return ss.str();
+        }
     private:
-    public:
         friend std::ostream&
         operator<<(std::ostream& os, const linda_tuple& tuple);
 
-    private:
         [[nodiscard]] linda_value&
         get_at(std::size_t idx);
 

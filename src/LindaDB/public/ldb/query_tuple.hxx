@@ -39,6 +39,7 @@
 #include <concepts>
 #include <cstdint>
 #include <span>
+#include <typeinfo>
 #include <variant>
 
 #include <ldb/index/tree/tree.hxx>
@@ -47,7 +48,8 @@
 namespace ldb {
     namespace meta {
         struct finder {
-            explicit finder(size_t& idx) : idx(idx) { }
+            explicit
+            finder(size_t& idx) : idx(idx) { }
             std::size_t& idx;
 
             bool
@@ -67,7 +69,8 @@ namespace ldb {
 
     template<class T>
     struct match_type {
-        constexpr explicit match_type(T* ref) noexcept : _ref(ref) { }
+        constexpr explicit
+        match_type(T* ref) noexcept : _ref(ref) { }
 
         template<class... Args>
         [[nodiscard]] LDB_CONSTEXPR23 auto
@@ -99,19 +102,26 @@ namespace ldb {
         indexable() { return {}; }
 
     private:
+        friend std::ostream&
+        operator<<(std::ostream& os, const match_type&) {
+            return os << "Type(" << typeid(T).name() << ")";
+        }
+
         T* _ref;
     };
 
     template<class T>
     struct match_value {
-        constexpr match_value() noexcept = default;
+        constexpr
+        match_value() noexcept = default;
 
         template<class U>
         explicit constexpr match_value(U&& field) noexcept(std::is_nothrow_constructible_v<T, U>)
             requires(!std::same_as<U, match_value>)
              : _field(std::forward<U>(field)) { }
 
-        explicit constexpr match_value(T& field)
+        explicit constexpr
+        match_value(T& field)
              : _field(field) { }
 
         template<class... Args>
@@ -146,14 +156,21 @@ namespace ldb {
         indexable() { return {}; }
 
     private:
+        friend std::ostream&
+        operator<<(std::ostream& os, const match_value& val) {
+            return os << val._field;
+        }
+
         T _field;
     };
 
     template<class... Args>
     struct match_value<std::variant<Args...>> {
-        constexpr match_value() noexcept = default;
+        constexpr
+        match_value() noexcept = default;
 
-        explicit constexpr match_value(const std::variant<Args...>& field) noexcept(std::is_nothrow_copy_constructible_v<std::variant<Args...>>)
+        explicit constexpr
+        match_value(const std::variant<Args...>& field) noexcept(std::is_nothrow_copy_constructible_v<std::variant<Args...>>)
              : _field(field) { }
 
         template<class... Args2>
@@ -167,6 +184,15 @@ namespace ldb {
         indexable() { return {}; }
 
     private:
+        friend std::ostream&
+        operator<<(std::ostream& os, const match_value& val) {
+            std::visit([&os](const auto& x) {
+                os << x;
+            },
+                       val._field);
+            return os;
+        }
+
         std::variant<Args...> _field;
     };
 
@@ -283,9 +309,25 @@ namespace ldb {
             return {index_idx, ret};
         }
 
+        std::string
+        dump_string() const {
+            std::stringstream ss;
+            ss << (*this);
+            return ss.str();
+        }
+
     private:
+        friend std::ostream&
+        operator<<(std::ostream& os, const query_tuple& val) {
+            [&os, &payload = val._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
+                (os << ... << std::get<Is>(payload));
+            }(std::make_index_sequence<sizeof...(Matcher)>());
+            return os;
+        }
+
         struct matcher {
-            explicit matcher(std::partial_ordering& ordering) : ordering(ordering) { }
+            explicit
+            matcher(std::partial_ordering& ordering) : ordering(ordering) { }
             std::partial_ordering& ordering;
 
             bool

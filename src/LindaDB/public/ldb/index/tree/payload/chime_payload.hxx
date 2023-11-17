@@ -392,13 +392,13 @@ namespace ldb::index::tree::payloads {
             LDB_PROF_SCOPE_C("ChimePayload_Upsert", prof::color_insert);
             using std::swap;
             if (_data_sz < 2) { // with 0 or 1 elems insertion is trivial
-                if (_keys[0] == key) {
+                if (_data_sz > 0 && _keys[0] == key) {
                     _sets[0].push(value);
                     return UPDATED;
                 }
                 _sets[_data_sz].push(value);
                 _keys[_data_sz++] = key;
-                if (_keys[0] > key) {
+                if (_data_sz > 1 && _keys[0] > key) {
                     swap(_keys[0], _keys[1]);
                     swap(_sets[0], _sets[1]);
                 }

@@ -50,6 +50,8 @@
 #include <ldb/index/tree/tree_node.hxx>
 #include <ldb/profiler.hxx>
 
+#include "spdlog/spdlog.h"
+
 namespace ldb::index::tree {
     template<class K,
              class V,
@@ -89,6 +91,7 @@ namespace ldb::index::tree {
         remove(const Q& query) {
             std::optional<value_type> ret;
             remove(query, &ret);
+            if (!ret) SPDLOG_DEBUG("RM FAIL");
             return ret;
         }
 

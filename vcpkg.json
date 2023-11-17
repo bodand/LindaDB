@@ -10,6 +10,7 @@
     "tracy",
     "catch2",
     "fakeit",
+    "spdlog",
     {
       "name": "openmpi",
       "platform": "!(windows | uwp)"

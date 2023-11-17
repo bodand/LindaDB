@@ -37,18 +37,24 @@
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
 #include <lrt/runtime.hxx>
+#include <spdlog/spdlog.h>
 
 #include <mpi.h>
 
 int
 main(int argc, char** argv) {
     lrt::runtime rt(&argc, &argv);
+    spdlog::set_level(spdlog::level::debug);
     auto& store = rt.store();
 
     int rank, size;
     std::string data;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    // const auto pattern = fmt::format("%H:%M:%S.%f %l [{}/%t] (%s:%#): %v", rank);
+    spdlog::set_pattern("%H:%M:%S.%f %l [%P] [%t] (%s:%#): %v");
+
     if (rank == 0) {
         store.in(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));
         std::cout << "rank0: " << data << "\n";

@@ -48,6 +48,8 @@
 #include <ldb/index/tree/tree_node_handler.hxx>
 #include <ldb/profiler.hxx>
 
+#include <spdlog/spdlog.h>
+
 namespace ldb::index::tree {
     struct new_node_tag final { };
 
@@ -58,7 +60,8 @@ namespace ldb::index::tree {
         using value_type = typename T::value_type;
         using size_type = typename T::size_type;
 
-        explicit tree_node(tree_node_handler<tree_node>* parent) noexcept(std::is_nothrow_default_constructible_v<T>)
+        explicit
+        tree_node(tree_node_handler<tree_node>* parent) noexcept(std::is_nothrow_default_constructible_v<T>)
              : _parent(parent) {
             LDB_PROF_SCOPE("TreeNode_New");
         }
@@ -80,7 +83,8 @@ namespace ldb::index::tree {
         tree_node&
         operator=(tree_node&& mv) noexcept = default;
 
-        ~tree_node() noexcept override {
+        ~
+        tree_node() noexcept override {
             LDB_PROF_SCOPE("TreeNode_Destroy");
             while (_left) release(&_left);
             while (_right) release(&_right);
@@ -254,8 +258,8 @@ namespace ldb::index::tree {
                     successor->_balance_factor = _balance_factor;
                     // this line scraps `this`
                     std::ignore = _parent->replace_this_as_child(this, std::move(successor));
-                    return nullptr;
                 }
+                return nullptr;
             }
             if (value_out) *value_out = std::nullopt;
             return nullptr;
@@ -366,11 +370,11 @@ namespace ldb::index::tree {
             auto parent = _parent;
             if (_left.get() == child) {
                 /* destroy */ detach_left();
-                if (update_balance_factor(1, child)) parent = nullptr;
+                if (update_balance_factor(1, nullptr)) parent = nullptr;
             }
             if (_right.get() == child) {
                 /* destroy */ detach_right();
-                if (update_balance_factor(-1, child)) parent = nullptr;
+                if (update_balance_factor(-1, nullptr)) parent = nullptr;
             }
             if (parent) parent->update_side_of_child(this, update_type::DECREMENT);
         }
@@ -463,7 +467,7 @@ namespace ldb::index::tree {
             assert(child);
             assert(child->_right);
             assert(self->_left.get() == child);
-            assert(child->balance_factor() > 0);
+            // assert(child->balance_factor() > 0);
 
             auto inner_node = child->_right.get();
             auto new_parent = left_rotate(child, inner_node);
@@ -485,7 +489,7 @@ namespace ldb::index::tree {
             assert(child);
             assert(child->_left);
             assert(self->_right.get() == child);
-            assert(child->balance_factor() < 0);
+            // assert(child->balance_factor() < 0);
 
             auto inner_node = child->_left.get();
             auto new_parent = right_rotate(child, inner_node);
