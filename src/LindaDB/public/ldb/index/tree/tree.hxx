@@ -30,9 +30,9 @@
  *
  * Originally created: 2023-10-15.
  *
- * src/LindaDB/public/ldb/index/tree/tree --
- *   Implementation of the main, tree class. Functions as the base parent of the
- *   root of the real tree implementation orchestrated by the tree_node objects.
+ * src/LindaDB/public/ldb/index/tree/legacy_tree --
+ *   Implementation of the main, legacy_tree class. Functions as the base parent of the
+ *   root of the real legacy_tree implementation orchestrated by the tree_node objects.
  */
 #ifndef LINDADB_TREE_HXX
 #define LINDADB_TREE_HXX
@@ -46,8 +46,8 @@
 #include <sstream>
 #include <variant>
 
+#include <ldb/index/tree/legacy_tree_node.hxx>
 #include <ldb/index/tree/payload_dispatcher.hxx>
-#include <ldb/index/tree/tree_node.hxx>
 #include <ldb/profiler.hxx>
 
 #include "spdlog/spdlog.h"
@@ -57,7 +57,7 @@ namespace ldb::index::tree {
              class V,
              std::size_t Clustering = 0,
              class PayloadType = typename payload_dispatcher<K, V, Clustering>::type>
-    struct tree final : private tree_node_handler<tree_node<PayloadType>> {
+    struct legacy_tree final : private tree_node_handler<legacy_tree_node<PayloadType>> {
         using payload_type = PayloadType;
         using key_type = payload_type::key_type;
         using value_type = payload_type::value_type;
@@ -104,7 +104,7 @@ namespace ldb::index::tree {
             do {
                 node = node->remove(query, ret);
             } while (node != nullptr);
-            if (!_root) _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
+            if (!_root) _root = std::make_unique<legacy_tree_node<payload_type>>(static_cast<tree_node_handler<legacy_tree_node<payload_type>>*>(this));
         }
 
         void
@@ -128,7 +128,7 @@ namespace ldb::index::tree {
         }
 
     private:
-        using node_type = tree_node<payload_type>;
+        using node_type = legacy_tree_node<payload_type>;
 
         struct search_obj {
             void
@@ -157,7 +157,7 @@ namespace ldb::index::tree {
                 _root->set_parent(this);
                 return owned_old;
             }
-            assert(false && "invalid child of management object tree (replace_this_as_child)");
+            assert(false && "invalid child of management object legacy_tree (replace_this_as_child)");
             LDB_UNREACHABLE;
         }
 
@@ -179,14 +179,14 @@ namespace ldb::index::tree {
 
         void
         attach_left(std::unique_ptr<node_type> left) override {
-            assert(_root == nullptr && "child node not null of management object tree (attach_left)");
+            assert(_root == nullptr && "child node not null of management object legacy_tree (attach_left)");
             _root = std::move(left);
             _root->set_parent(this);
         }
 
         void
         attach_right(std::unique_ptr<node_type> right) override {
-            assert(_root == nullptr && "child node not null of management object tree (attach_right)");
+            assert(_root == nullptr && "child node not null of management object legacy_tree (attach_right)");
             _root = std::move(right);
             _root->set_parent(this);
         }
@@ -199,7 +199,7 @@ namespace ldb::index::tree {
         }
 
         mutable LDB_SMUTEX(std::shared_mutex, _mtx);
-        std::unique_ptr<tree_node<payload_type>> _root = std::make_unique<tree_node<payload_type>>(static_cast<tree_node_handler<tree_node<payload_type>>*>(this));
+        std::unique_ptr<legacy_tree_node<payload_type>> _root = std::make_unique<legacy_tree_node<payload_type>>(static_cast<tree_node_handler<legacy_tree_node<payload_type>>*>(this));
     };
 }
 

@@ -67,6 +67,10 @@ namespace ldb::index::tree::payloads {
              : _data_sz(1),
                _data({std::move(bundle)}) { }
 
+        constexpr explicit vector_payload(const bundle_type& bundle)
+             : _data_sz(1),
+               _data({bundle}) { }
+
         constexpr vector_payload(const vector_payload& cp)
             requires(std::copyable<std::pair<K, value_type>>)
         = default;

@@ -65,6 +65,9 @@ namespace ldb::index::tree::payloads {
         constexpr explicit scalar_payload(bundle_type&& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
              : _value(std::move(bundle)) { }
 
+        constexpr explicit scalar_payload(const bundle_type& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
+             : _value(bundle) { }
+
         constexpr scalar_payload() = default;
 
         constexpr scalar_payload(const scalar_payload& cp) = default;

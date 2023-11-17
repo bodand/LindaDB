@@ -63,7 +63,8 @@ namespace ldb::index::tree::payloads {
             std::vector<value_type> data;
         };
 
-        constexpr chime_payload() = default;
+        constexpr
+        chime_payload() = default;
 
         template<class K2 = key_type, class V2 = value_type>
         constexpr chime_payload(K2&& key, V2&& value)
@@ -71,15 +72,25 @@ namespace ldb::index::tree::payloads {
                _keys{std::forward<K2>(key)},
                _sets{chime_value_set(std::forward<V2>(value))} { }
 
-        constexpr explicit chime_payload(bundle_type&& bundle)
+        constexpr explicit
+        chime_payload(bundle_type&& bundle)
              : _data_sz(1),
                _keys{std::move(bundle.key)},
                _sets{chime_value_set(std::move(bundle))} { }
-        constexpr chime_payload(const chime_payload& cp)
+
+        constexpr explicit
+        chime_payload(const bundle_type& bundle)
+             : _data_sz(1),
+               _keys{bundle.key},
+               _sets{chime_value_set(bundle)} { }
+
+        constexpr
+        chime_payload(const chime_payload& cp)
             requires(std::copyable<key_type> && std::copyable<value_type>)
         = default;
 
-        constexpr chime_payload(chime_payload&& mv) noexcept = default;
+        constexpr
+        chime_payload(chime_payload&& mv) noexcept = default;
         constexpr chime_payload&
         operator=(const chime_payload& cp)
             requires(std::copyable<key_type> && std::copyable<value_type>)
@@ -88,7 +99,8 @@ namespace ldb::index::tree::payloads {
         constexpr chime_payload&
         operator=(chime_payload&& mv) noexcept = default;
 
-        constexpr ~chime_payload() noexcept = default;
+        constexpr ~
+        chime_payload() noexcept = default;
 
         [[nodiscard]] constexpr size_type
         capacity() const noexcept { return Clustering; }
@@ -153,7 +165,7 @@ namespace ldb::index::tree::payloads {
             LDB_PROF_SCOPE_C("ChimePayload_InsertAndSquishU", prof::color_insert);
             if (auto res = upsert_kv(key, {&value, 1});
                 res == FULL) {
-                auto squished = bundle_type{.key = _keys.back(), .data = _sets.back()};
+                auto squished = bundle_type{.key = _keys.back(), .data = _sets.back().flush()};
                 --_data_sz;
                 res = upsert_kv(key, {&value, 1});
                 return {squished};
@@ -235,10 +247,18 @@ namespace ldb::index::tree::payloads {
 
     private:
         struct chime_value_set {
-            constexpr chime_value_set() = default;
+            constexpr
+            chime_value_set() = default;
 
-            constexpr explicit chime_value_set(bundle_type&& bundle)
+            constexpr explicit
+            chime_value_set(bundle_type&& bundle)
                  : _values(std::move(bundle).data) {
+                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
+            }
+
+            constexpr explicit
+            chime_value_set(const bundle_type& bundle)
+                 : _values(bundle.data) {
                 assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 

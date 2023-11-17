@@ -34,4 +34,4 @@
  *   A file for ensuring the corresponding tree_node.hxx header builds by itself.
  */
 
-#include <ldb/index/tree/tree_node.hxx>
+#include <ldb/index/tree/legacy_tree_node.hxx>

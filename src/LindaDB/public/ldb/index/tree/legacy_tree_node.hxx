@@ -54,20 +54,20 @@ namespace ldb::index::tree {
     struct new_node_tag final { };
 
     template<payload T>
-    struct tree_node final : private tree_node_handler<tree_node<T>> {
+    struct legacy_tree_node final : private tree_node_handler<legacy_tree_node<T>> {
         using factor_type = std::make_signed_t<std::size_t>;
         using key_type = typename T::key_type;
         using value_type = typename T::value_type;
         using size_type = typename T::size_type;
 
         explicit
-        tree_node(tree_node_handler<tree_node>* parent) noexcept(std::is_nothrow_default_constructible_v<T>)
+        legacy_tree_node(tree_node_handler<legacy_tree_node>* parent) noexcept(std::is_nothrow_default_constructible_v<T>)
              : _parent(parent) {
             LDB_PROF_SCOPE("TreeNode_New");
         }
 
         template<class... Args>
-        explicit tree_node(tree_node_handler<tree_node>* parent,
+        explicit legacy_tree_node(tree_node_handler<legacy_tree_node>* parent,
                            new_node_tag /*x*/,
                            Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
              : _payload(std::forward<Args>(args)...),
@@ -75,16 +75,15 @@ namespace ldb::index::tree {
             LDB_PROF_SCOPE("TreeNode_NewValue");
         }
 
-        tree_node(const tree_node& cp) = default;
-        tree_node(tree_node&& mv) noexcept = default;
+        legacy_tree_node(const legacy_tree_node& cp) = default;
+        legacy_tree_node(legacy_tree_node&& mv) noexcept = default;
 
-        tree_node&
-        operator=(const tree_node& cp) = default;
-        tree_node&
-        operator=(tree_node&& mv) noexcept = default;
+        legacy_tree_node&
+        operator=(const legacy_tree_node& cp) = default;
+        legacy_tree_node&
+        operator=(legacy_tree_node&& mv) noexcept = default;
 
-        ~
-        tree_node() noexcept override {
+        ~legacy_tree_node() noexcept override {
             LDB_PROF_SCOPE("TreeNode_Destroy");
             while (_left) release(&_left);
             while (_right) release(&_right);
@@ -139,7 +138,7 @@ namespace ldb::index::tree {
         }
 
         template<index_query<value_type> Q>
-        [[nodiscard]] std::variant<tree_node*, std::optional<value_type>>
+        [[nodiscard]] std::variant<legacy_tree_node*, std::optional<value_type>>
         search(const Q& query) const {
             LDB_PROF_SCOPE_C("TreeNode_Search", prof::color_search);
             auto order = _payload <=> query.key();
@@ -154,7 +153,7 @@ namespace ldb::index::tree {
             return _payload.try_get(query);
         }
 
-        [[nodiscard]] tree_node*
+        [[nodiscard]] legacy_tree_node*
         insert(const key_type& key,
                const value_type& value) {
             LDB_PROF_SCOPE_C("TreeNode_Insert", prof::color_insert);
@@ -200,7 +199,7 @@ namespace ldb::index::tree {
         }
 
         template<index_query<value_type> Q>
-        [[nodiscard]] tree_node*
+        [[nodiscard]] legacy_tree_node*
         remove(const Q& query,
                std::optional<value_type>* value_out) {
             LDB_PROF_SCOPE_C("TreeNode_Remove", prof::color_remove);
@@ -266,7 +265,7 @@ namespace ldb::index::tree {
         }
 
         void
-        set_parent(tree_node_handler<tree_node<T>>* parent) {
+        set_parent(tree_node_handler<legacy_tree_node<T>>* parent) {
             _parent = parent;
         }
 
@@ -274,7 +273,7 @@ namespace ldb::index::tree {
         using squished_type = T::bundle_type;
 
         static void
-        release(std::unique_ptr<tree_node>* subtree) noexcept {
+        release(std::unique_ptr<legacy_tree_node>* subtree) noexcept {
             LDB_PROF_SCOPE("TreeNode_ReleaseSubtree");
             while ((*subtree)->_left && (*subtree)->_right) {
                 subtree = &(*subtree)->_left;
@@ -291,8 +290,8 @@ namespace ldb::index::tree {
             }
         }
 
-        std::unique_ptr<tree_node>
-        replace_this_as_child(tree_node<T>* old, std::unique_ptr<tree_node<T>>&& new_, update_type type) override {
+        std::unique_ptr<legacy_tree_node>
+        replace_this_as_child(legacy_tree_node<T>* old, std::unique_ptr<legacy_tree_node<T>>&& new_, update_type type) override {
             LDB_PROF_SCOPE("TreeNode_ReplaceThisAsChild");
             if (_left.get() == old) {
                 LDB_PROF_SCOPE("TreeNode_ReplaceLeft");
@@ -322,20 +321,20 @@ namespace ldb::index::tree {
             LDB_UNREACHABLE;
         }
 
-        std::unique_ptr<tree_node>
+        std::unique_ptr<legacy_tree_node>
         detach_left() override {
             LDB_PROF_SCOPE("TreeNode_DetachLeft");
-            return std::unique_ptr<tree_node>{_left.release()};
+            return std::unique_ptr<legacy_tree_node>{_left.release()};
         }
 
-        std::unique_ptr<tree_node>
+        std::unique_ptr<legacy_tree_node>
         detach_right() override {
             LDB_PROF_SCOPE("TreeNode_DetachRight");
-            return std::unique_ptr<tree_node>{_right.release()};
+            return std::unique_ptr<legacy_tree_node>{_right.release()};
         }
 
         bool
-        update_balance_factor(int by, tree_node<T>* child) {
+        update_balance_factor(int by, legacy_tree_node<T>* child) {
             LDB_PROF_SCOPE("TreeNode_UpdateBalanceFactor");
             if (by == 0) return true;
             _balance_factor += by;
@@ -363,7 +362,7 @@ namespace ldb::index::tree {
         }
 
         void
-        detach_this(tree_node<T>* child) override {
+        detach_this(legacy_tree_node<T>* child) override {
             LDB_PROF_SCOPE("TreeNode_DetachThis");
             assert(child);
 
@@ -380,7 +379,7 @@ namespace ldb::index::tree {
         }
 
         void
-        attach_left(std::unique_ptr<tree_node> left) override {
+        attach_left(std::unique_ptr<legacy_tree_node> left) override {
             LDB_PROF_SCOPE("TreeNode_AttachLeft");
             assert(_left == nullptr && "attaching to non-empty left of node");
             _left = std::move(left);
@@ -390,7 +389,7 @@ namespace ldb::index::tree {
         }
 
         void
-        attach_right(std::unique_ptr<tree_node> right) override {
+        attach_right(std::unique_ptr<legacy_tree_node> right) override {
             LDB_PROF_SCOPE("TreeNode_AttachRight");
             assert(_right == nullptr && "attaching to non-empty right of node");
             _right = std::move(right);
@@ -399,8 +398,8 @@ namespace ldb::index::tree {
             }
         }
 
-        static std::unique_ptr<tree_node>*
-        min_child(std::unique_ptr<tree_node>* node) {
+        static std::unique_ptr<legacy_tree_node>*
+        min_child(std::unique_ptr<legacy_tree_node>* node) {
             LDB_PROF_SCOPE("TreeNode_MinChild");
             assert(node && "node must not be empty");
             assert((*node) && "*node must not be empty");
@@ -411,7 +410,7 @@ namespace ldb::index::tree {
         }
 
         void
-        update_side_of_child(tree_node* child, update_type type) override {
+        update_side_of_child(legacy_tree_node* child, update_type type) override {
             LDB_PROF_SCOPE("TreeNode_UpdateSideOfChild");
             assert(child);
             if (type == update_type::NO_UPDATE) return;
@@ -430,8 +429,8 @@ namespace ldb::index::tree {
             if (parent) parent->update_side_of_child(this, type);
         }
 
-        static tree_node_handler<tree_node>*
-        rotate_right(tree_node* self, tree_node* child) {
+        static tree_node_handler<legacy_tree_node>*
+        rotate_right(legacy_tree_node* self, legacy_tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_Right");
             assert(self);
             assert(child);
@@ -445,8 +444,8 @@ namespace ldb::index::tree {
             return ret;
         }
 
-        static tree_node_handler<tree_node>*
-        rotate_left(tree_node* self, tree_node* child) {
+        static tree_node_handler<legacy_tree_node>*
+        rotate_left(legacy_tree_node* self, legacy_tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_Left");
             assert(self);
             assert(child);
@@ -460,8 +459,8 @@ namespace ldb::index::tree {
             return ret;
         }
 
-        static tree_node_handler<tree_node>*
-        rotate_left_right(tree_node* self, tree_node* child) {
+        static tree_node_handler<legacy_tree_node>*
+        rotate_left_right(legacy_tree_node* self, legacy_tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_LeftRight");
             assert(self);
             assert(child);
@@ -482,8 +481,8 @@ namespace ldb::index::tree {
             return ret;
         }
 
-        static tree_node_handler<tree_node>*
-        rotate_right_left(tree_node* self, tree_node* child) {
+        static tree_node_handler<legacy_tree_node>*
+        rotate_right_left(legacy_tree_node* self, legacy_tree_node* child) {
             LDB_PROF_SCOPE("TreeRotate_RightLeft");
             assert(self);
             assert(child);
@@ -504,16 +503,16 @@ namespace ldb::index::tree {
             return ret;
         }
 
-        static tree_node_handler<tree_node>*
-        right_rotate(tree_node* self, tree_node* child) {
+        static tree_node_handler<legacy_tree_node>*
+        right_rotate(legacy_tree_node* self, legacy_tree_node* child) {
             auto owned_self = self->_parent->replace_this_as_child(self, self->detach_left());
             owned_self->attach_left(child->detach_right());
             child->attach_right(std::move(owned_self));
             return child->_parent;
         }
 
-        static tree_node_handler<tree_node>*
-        left_rotate(tree_node* self, tree_node* child) {
+        static tree_node_handler<legacy_tree_node>*
+        left_rotate(legacy_tree_node* self, legacy_tree_node* child) {
             auto owned_self = self->_parent->replace_this_as_child(self, self->detach_right());
             owned_self->attach_right(child->detach_left());
             child->attach_left(std::move(owned_self));
@@ -540,7 +539,7 @@ namespace ldb::index::tree {
             LDB_PROF_SCOPE("TreeNode_AddLeft");
             assert(_balance_factor >= 0);
             assert(_left == nullptr);
-            _left = std::make_unique<tree_node<T>>(static_cast<tree_node_handler<tree_node>*>(this),
+            _left = std::make_unique<legacy_tree_node<T>>(static_cast<tree_node_handler<legacy_tree_node>*>(this),
                                                    new_node_tag{},
                                                    std::forward<Args>(args)...);
             increment_left();
@@ -552,7 +551,7 @@ namespace ldb::index::tree {
             LDB_PROF_SCOPE("TreeNode_AddRight");
             assert(_balance_factor <= 0);
             assert(_right == nullptr);
-            _right = std::make_unique<tree_node<T>>(static_cast<tree_node_handler<tree_node>*>(this),
+            _right = std::make_unique<legacy_tree_node<T>>(static_cast<tree_node_handler<legacy_tree_node>*>(this),
                                                     new_node_tag{},
                                                     std::forward<Args>(args)...);
             increment_right();
@@ -579,9 +578,9 @@ namespace ldb::index::tree {
 
         T _payload{};
         factor_type _balance_factor = 0;
-        tree_node_handler<tree_node<T>>* _parent = nullptr;
-        std::unique_ptr<tree_node<T>> _left = nullptr;
-        std::unique_ptr<tree_node<T>> _right = nullptr;
+        tree_node_handler<legacy_tree_node<T>>* _parent = nullptr;
+        std::unique_ptr<legacy_tree_node<T>> _left = nullptr;
+        std::unique_ptr<legacy_tree_node<T>> _right = nullptr;
     };
 }
 

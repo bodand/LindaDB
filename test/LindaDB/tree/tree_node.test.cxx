@@ -38,16 +38,16 @@
  */
 #include <catch/fakeit.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <ldb/index/tree/legacy_tree_node.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload/scalar_payload.hxx>
-#include <ldb/index/tree/tree_node.hxx>
 #include <ldb/index/tree/tree_node_handler.hxx>
 
 using namespace fakeit;
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
 using payload_type = lps::scalar_payload<int, int>;
-using sut_type = lit::tree_node<payload_type>;
+using sut_type = lit::legacy_tree_node<payload_type>;
 
 // ordering of test keys: Test_Key3 < Test_Key < Test_Key2
 // the test suite relies on this ordering, so even if

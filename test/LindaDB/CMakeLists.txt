@@ -40,6 +40,9 @@ add_covered_test(NAME LindaDB.Test CATCH
                  tree/avl_tree.test.cxx
                  tree/t_tree.test.cxx
                  tree/tree_node.test.cxx
+                 tree/avl/scalar_avl.test.cxx
+                 tree/avl/vector_avl.test.cxx
+                 tree/avl/chime_avl.test.cxx
                  tree_payloads/chime_payload.test.cxx
                  tree_payloads/scalar_payload.test.cxx
                  tree_payloads/vector_payload.test.cxx

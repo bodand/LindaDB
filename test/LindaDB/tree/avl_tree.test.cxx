@@ -46,8 +46,8 @@
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
-using sut_type = lit::tree<int, int, 1>;
-using bm_type = lit::tree<int, int, 1>;
+using sut_type = lit::legacy_tree<int, int, 1>;
+using bm_type = lit::legacy_tree<int, int, 1>;
 
 // ordering of test keys: Test_Key3 < Test_Key < Test_Key2
 // the test suite relies on this ordering, so even if
