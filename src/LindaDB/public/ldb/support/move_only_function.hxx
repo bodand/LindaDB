@@ -15,7 +15,7 @@
 #  pragma GCC system_header
 #endif
 
-#if defined(__GNUG__) && !(defined(__clang_) || defined(_MSC_VER))
+#if defined(__GNUG__) && !(defined(__clang__) || defined(_MSC_VER))
 #  define __stdcall
 #endif
 
