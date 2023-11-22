@@ -418,7 +418,7 @@ namespace ldb::data {
                 return &(*_chunk)[_index];
             }
 
-            [[nodiscard]] constexpr auto
+            [[nodiscard]] LDB_CONSTEXPR23 auto
             operator<=>(const iterator_impl& other) const noexcept {
                 LDB_PROF_SCOPE("ChunkedListIterator_Compare");
                 if (!is_end() && other.is_end()) return std::strong_ordering::less;
