@@ -53,7 +53,7 @@ main(int argc, char** argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     if (rank == 0) {
-        store.rd(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));
+        store.in(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));
         std::cout << "rank0: " << data << "\n";
     }
     else {

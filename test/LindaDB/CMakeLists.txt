@@ -33,6 +33,8 @@
 # test/LindaDB/CMakeLists.txt --
 #   CMake script for handling the LindaDB project's test requirements.
 
+find_package(spdlog REQUIRED)
+
 add_covered_test(NAME LindaDB.Test CATCH
                  SOURCES
                  data/chunked_list.test.cxx
@@ -45,4 +47,4 @@ add_covered_test(NAME LindaDB.Test CATCH
                  tree_payloads/vector_payload.test.cxx
                  query_tuple.test.cxx
                  store.test.cxx
-                 LIBRARIES LindaDB)
+                 LIBRARIES spdlog::spdlog LindaDB)

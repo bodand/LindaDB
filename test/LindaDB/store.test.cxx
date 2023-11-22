@@ -45,6 +45,8 @@
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
 
+#include <spdlog/spdlog.h>
+
 namespace lv = ldb::lv;
 using namespace std::literals;
 
@@ -162,7 +164,6 @@ TEST_CASE("store can repeat rdp calls for missing tuple") {
 }
 
 TEST_CASE("store can store and inp by value a nonempty tuple") {
-    SKIP("removal broken for avl2_tree");
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.out(tuple);
@@ -210,7 +211,6 @@ TEST_CASE("store for inp of non-existent tuple by value a nonempty tuple without
 }
 
 TEST_CASE("store can store and inp by type a nonempty tuple") {
-    SKIP("removal broken for avl2_tree");
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.out(tuple);
@@ -224,7 +224,6 @@ TEST_CASE("store can store and inp by type a nonempty tuple") {
 }
 
 TEST_CASE("store can store and inp cannot retrieve tuple with mismatched type") {
-    SKIP("removal broken for avl2_tree");
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.out(tuple);
@@ -237,7 +236,6 @@ TEST_CASE("store can store and inp cannot retrieve tuple with mismatched type") 
 }
 
 TEST_CASE("store can store and inp cannot retrieve tuple with mismatched value") {
-    SKIP("removal broken for avl2_tree");
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.out(tuple);
@@ -248,7 +246,6 @@ TEST_CASE("store can store and inp cannot retrieve tuple with mismatched value")
 }
 
 TEST_CASE("store cannot repeat inp calls for existing tuple: only first succeeds") {
-    SKIP("removal broken for avl2_tree");
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.out(tuple);
@@ -263,7 +260,6 @@ TEST_CASE("store cannot repeat inp calls for existing tuple: only first succeeds
 }
 
 TEST_CASE("store can repeat inp calls for missing tuple") {
-    SKIP("removal broken for avl2_tree");
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.out(tuple);
@@ -275,7 +271,6 @@ TEST_CASE("store can repeat inp calls for missing tuple") {
 }
 
 TEST_CASE("store does not deadlock trivially when out is called on a waiting in") {
-    SKIP("removal broken for avl2_tree");
     static std::uniform_int_distribution<unsigned> time_dist(500'000U, 1'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
@@ -303,8 +298,6 @@ TEST_CASE("store does not deadlock trivially when out is called on a waiting in"
 }
 
 TEST_CASE("serial insert,insert,remove,insert,remove runs") {
-    SKIP("removal broken for avl2_tree");
-
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
     ldb::store store;
@@ -446,8 +439,6 @@ TEST_CASE("serial insert,insert,remove,insert,remove runs") {
 
 TEST_CASE("serial reads/writes proceeds",
           "[.long]") {
-    SKIP("removal broken for avl2_tree");
-
     static std::uniform_int_distribution<unsigned> time_dist(10'000'000U, 300'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
@@ -469,19 +460,36 @@ TEST_CASE("serial reads/writes proceeds",
     }
 }
 
-TEST_CASE("parallel reads/writes do not deadlock trivially",
-          "[.long]") {
-    SKIP("removal broken for avl2_tree");
+TEST_CASE("reads/writes don't break in this specific case") {
+    ldb::store store;
+    int buf{};
+    store.out(lv::linda_tuple("asd", 216925));
+    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
+    CHECK(buf == 216925);
+    store.out(lv::linda_tuple("asd", 108405));
+    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
+    CHECK(buf == 108405);
+    store.out(lv::linda_tuple("asd", 233055));
+    store.out(lv::linda_tuple("asd", 135438));
+    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
+    CHECK(buf == 233055);
+    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
+    CHECK(buf == 135438);
+    store.out(lv::linda_tuple("asd", 211804));
+    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
+    CHECK(buf == 211804);
+}
 
-    static std::uniform_int_distribution<unsigned> time_dist(10'000'000U, 300'000'000U);
+TEST_CASE("parallel reads/writes do not deadlock") {
+    static std::uniform_int_distribution<unsigned> time_dist(1'000'000U, 30'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
-    constexpr const static auto repeat_count = 120000;
+    constexpr const static auto repeat_count = 1200;
     ldb::store store;
 
     auto adder = [&store](std::string name) {
         LDB_TNAME(name.c_str());
-        for (int i = 0; i < repeat_count * 2; ++i) {
+        for (int i = 0; i < repeat_count; ++i) {
             auto val = lv::linda_tuple("asd", val_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
             store.out(val);
@@ -502,11 +510,10 @@ TEST_CASE("parallel reads/writes do not deadlock trivially",
 
     const std::array thread_owner{
            std::jthread(adder, "adder1"),
-           // std::jthread(adder, "adder2"),
-           // std::jthread(adder, "adder3"),
+           std::jthread(adder, "adder2"),
+           std::jthread(adder, "adder3"),
            std::jthread(gatherer, "gatherer1"),
-           // std::jthread(gatherer, "gatherer2"),
-           // std::jthread(gatherer, "gatherer3"),
-           // std::jthread(gatherer, "gatherer4"),
+           std::jthread(gatherer, "gatherer2"),
+           std::jthread(gatherer, "gatherer3"),
     };
 }

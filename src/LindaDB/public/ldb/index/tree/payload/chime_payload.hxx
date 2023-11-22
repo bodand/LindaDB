@@ -149,11 +149,17 @@ namespace ldb::index::tree::payloads {
         merge_until_full(chime_payload& other) {
             if (size() == capacity()) return;
             // todo: proper merge algorithm
-            for (std::size_t i = 0; i < other.size(); ++i) {
+            for (std::size_t i = other.size() - 1;
+                 i < static_cast<std::size_t>(-1);
+                 --i) {
+                auto data = other._sets[i].flush();
                 auto succ = try_set(bundle_type{
                        .key = other._keys[i],
-                       .data = other._sets[i].flush()});
-                if (!succ) break;
+                       .data = data});
+                if (!succ) {
+                    other._sets[i].reset(data);
+                    break;
+                }
                 --other._data_sz;
             }
         }
@@ -274,6 +280,15 @@ namespace ldb::index::tree::payloads {
             return res;
         }
 
+        template<class Fn>
+        void
+        apply(Fn&& fn) {
+            std::ranges::for_each_n(_sets.begin(), _data_sz, [fn = std::forward<Fn>(fn)](const auto& set) {
+                set.apply(std::forward<Fn>(fn));
+            });
+        }
+
+
     private:
         struct chime_value_set {
             constexpr
@@ -348,6 +363,18 @@ namespace ldb::index::tree::payloads {
                 auto res = std::move(_values);
                 _values = std::vector<value_type>();
                 return res;
+            }
+
+            LDB_CONSTEXPR23 void
+            reset(std::span<value_type> values) {
+                LDB_PROF_SCOPE("ChimeValueSet_Reset");
+                _values.assign(values.begin(), values.end());
+            }
+
+            template<class Fn>
+            void
+            apply(Fn&& fn) const {
+                std::ranges::for_each(_values, std::forward<Fn>(fn));
             }
 
         private:

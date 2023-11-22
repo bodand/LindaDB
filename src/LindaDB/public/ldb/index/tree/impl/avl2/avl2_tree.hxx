@@ -334,6 +334,14 @@ namespace ldb::index::tree {
             return LEAF;
         }
 
+        template<class Fn>
+        void
+        apply(const Fn& fn) {
+            if (_left) _left->apply(fn);
+            data.apply(fn);
+            if (_right) _right->apply(fn);
+        }
+
         ~
         avl2_node() {
             assert(_left.get() != this);
@@ -539,7 +547,10 @@ namespace ldb::index::tree {
                 auto glb_type = (*glb)->type();
                 assert(glb_type != INTERNAL);
 
-                if (glb_type == LEAF && (*glb)->data.empty()) break;
+                if (glb_type == LEAF) {
+                    if ((*glb)->data.empty()) delete_node(glb);
+                    break;
+                }
 
                 assert(glb_type == HALF_LEAF);
                 // try merge for half-leaf glb
@@ -552,6 +563,12 @@ namespace ldb::index::tree {
             }
 
             return found;
+        }
+
+        template<class Fn>
+        void
+        apply(const Fn& fn) {
+            if (root) root->apply(fn);
         }
 
     private:
@@ -640,11 +657,13 @@ namespace ldb::index::tree {
             if (child) {
                 child->set_parent((*target)->parent());
             }
-            if (target->get() == (*(*target)->parent())->left().get()) {
-                (*(*target)->parent())->set_left(std::move(child));
-            }
-            else {
-                (*(*target)->parent())->set_right(std::move(child));
+            if ((*target)->parent()) {
+                if (target->get() == (*(*target)->parent())->left().get()) {
+                    (*(*target)->parent())->set_left(std::move(child));
+                }
+                else {
+                    (*(*target)->parent())->set_right(std::move(child));
+                }
             }
         }
 
@@ -711,7 +730,7 @@ namespace ldb::index::tree {
         find_greatest_lower_bound(std::unique_ptr<node_type>* node_ptr) {
             auto ptr = (*node_ptr)->left_ptr();
             if (*ptr) {
-                while (*ptr) ptr = (*ptr)->right_ptr();
+                while ((*ptr)->right()) ptr = (*ptr)->right_ptr();
             }
             return ptr;
         }

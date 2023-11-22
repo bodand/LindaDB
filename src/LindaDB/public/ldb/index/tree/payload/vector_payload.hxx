@@ -224,6 +224,13 @@ namespace ldb::index::tree::payloads {
             return _data.back();
         }
 
+        template<class Fn>
+        void
+        apply(Fn&& fn) {
+            std::ranges::for_each(_data, std::forward<Fn>(fn), [](const auto& p) { return p.second; });
+        }
+
+
     private:
         friend constexpr std::ostream&
         operator<<(std::ostream& os, const vector_payload& pl) {
