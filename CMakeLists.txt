@@ -54,7 +54,7 @@ cmake_policy(SET CMP0048 NEW)
 
 # project #########################################################################
 project(LindaDB
-        VERSION 0.0.1
+        VERSION 0.1.1
         DESCRIPTION "HPC-centric, distributed IMDB for the linda language's implementation."
         LANGUAGES CXX)
 
