@@ -137,10 +137,12 @@ windows_builds_task:
     - choco install aria2 -y
     - choco install cmake -y
     - choco install ninja -y
-    - choco install winget -y
-    - winget install Microsoft.msmpisdk --disable-interactivity
     - gem install asciidoctor
     - gem install coveralls-lcov
+
+  msmpi_script:
+    - aria2c https://download.microsoft.com/download/a/5/2/a5207ca5-1203-491a-8fb8-906fd68ae623/msmpisdk.msi -o msmpisdk.msi
+    - msiexec /qn /passive /i msmpisdk.msi
 
   matrix:
     - name: "windows-msvc-x64"
