@@ -50,7 +50,7 @@ namespace {
     using std::byteswap;
 #else
     template<std::integral T>
-    constexpr T
+    [[maybe_unused]] constexpr T
     byteswap(T value) noexcept {
         static_assert(std::has_unique_object_representations_v<T>,
                       "T may not have padding bits");
@@ -170,7 +170,8 @@ namespace {
         static_assert(std::numeric_limits<double>::is_iec559,
                       "LindaRT requires IEEE754 doubles");
 
-        explicit value_serializator(std::byte* buf) : buf(buf) { }
+        explicit
+        value_serializator(std::byte* buf) : buf(buf) { }
         std::byte* buf;
 
         template<std::integral T>
@@ -308,9 +309,6 @@ namespace {
             buf += str_sz;
             return str;
         }
-        default:
-            assert(false && "invalid value type");
-            LDB_UNREACHABLE;
         }
     }
 

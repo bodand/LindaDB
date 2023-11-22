@@ -11,6 +11,10 @@
 #include <functional>
 #include <type_traits>
 
+#if defined(__GNUG__) || defined(__clang__)
+#  pragma GCC system_header
+#endif
+
 namespace ldb {
 
     template<class>
@@ -174,7 +178,8 @@ namespace ldb {
         struct [[nodiscard]] Guard_type {
             void* Ptr;
 
-            ~Guard_type() {
+            ~
+            Guard_type() {
                 // Ptr is not nullptr only if an exception is thrown as a result of Vt construction.
                 // Check Ptr before calling operator delete to save the call in the common case.
                 if (Ptr) {
@@ -714,7 +719,8 @@ namespace ldb {
             this->template Construct_with_fn<Vt, VtInvQuals>(Li, std::forward<CTypes>(Args)...);
         }
 
-        ~move_only_function() {
+        ~
+        move_only_function() {
             // Do cleanup in this class destructor rather than base,
             // so that if object construction throws, the unnecessary cleanup isn't called.
             this->Checked_destroy(this->Data);
@@ -744,7 +750,8 @@ namespace ldb {
             return *this;
         }
 
-        [[nodiscard]] explicit operator bool() const noexcept {
+        [[nodiscard]] explicit
+        operator bool() const noexcept {
             return !this->Is_null();
         }
 

@@ -55,7 +55,7 @@ target_compile_definitions(LindaRT-malloc
                            PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
 
 list(APPEND PROJECT_TARGETS LindaRT-malloc)
-target_link_libraries(LindaDB PUBLIC LindaRT-malloc)
+target_link_libraries(LindaRT PUBLIC LindaRT-malloc)
 
 target_include_directories(LindaRT
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>

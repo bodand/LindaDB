@@ -37,7 +37,6 @@
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
 #include <lrt/runtime.hxx>
-#include <spdlog/spdlog.h>
 
 #include <mpi.h>
 
@@ -51,9 +50,6 @@ main(int argc, char** argv) {
     std::string data;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    // const auto pattern = fmt::format("%H:%M:%S.%f %l [{}/%t] (%s:%#): %v", rank);
-    spdlog::set_pattern("%H:%M:%S.%f %l [%P] [%t] (%s:%#): %v");
 
     if (rank == 0) {
         store.rd(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));

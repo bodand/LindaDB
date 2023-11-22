@@ -138,6 +138,7 @@ namespace ldb::index::tree::payloads {
                        .key = other._keys[i],
                        .data = other._sets[i].flush()});
                 assert(succ);
+                std::ignore = succ;
             }
             other._data_sz = 0;
             return true;

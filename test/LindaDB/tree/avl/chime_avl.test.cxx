@@ -41,9 +41,10 @@
 #include <ranges>
 
 #include <catch2/catch_test_macros.hpp>
-#include <ldb/index/tree/impl/avl/avl_tree.hxx>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/payload.hxx>
+
+#include <spdlog/spdlog.h>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;

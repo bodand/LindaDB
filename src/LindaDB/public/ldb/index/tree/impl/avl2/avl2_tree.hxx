@@ -652,7 +652,7 @@ namespace ldb::index::tree {
         const std::unique_ptr<node_type>*
         traverse_tree(const Key& key) const {
             auto* node = &root;
-            assert(*node);
+
             for (;;) {
                 if (*node == nullptr) return node;
                 auto dir = key <=> (*node)->data;
@@ -672,7 +672,6 @@ namespace ldb::index::tree {
         std::unique_ptr<node_type>*
         traverse_tree(const Key& key) {
             auto* node = &root;
-            assert(*node);
 
             for (;;) {
                 if (*node == nullptr) return node;
