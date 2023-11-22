@@ -61,6 +61,8 @@ linux_builds_task:
     BUILD_PATH: _build-release-${BUILD_ARCH}-${CG_TOOLCHAIN}
     CMAKE_TAR_URL: https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-${CMAKE_ARCH}.tar.gz
     PATH: /tmp/cirrus-ci-build/cmake-3.27.8-linux-${CMAKE_ARCH}/bin:${PATH}
+    PROJECT_CC_EXE: /usr/bin/cc
+    PROJECT_CXX_EXE: /usr/bin/c++
 
   apt_script:
     - apt-get update
