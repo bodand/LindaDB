@@ -12,7 +12,7 @@
 linux_test_template: &LINUX_TEST_TEMPLATE_TASK
   test_script:
     - cd ${BUILD_PATH}
-    - ctest
+    - ctest --output-on-failure
 
   coverage_script:
     - cd ${BUILD_PATH}
