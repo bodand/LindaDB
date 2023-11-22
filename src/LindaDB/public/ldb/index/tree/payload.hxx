@@ -78,6 +78,7 @@ namespace ldb::index::tree {
         { payload.remove(query) } -> std::same_as<std::optional<typename T::value_type>>;
         { payload.merge_until_full(payload) } -> std::same_as<void>;
         { payload.try_merge(payload) } -> std::same_as<bool>;
+        { payload.apply([](const typename T::value_type&) { }) } -> std::same_as<void>;
 
         { payload <=> key } -> std::same_as<std::weak_ordering>;
         { payload == key } -> std::same_as<bool>;

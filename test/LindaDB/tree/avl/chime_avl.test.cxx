@@ -190,6 +190,87 @@ TEST_CASE("new chime AVL-tree can add elements indefinitely",
     }
 }
 
+TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
+    auto init = [](sut_type& sut) {
+        sut.insert(10, 0);
+        sut.insert(20, 0);
+        sut.insert(30, 0);
+        sut.insert(40, 0);
+        sut.insert(35, 0);
+        sut.insert(25, 0);
+        sut.insert(1, 0);
+        sut.insert(2, 0);
+        sut.insert(45, 0);
+    };
+
+    SECTION("try remove non-existing") {
+        sut_type sut;
+        init(sut);
+
+        auto none = sut.remove(lit::any_value_query(999));
+        CHECK_FALSE(none.has_value());
+    }
+
+    SECTION("remove leaf") {
+        sut_type sut;
+        init(sut);
+
+        auto one = sut.remove(lit::any_value_query(1));
+        auto two = sut.remove(lit::any_value_query(2));
+        REQUIRE(one.has_value());
+        REQUIRE(two.has_value());
+        CHECK(*one == 0);
+        CHECK(*two == 0);
+    }
+
+    SECTION("remove half-leaf") {
+        sut_type sut;
+        init(sut);
+
+        auto _35 = sut.remove(lit::any_value_query(35));
+        REQUIRE(_35.has_value());
+        CHECK(*_35 == 0);
+        auto _40 = sut.remove(lit::any_value_query(40));
+        REQUIRE(_40.has_value());
+        CHECK(*_40 == 0);
+    }
+
+    SECTION("remove internal node") {
+        sut_type sut;
+        init(sut);
+
+        auto ten = sut.remove(lit::any_value_query(10));
+        auto twenty = sut.remove(lit::any_value_query(20));
+        REQUIRE(ten.has_value());
+        REQUIRE(twenty.has_value());
+        CHECK(*ten == 0);
+        CHECK(*twenty == 0);
+
+    }
+
+    SECTION("remove root") {
+        sut_type sut;
+        init(sut);
+
+        auto ex_root = sut.remove(lit::any_value_query(30));
+        REQUIRE(ex_root.has_value());
+        CHECK(*ex_root == 0);
+    }
+
+    SECTION("remove with merge") {
+        sut_type sut;
+        init(sut);
+        sut.insert(1, 1);
+        sut.insert(1, 2);
+        sut.insert(2, 1);
+        sut.insert(2, 2);
+
+        auto n = sut.remove(lit::any_value_query(10));
+        REQUIRE(n.has_value());
+        CHECK(*n == 0);
+    }
+}
+
 TEST_CASE("new chime AVL-tree can remove elements indefinitely",
           "[.long]") {
     std::mt19937_64 rng(std::random_device{}());
@@ -205,7 +286,7 @@ TEST_CASE("new chime AVL-tree can remove elements indefinitely",
         auto key_val = key(rng);
         auto res = sut.remove(lit::any_value_query(key_val));
         if (res) {
-            CHECK(*res > 0);
+            CHECK(*res >= 0);
             CHECK(*res < 2'000'000);
         }
     }

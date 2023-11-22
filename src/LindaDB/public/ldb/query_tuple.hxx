@@ -37,15 +37,12 @@
 #define LINDADB_QUERY_TUPLE_HXX
 
 #include <concepts>
-#include <cstdint>
 #include <span>
 #include <typeinfo>
 #include <variant>
 
-#include <ldb/index/tree/tree.hxx>
+#include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-
-#include "index/tree/impl/avl2/avl2_tree.hxx"
 
 namespace ldb {
     namespace meta {

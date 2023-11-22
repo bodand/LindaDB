@@ -62,18 +62,24 @@ namespace ldb::index::tree::payloads {
             requires(std::constructible_from<std::pair<K, P>, std::pair<K2, P2>>)
              : _value(std::make_pair(std::forward<K2>(key), std::forward<P2>(value))) { }
 
-        constexpr explicit scalar_payload(bundle_type&& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
+        constexpr explicit
+        scalar_payload(bundle_type&& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
              : _value(std::move(bundle)) { }
 
-        constexpr explicit scalar_payload(const bundle_type& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
+        constexpr explicit
+        scalar_payload(const bundle_type& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
              : _value(bundle) { }
 
-        constexpr scalar_payload() = default;
+        constexpr
+        scalar_payload() = default;
 
-        constexpr scalar_payload(const scalar_payload& cp) = default;
-        constexpr scalar_payload(scalar_payload&& mv) noexcept = default;
+        constexpr
+        scalar_payload(const scalar_payload& cp) = default;
+        constexpr
+        scalar_payload(scalar_payload&& mv) noexcept = default;
 
-        constexpr ~scalar_payload() noexcept = default;
+        constexpr ~
+        scalar_payload() noexcept = default;
 
         constexpr scalar_payload&
         operator=(const scalar_payload& cp) = default;
@@ -179,6 +185,12 @@ namespace ldb::index::tree::payloads {
             if (kv_key() == query.key()
                 && kv_value() == query) return kv_value_destructive();
             return std::nullopt;
+        }
+
+        template<class Fn>
+        void
+        apply(Fn&& fn) {
+            if (full()) std::invoke(std::forward<Fn>(fn), *_value);
         }
 
     private:

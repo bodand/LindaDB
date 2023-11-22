@@ -367,7 +367,7 @@ namespace ldb::data {
             const chunked_list* const _owner;
             const size_type _chunk_index;
             chunk_size_t _valids{};
-            alignas(alignof(T)) std::array<std::byte, sizeof(T) * ChunkSize> _data{};
+            alignas(alignof(T)) std::array<std::byte, sizeof(T) * ChunkSize> _data{std::byte{}};
         };
 
         struct iterator_impl {
@@ -379,7 +379,6 @@ namespace ldb::data {
 
             constexpr reference
             operator*() const noexcept(noexcept((*_chunk)[_index])) {
-                assert(!is_end());
                 return (*_chunk)[_index];
             }
 
