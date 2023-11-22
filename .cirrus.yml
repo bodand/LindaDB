@@ -16,7 +16,7 @@ linux_test_template: &LINUX_TEST_TEMPLATE_TASK
 
   coverage_script:
     - cd ${BUILD_PATH}
-    - if [ "x${BUILD_TOOLCHAIN}" = "xclang" ]; then /usr/bin/env sh ../ci/gather-coverage.sh; fi
+    - if [ "x${CG_TOOLCHAIN}" = "xclang" ]; then /usr/bin/env sh ../ci/gather-coverage.sh; fi
 
 linux_builds_task:
   matrix:
@@ -28,7 +28,7 @@ linux_builds_task:
       env:
         BUILD_ARCH: x64
         CMAKE_ARCH: x86_64
-        BUILD_TOOLCHAIN: gcc
+        CG_TOOLCHAIN: gcc
     - name: "linux-clang-x64"
       container:
         image: silkeh/clang@sha256:693fdfa16424b2f41408204933b63a796e2700f1865a19c7eec7f6606040d7fd
@@ -37,7 +37,7 @@ linux_builds_task:
       env:
         BUILD_ARCH: x64
         CMAKE_ARCH: x86_64
-        BUILD_TOOLCHAIN: clang
+        CG_TOOLCHAIN: clang
     - name: "linux-gcc-arm64"
       arm_container:
         image: gcc:latest
@@ -46,7 +46,7 @@ linux_builds_task:
       env:
         BUILD_ARCH: arm
         CMAKE_ARCH: aarch64
-        BUILD_TOOLCHAIN: gcc
+        CG_TOOLCHAIN: gcc
         VCPKG_FORCE_SYSTEM_BINARIES: "1"
         VCPKG_MAX_CONCURRENCY: "6"
     - name: "linux-clang-arm64"
@@ -57,16 +57,16 @@ linux_builds_task:
       env:
         BUILD_ARCH: arm
         CMAKE_ARCH: aarch64
-        BUILD_TOOLCHAIN: clang
+        CG_TOOLCHAIN: clang
         VCPKG_FORCE_SYSTEM_BINARIES: "1"
         VCPKG_MAX_CONCURRENCY: "6"
 
   env:
     CIRRUS_CLONE_SUBMODULES: "true"
     VCPKG_DEFAULT_BINARY_CACHE: ${CIRRUS_WORKING_DIR}/vcpkg-bincache
-    CMAKE_PRESET: lnx-${BUILD_TOOLCHAIN}-${BUILD_ARCH}-rel
-    CMAKE_BUILD_PRESET: release-linux-${BUILD_ARCH}-${BUILD_TOOLCHAIN}
-    BUILD_PATH: _build-release-${BUILD_ARCH}-${BUILD_TOOLCHAIN}
+    CMAKE_PRESET: lnx-${CG_TOOLCHAIN}-${BUILD_ARCH}-rel
+    CMAKE_BUILD_PRESET: release-linux-${BUILD_ARCH}-${CG_TOOLCHAIN}
+    BUILD_PATH: _build-release-${BUILD_ARCH}-${CG_TOOLCHAIN}
     CMAKE_TAR_URL: https://github.com/Kitware/CMake/releases/download/v3.25.1/cmake-3.25.1-linux-${CMAKE_ARCH}.tar.gz
     PATH: /tmp/cirrus-ci-build/cmake-3.25.1-linux-${CMAKE_ARCH}/bin:${PATH}
     CC: /usr/bin/cc
@@ -92,7 +92,7 @@ linux_builds_task:
     fingerprint_script:
       - echo $BUILD_ARCH
       - echo $CIRRUS_OS
-      - echo $BUILD_TOOLCHAIN
+      - echo $CG_TOOLCHAIN
       - jq .dependencies vcpkg.json
     populate_script:
       - mkdir ${VCPKG_DEFAULT_BINARY_CACHE}
@@ -151,18 +151,18 @@ windows_builds_task:
   matrix:
     - name: "windows-msvc-x64"
       env:
-        BUILD_TOOLCHAIN: msvc
+        CG_TOOLCHAIN: msvc
     - name: "windows-clang-x64"
       env:
-        BUILD_TOOLCHAIN: clang
+        CG_TOOLCHAIN: clang
 
   env:
     CIRRUS_CLONE_SUBMODULES: "true"
     BUILD_ARCH: x64
     VCPKG_DEFAULT_BINARY_CACHE: "%CIRRUS_WORKING_DIR%\\vcpkg-bincache"
-    CMAKE_PRESET: win-%BUILD_TOOLCHAIN%-%BUILD_ARCH%-rel
-    CMAKE_BUILD_PRESET: release-windows-%BUILD_ARCH%-%BUILD_TOOLCHAIN%
-    BUILD_PATH: _build-release-${BUILD_ARCH}-${BUILD_TOOLCHAIN}
+    CMAKE_PRESET: win-%CG_TOOLCHAIN%-%BUILD_ARCH%-rel
+    CMAKE_BUILD_PRESET: release-windows-%BUILD_ARCH%-%CG_TOOLCHAIN%
+    BUILD_PATH: _build-release-${BUILD_ARCH}-${CG_TOOLCHAIN}
     MS_VS_PATH: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools
     PATH: C:\ProgramData\chocolatey\bin;C:\tools\ruby31\bin;C:\Program Files\CMake\bin;%PATH%
 
@@ -175,7 +175,7 @@ windows_builds_task:
     fingerprint_script:
       - echo:%BUILD_ARCH%
       - echo:%CIRRUS_OS%
-      - echo:%BUILD_TOOLCHAIN%
+      - echo:%CG_TOOLCHAIN%
       - jq .dependencies vcpkg.json
     populate_script:
       - ci\vs.bat
