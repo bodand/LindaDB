@@ -43,7 +43,6 @@
 int
 main(int argc, char** argv) {
     lrt::runtime rt(&argc, &argv);
-    spdlog::set_level(spdlog::level::debug);
     auto& store = rt.store();
 
     int rank, size;

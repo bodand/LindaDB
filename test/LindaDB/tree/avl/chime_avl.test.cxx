@@ -44,8 +44,6 @@
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/payload.hxx>
 
-#include <spdlog/spdlog.h>
-
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
 using sut_type = ldb::index::tree::avl2_tree<int, int, 2>;
@@ -199,14 +197,12 @@ TEST_CASE("new chime AVL-tree can remove elements indefinitely",
     sut_type sut;
     for (int i = 0; i < 2'000'000; ++i) {
         auto key_val = key(rng);
-        SPDLOG_INFO("INSERT ({}, {})", key_val, i);
         sut.insert(key_val, i);
     }
 
     std::cerr << "REMOVING\n";
     for (int i = 0; i < 2'000'000; ++i) {
         auto key_val = key(rng);
-        SPDLOG_INFO("DELETE ({}, {})", key_val, i);
         auto res = sut.remove(lit::any_value_query(key_val));
         if (res) {
             CHECK(*res > 0);

@@ -48,8 +48,6 @@
 #include <ldb/index/tree/tree_node_handler.hxx>
 #include <ldb/profiler.hxx>
 
-#include <spdlog/spdlog.h>
-
 namespace ldb::index::tree {
     struct new_node_tag final { };
 

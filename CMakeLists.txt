@@ -153,7 +153,6 @@ if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
 endif ()
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
-find_package(spdlog CONFIG REQUIRED)
 if (LINDA_DB_USE_PROFILER)
     find_package(Tracy CONFIG REQUIRED)
 endif ()

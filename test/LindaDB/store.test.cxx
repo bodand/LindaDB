@@ -306,8 +306,6 @@ TEST_CASE("store does not deadlock trivially when out is called on a waiting in"
 
 TEST_CASE("serial insert,insert,remove,insert,remove runs") {
     SKIP("removal broken for avl2_tree");
-    spdlog::set_level(spdlog::level::debug);
-    spdlog::set_pattern("%H:%M:%S.%e %l [%t] %v");
 
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
@@ -451,8 +449,6 @@ TEST_CASE("serial insert,insert,remove,insert,remove runs") {
 TEST_CASE("serial reads/writes proceeds",
           "[.long]") {
     SKIP("removal broken for avl2_tree");
-    spdlog::set_level(spdlog::level::debug);
-    spdlog::set_pattern("%H:%M:%S.%e %l [%t] %v");
 
     static std::uniform_int_distribution<unsigned> time_dist(10'000'000U, 300'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
@@ -478,8 +474,6 @@ TEST_CASE("serial reads/writes proceeds",
 TEST_CASE("parallel reads/writes do not deadlock trivially",
           "[.long]") {
     SKIP("removal broken for avl2_tree");
-    spdlog::set_level(spdlog::level::debug);
-    spdlog::set_pattern("%H:%M:%S.%e %l [%t] %v");
 
     static std::uniform_int_distribution<unsigned> time_dist(10'000'000U, 300'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);

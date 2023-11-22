@@ -80,9 +80,6 @@ namespace {
         operator()(ldb::lv::linda_tuple tuple) const {
             std::vector<MPI_Request> req(static_cast<std::size_t>(_size), MPI_REQUEST_NULL);
             auto [val, val_sz] = lrt::serialize(tuple);
-            int comm_size;
-            MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
-            SPDLOG_INFO("WORLD SIZE: {} INSTEAD OF {}", comm_size, _size);
             std::vector<int> idx(static_cast<std::size_t>(_size));
             std::iota(idx.begin(), idx.end(), std::size_t{});
             std::transform(std::execution::par_unseq,
@@ -100,7 +97,6 @@ namespace {
                                                        MPI_COMM_WORLD,
                                                        &req);
                                if (status != 0) {
-                                   SPDLOG_ERROR("MPI_Isend: {}", status);
                                    return MPI_REQUEST_NULL;
                                }
                                return req;
@@ -131,7 +127,6 @@ runtime(int* argc, char*** argv)
     int world_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    spdlog::set_pattern("%H:%M:%S.%f %l [%P] [%t] (%s:%#): %v");
     _store.set_broadcast(bcast_handler(_rank, world_size));
     _recv_start.test_and_set();
     _recv_start.notify_all();
@@ -139,10 +134,9 @@ runtime(int* argc, char*** argv)
 
 lrt::runtime::~
 runtime() noexcept {
-    char buf{'\0'};
+    constexpr char buf{'\0'};
     MPI_Send(&buf, 1, MPI_CHAR, _rank, LINDA_RT_TERMINATE_TAG, MPI_COMM_WORLD);
     _recv_thr.join();
-    SPDLOG_INFO("LRT FINALIZE");
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
 }
@@ -152,27 +146,18 @@ lrt::runtime::recv_thread_worker() {
     _recv_start.wait(false);
     for (;;) {
         MPI_Status stat{};
-        SPDLOG_INFO("MPI PROBE");
         MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &stat);
         int len;
         MPI_Get_count(&stat, MPI_CHAR, &len);
-        SPDLOG_INFO("MPI PROBE FOUND {} CHARS", len);
         if (len == 1) {
             char term_buf{};
-            SPDLOG_INFO("MPI RECV 1");
             MPI_Recv(&term_buf, 1, MPI_CHAR, MPI_ANY_SOURCE, LINDA_RT_TERMINATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            if (term_buf == 0) {
-                SPDLOG_INFO("MPI TERMINATE READER");
-                return;
-            }
+            if (term_buf == 0) return;
             continue;
         }
         auto buf = std::make_unique<std::byte[]>(static_cast<std::size_t>(len));
-        SPDLOG_INFO("MPI RECV PAYLOAD");
         MPI_Recv(buf.get(), len, MPI_CHAR, MPI_ANY_SOURCE, LINDA_RT_DB_SYNC_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         auto rx_tuple = deserialize({buf.get(), static_cast<unsigned>(len)});
-        SPDLOG_INFO("LRT GOT {}", rx_tuple.dump_string());
         _store.out_nosignal(rx_tuple);
-        SPDLOG_INFO("LRT STORED {}", rx_tuple.dump_string());
     }
 }

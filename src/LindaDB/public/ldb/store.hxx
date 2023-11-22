@@ -40,63 +40,46 @@
 #include <array>
 #include <barrier>
 #include <functional>
-#include <list>
 
 #include <ldb/data/chunked_list.hxx>
+#include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query_tuple.hxx>
 #include <ldb/support/move_only_function.hxx>
-
-#include <corecrt_io.h>
-#include <spdlog/spdlog.h>
-
-#include "index/tree/impl/avl2/avl2_tree.hxx"
 
 namespace ldb {
     struct store {
         void
         out(const lv::linda_tuple& tuple) {
             LDB_PROF_SCOPE_C("Store_out", prof::color_out);
-            SPDLOG_DEBUG("INSERT store@{} {}", static_cast<void*>(this), tuple.dump_string());
             std::optional<move_only_function<void()>> wait_bcast{};
             if (_start_bcast) wait_bcast = (*_start_bcast)(tuple);
-            SPDLOG_DEBUG("INSERT-BCASTED store@{} {}", static_cast<void*>(this), tuple.dump_string());
             auto new_it = _data.push_back(tuple);
-            SPDLOG_DEBUG("INSERT-INSERTED store@{} {}", static_cast<void*>(this), tuple.dump_string());
             {
                 LDB_LOCK(lck, _indexes);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
-                    SPDLOG_DEBUG("INSERT-INDEX {} store@{} {}", i, static_cast<void*>(this), tuple.dump_string());
                     _header_indices[i].insert(tuple[i], new_it);
                 }
             }
-            if (wait_bcast) {
-            SPDLOG_DEBUG("INSERT WAIT BCAST store@{} {}", static_cast<void*>(this), tuple.dump_string());
-                (*wait_bcast)();
-            }
-            SPDLOG_DEBUG("INSERT-NOTIFY store@{} {}", static_cast<void*>(this), tuple.dump_string());
+            if (wait_bcast) (*wait_bcast)();
             notify_readers();
         }
 
         void
         out_nosignal(const lv::linda_tuple& tuple) {
             LDB_PROF_SCOPE_C("Store_out", prof::color_out);
-            SPDLOG_DEBUG("INSERT2 store@{} {}", static_cast<void*>(this), tuple.dump_string());
             auto new_it = _data.push_back(tuple);
-            SPDLOG_DEBUG("INSERT2-INSERTED store@{} {}", static_cast<void*>(this), tuple.dump_string());
             {
                 LDB_LOCK(lck, _indexes);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
-                    SPDLOG_DEBUG("INSERT2-INDEX {} store@{} {}", i, static_cast<void*>(this), tuple.dump_string());
                     _header_indices[i].insert(tuple[i], new_it);
                 }
             }
-            SPDLOG_DEBUG("INSERT2-NOTIFY store@{} {}", static_cast<void*>(this), tuple.dump_string());
             notify_readers();
         }
 
@@ -104,7 +87,6 @@ namespace ldb {
         std::optional<lv::linda_tuple>
         rdp(const query_tuple<Args...>& query) const {
             LDB_PROF_SCOPE_C("Store_rdp", prof::color_rd);
-            SPDLOG_DEBUG("RDP store@{} {}", static_cast<const void*>(this), query.dump_string());
             return try_read(query);
         }
 
@@ -112,30 +94,19 @@ namespace ldb {
         lv::linda_tuple
         rd(const query_tuple<Args...>& query) const {
             LDB_PROF_SCOPE_C("Store_in", prof::color_in);
-            SPDLOG_DEBUG("SEARCH store@{} {}", static_cast<const void*>(this), query.dump_string());
             for (;;) {
-                SPDLOG_DEBUG("SEARCH READ store@{}", static_cast<const void*>(this));
                 {
-                    SPDLOG_DEBUG("SEARCH LOCK INDEX store@{}", static_cast<const void*>(this));
                     LDB_LOCK(lck, _indexes);
                     if (auto read = try_read(query)) {
-                        SPDLOG_DEBUG("SEARCH DONE store@{}", static_cast<const void*>(this));
                         return *read;
                     }
                 }
                 if (_sync_needed > 0) {
-                    SPDLOG_DEBUG("SYNC store@{}", static_cast<const void*>(this));
                     _sync_needed = 0;
                     continue;
                 }
-                SPDLOG_DEBUG("SEARCH LOCK store@{}", static_cast<const void*>(this));
                 LDB_LOCK(lck, _read_mtx);
-                SPDLOG_DEBUG("SEARCH WAIT store@{}", static_cast<const void*>(this));
-                _wait_read.wait(lck, [this] {
-                    SPDLOG_DEBUG("SEARCH AWAKEN MAYBE store@{}", static_cast<const void*>(this));
-                    return _sync_needed > 0;
-                });
-                SPDLOG_DEBUG("SEARCH AWAKEN store@{}", static_cast<const void*>(this));
+                _wait_read.wait(lck, [this] { return _sync_needed > 0; });
             }
         }
 
@@ -143,7 +114,6 @@ namespace ldb {
         std::optional<lv::linda_tuple>
         inp(const query_tuple<Args...>& query) {
             LDB_PROF_SCOPE_C("Store_inp", prof::color_in);
-            SPDLOG_DEBUG("REMOVEP store@{} {}", static_cast<const void*>(this), query.dump_string());
             return try_read_and_remove(query);
         }
 
@@ -151,26 +121,19 @@ namespace ldb {
         lv::linda_tuple
         in(const query_tuple<Args...>& query) {
             LDB_PROF_SCOPE_C("Store_in", prof::color_in);
-            SPDLOG_DEBUG("REMOVE store@{} {}", static_cast<const void*>(this), query.dump_string());
             for (;;) {
-                SPDLOG_DEBUG("REMOVE READ store@{}", static_cast<const void*>(this));
                 {
                     LDB_LOCK(lck, _indexes);
                     if (auto read = try_read_and_remove(query)) {
-                        SPDLOG_DEBUG("REMOVE DONE store@{}", static_cast<const void*>(this));
                         return *read;
                     }
                 }
                 if (_sync_needed > 0) {
-                    SPDLOG_DEBUG("SYNC store@{}", static_cast<const void*>(this));
                     _sync_needed = 0;
                     continue;
                 }
-                SPDLOG_DEBUG("REMOVE LOCK store@{}", static_cast<const void*>(this));
                 LDB_LOCK(lck, _read_mtx);
-                SPDLOG_DEBUG("REMOVE WAIT store@{}", static_cast<const void*>(this));
                 _wait_read.wait(lck, [this] { return _sync_needed > 0; });
-                SPDLOG_DEBUG("REMOVE AWAKEN store@{}", static_cast<const void*>(this));
             }
         }
 
@@ -187,9 +150,7 @@ namespace ldb {
         void
         notify_readers() const {
             LDB_LOCK(lck, _read_mtx);
-            SPDLOG_DEBUG("INSERT-NOTIFY increase sync count {}", static_cast<const void*>(this));
             ++_sync_needed;
-            SPDLOG_DEBUG("INSERT-NOTIFY NOTIFY {}", static_cast<const void*>(this));
             _wait_read.notify_all();
         }
 
@@ -216,16 +177,13 @@ namespace ldb {
             if (auto [index_idx, index_res] = query.try_read_and_remove_indices(std::span(_header_indices));
                 index_res.has_value()) {
                 if (!*index_res) return std::nullopt;
-                SPDLOG_DEBUG("REMOVE INDEX {}", index_idx);
                 auto it = **index_res;
                 auto res = *it;
                 for (std::size_t i = 0U; i < _header_indices.size(); ++i) {
                     if (i == index_idx) continue;
-                    SPDLOG_DEBUG("REMOVE INDEX {}", i);
                     std::ignore = _header_indices[i].remove(index::tree::value_query(res[i], it));
                 }
                 _data.erase(it);
-                SPDLOG_DEBUG("REMOVE DATA {}", res.dump_string());
                 return res;
             }
             auto it = std::ranges::find_if(_data, [&query](const auto& stored) {

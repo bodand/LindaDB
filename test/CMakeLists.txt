@@ -50,7 +50,6 @@ add_subdirectory(LindaRT)
 find_package(MPI REQUIRED)
 add_executable(lindart-test lindart.cxx)
 target_link_libraries(lindart-test PUBLIC MPI::MPI_CXX LindaRT)
-target_compile_definitions(lindart-test PUBLIC SPDLOG_ACTIVE_LEVEL=0)
 
 add_test(NAME "LindaRT-MPI"
          COMMAND "${MPIEXEC_EXECUTABLE}" -n 32 $<TARGET_FILE:lindart-test>)
