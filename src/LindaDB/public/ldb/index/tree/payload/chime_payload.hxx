@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <concepts>
 #include <cstdlib>
 #include <iterator>

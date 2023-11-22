@@ -287,7 +287,6 @@ TEST_CASE("store does not deadlock trivially when out is called on a waiting in"
     const auto adder = std::jthread([&store]() {
         LDB_TNAME("AdderThread");
         for (int i = 0; i < repeat_count; ++i) {
-            std::cout << "[" << i + 1 << "/" << repeat_count << "] ";
             auto val = lv::linda_tuple("asd", val_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
             store.out(val);
@@ -301,7 +300,6 @@ TEST_CASE("store does not deadlock trivially when out is called on a waiting in"
         CHECK(rand <= 300'000);
         std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng) / 2));
     }
-    std::cout << "a\n";
 }
 
 TEST_CASE("serial insert,insert,remove,insert,remove runs") {
@@ -484,7 +482,6 @@ TEST_CASE("parallel reads/writes do not deadlock trivially",
     auto adder = [&store](std::string name) {
         LDB_TNAME(name.c_str());
         for (int i = 0; i < repeat_count * 2; ++i) {
-            std::cout << "[" << i + 1 << "/" << repeat_count << "] ";
             auto val = lv::linda_tuple("asd", val_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
             store.out(val);

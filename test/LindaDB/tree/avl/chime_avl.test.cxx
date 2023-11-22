@@ -190,6 +190,14 @@ TEST_CASE("new chime AVL-tree can add elements indefinitely",
     }
 }
 
+TEST_CASE("new chime AVL-tree can remove elements in this specific order") {
+    sut_type sut;
+    sut.insert(1, 0);
+    sut.insert(2, 0);
+    sut.insert(3, 0);
+    sut.insert(3, 0);
+}
+
 TEST_CASE("new chime AVL-tree can remove elements indefinitely",
           "[.long]") {
     std::mt19937_64 rng(std::random_device{}());

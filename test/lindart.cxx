@@ -34,6 +34,8 @@
  *   
  */
 
+#include <iostream>
+
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
 #include <lrt/runtime.hxx>
