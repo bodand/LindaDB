@@ -45,8 +45,6 @@
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
 
-#include <spdlog/spdlog.h>
-
 namespace lv = ldb::lv;
 using namespace std::literals;
 

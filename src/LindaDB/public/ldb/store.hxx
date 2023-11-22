@@ -47,8 +47,6 @@
 #include <ldb/query_tuple.hxx>
 #include <ldb/support/move_only_function.hxx>
 
-#include <spdlog/spdlog.h>
-
 namespace ldb {
     struct store {
         void
