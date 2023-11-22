@@ -6,7 +6,7 @@ echo "Collected $raws_count raw datafiles:"
 echo "$profraws"
 llvm-profdata merge $profraws -o collected.profdata
 
-test_exes=$(find . -type f -name "cg3-*-test" | sed -e 's/^/--object /' | tr "\n" ' ' | cut -f'2-' -d' ')
+test_exes=$(find . -type f -iname "*test" | sed -e 's/^/--object /' | tr "\n" ' ' | cut -f'2-' -d' ')
 test_count=$(echo "$test_exes" |tr ' ' "\n"| wc -l)
 echo "Collected $test_count executables:"
 echo "$test_exes" | tr ' ' "\n"
