@@ -63,6 +63,8 @@ linux_builds_task:
     PATH: /tmp/cirrus-ci-build/cmake-3.27.8-linux-${CMAKE_ARCH}/bin:${PATH}
     PROJECT_CC_EXE: /usr/bin/cc
     PROJECT_CXX_EXE: /usr/bin/c++
+    OMPI_ALLOW_RUN_AS_ROOT: "1"
+    OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: "1"
 
   apt_script:
     - apt-get update
