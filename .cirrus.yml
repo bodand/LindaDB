@@ -137,6 +137,8 @@ windows_builds_task:
     - choco install aria2 -y
     - choco install cmake -y
     - choco install ninja -y
+    - choco install winget -y
+    - winget install Microsoft.msmpisdk --disable-interactivity
     - gem install asciidoctor
     - gem install coveralls-lcov
 
