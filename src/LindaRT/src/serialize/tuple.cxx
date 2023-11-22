@@ -310,6 +310,7 @@ namespace {
             return str;
         }
         }
+        LDB_UNREACHABLE;
     }
 
     ldb::lv::linda_tuple

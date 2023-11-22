@@ -216,20 +216,20 @@ namespace ldb {
         return Ptr;
     }
 
-    template<class Rx, bool Noexcept, class... Types>
-    class Move_only_function_base {
-    public:
-        // TRANSITION, DevCom-1208330: use noexcept(Noexcept) instead
-        template<bool>
+        template<class Rx, bool, class... Types>
         struct Invoke_t {
             using Call = Rx(__stdcall*)(const Move_only_function_data&, Types&&...);
         };
 
-        template<>
-        struct Invoke_t<true> {
+        template<class Rx, class... Types>
+        struct Invoke_t<Rx, true, Types...> {
             using Call = Rx(__stdcall*)(const Move_only_function_data&, Types&&...) noexcept;
         };
 
+    template<class Rx, bool Noexcept, class... Types>
+    class Move_only_function_base {
+    public:
+        // TRANSITION, DevCom-1208330: use noexcept(Noexcept) instead
         struct Impl_t { // A per-callable-type structure acting as a virtual function table.
             // Using vtable emulations gives more flexibility for optimizations and reduces the amount of RTTI data.
             // (The RTTI savings may be significant as with lambdas and binds there may be many distinct callable types.
@@ -239,7 +239,7 @@ namespace ldb {
             // empty function from a DLL that is unloaded later, and then safely moving/destroying that empty function.
 
             // Calls target
-            Invoke_t<Noexcept>::Call Invoke;
+            typename Invoke_t<Rx, Noexcept, Types...>::Call Invoke;
             // Moves the data, including pointer to "vtable", AND destroys old data (not resetting its "vtable").
             // nullptr if we can trivially move two pointers.
             void(__stdcall* Move)(Move_only_function_data&, Move_only_function_data&) noexcept;
