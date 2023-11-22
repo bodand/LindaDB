@@ -15,6 +15,10 @@
 #  pragma GCC system_header
 #endif
 
+#if defined(__GNUG__) && !(defined(__clang_) || defined(_MSC_VER))
+#  define __stdcall
+#endif
+
 namespace ldb {
 
     template<class>
@@ -775,6 +779,10 @@ namespace ldb {
 
 #  ifdef __GNUG__
 #    pragma GCC diagnostic pop
+#  endif
+
+#  ifdef __stdcall
+#    undef __stdcall
 #  endif
 
 #else // have std::move_only_function
