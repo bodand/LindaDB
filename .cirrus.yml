@@ -29,7 +29,7 @@ linux_builds_task:
         CG_TOOLCHAIN: gcc
     - name: "linux-clang-x64"
       container:
-        image: silkeh/clang:latest
+        image: silkeh/clang:17
       env:
         BUILD_ARCH: x64
         CMAKE_ARCH: x86_64
@@ -45,7 +45,7 @@ linux_builds_task:
         VCPKG_MAX_CONCURRENCY: "6"
     - name: "linux-clang-arm64"
       arm_container:
-        image: silkeh/clang:latest
+        image: silkeh/clang:17
       env:
         BUILD_ARCH: arm
         CMAKE_ARCH: aarch64
