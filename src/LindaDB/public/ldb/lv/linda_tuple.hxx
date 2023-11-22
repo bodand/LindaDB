@@ -40,6 +40,7 @@
 #define LINDADB_LINDA_TUPLE_HXX
 
 #include <array>
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <ostream>

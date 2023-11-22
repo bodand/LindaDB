@@ -43,7 +43,13 @@
 #define LINDADB_SCALAR_PAYLOAD_HXX
 
 #include <cassert>
+#include <compare>
 #include <concepts>
+#include <functional>
+#include <optional>
+#include <tuple>
+#include <utility>
+#include <type_traits>
 
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>

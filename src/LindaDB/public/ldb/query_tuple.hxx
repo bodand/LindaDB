@@ -36,9 +36,15 @@
 #ifndef LINDADB_QUERY_TUPLE_HXX
 #define LINDADB_QUERY_TUPLE_HXX
 
+#include <array>
+#include <compare>
 #include <concepts>
+#include <cstdlib>
+#include <optional>
 #include <span>
+#include <tuple>
 #include <typeinfo>
+#include <utility>
 #include <variant>
 
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>

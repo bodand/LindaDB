@@ -38,6 +38,7 @@
 #define LINDADB_PAYLOAD_DISPATCHER_HXX
 
 #include <cstdlib>
+#include <memory>
 
 #include <ldb/index/tree/payload/chime_payload.hxx>
 #include <ldb/index/tree/payload/scalar_payload.hxx>
@@ -67,7 +68,9 @@ namespace ldb::index::tree {
 
     template<class K, class V, std::size_t Clustering = 0>
     struct payload_dispatcher {
-        constexpr const static std::size_t overhead_size = 48ULL;
+        constexpr const static std::size_t overhead_size = sizeof(std::unique_ptr<int>) * 2
+                                                           + sizeof(std::unique_ptr<int>*)
+                                                           + sizeof(std::vector<V>);
         using type = payloads::chime_payload<
                K,
                V,

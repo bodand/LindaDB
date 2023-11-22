@@ -39,6 +39,8 @@
 
 #include <concepts>
 #include <tuple>
+#include <compare>
+#include <type_traits>
 
 namespace ldb::index::tree {
     template<class Query, class Match>

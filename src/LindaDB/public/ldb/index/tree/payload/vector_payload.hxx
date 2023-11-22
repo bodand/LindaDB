@@ -41,9 +41,14 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <compare>
 #include <concepts>
+#include <cstdlib>
+#include <optional>
 #include <ranges>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/profiler.hxx>

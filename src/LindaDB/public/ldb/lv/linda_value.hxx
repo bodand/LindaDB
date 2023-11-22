@@ -36,8 +36,11 @@
 #ifndef LINDADB_LINDA_VALUE_HXX
 #define LINDADB_LINDA_VALUE_HXX
 
+#include <concepts>
 #include <cstdint>
+#include <ostream>
 #include <string>
+#include <string_view>
 #include <variant>
 
 namespace ldb::lv {
@@ -54,7 +57,8 @@ namespace ldb::lv {
 
     namespace helper {
         struct printer {
-            explicit printer(std::ostream& os) : _os(os) { }
+            explicit
+            printer(std::ostream& os) : _os(os) { }
 
             template<std::integral T>
             void

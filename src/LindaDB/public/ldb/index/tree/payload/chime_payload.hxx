@@ -40,11 +40,13 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <compare>
 #include <concepts>
 #include <cstdlib>
 #include <iterator>
 #include <ranges>
 #include <shared_mutex>
+#include <tuple>
 #include <utility>
 #include <vector>
 

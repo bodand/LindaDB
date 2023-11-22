@@ -37,10 +37,10 @@
 #ifndef LINDADB_PAYLOAD_HXX
 #define LINDADB_PAYLOAD_HXX
 
-
 #include <concepts>
 #include <optional>
 #include <ostream>
+#include <type_traits>
 
 #include <ldb/index/tree/index_query.hxx>
 
