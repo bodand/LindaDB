@@ -23,17 +23,13 @@ linux_builds_task:
     - name: "linux-gcc-x64"
       container:
         image: gcc:latest
-        cpu: 8
-        memory: 32G
       env:
         BUILD_ARCH: x64
         CMAKE_ARCH: x86_64
         CG_TOOLCHAIN: gcc
     - name: "linux-clang-x64"
       container:
-        image: silkeh/clang@sha256:693fdfa16424b2f41408204933b63a796e2700f1865a19c7eec7f6606040d7fd
-        cpu: 8
-        memory: 32G
+        image: silkeh/clang:latest
       env:
         BUILD_ARCH: x64
         CMAKE_ARCH: x86_64
@@ -41,8 +37,6 @@ linux_builds_task:
     - name: "linux-gcc-arm64"
       arm_container:
         image: gcc:latest
-        cpu: 8
-        memory: 32G
       env:
         BUILD_ARCH: arm
         CMAKE_ARCH: aarch64
@@ -51,9 +45,7 @@ linux_builds_task:
         VCPKG_MAX_CONCURRENCY: "6"
     - name: "linux-clang-arm64"
       arm_container:
-        image: silkeh/clang@sha256:5016765524d97cec4c1c146b5a6f93681819046a8e725083801e501d7bea3cd5
-        cpu: 8
-        memory: 32G
+        image: silkeh/clang:latest
       env:
         BUILD_ARCH: arm
         CMAKE_ARCH: aarch64
@@ -67,12 +59,8 @@ linux_builds_task:
     CMAKE_PRESET: lnx-${CG_TOOLCHAIN}-${BUILD_ARCH}-rel
     CMAKE_BUILD_PRESET: release-linux-${BUILD_ARCH}-${CG_TOOLCHAIN}
     BUILD_PATH: _build-release-${BUILD_ARCH}-${CG_TOOLCHAIN}
-    CMAKE_TAR_URL: https://github.com/Kitware/CMake/releases/download/v3.25.1/cmake-3.25.1-linux-${CMAKE_ARCH}.tar.gz
+    CMAKE_TAR_URL: https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-${CMAKE_ARCH}.tar.gz
     PATH: /tmp/cirrus-ci-build/cmake-3.25.1-linux-${CMAKE_ARCH}/bin:${PATH}
-    CC: /usr/bin/cc
-    CXX: /usr/bin/c++
-    PROJECT_CC_EXE: /usr/bin/cc
-    PROJECT_CXX_EXE: /usr/bin/c++
 
   apt_script:
     - apt-get update
