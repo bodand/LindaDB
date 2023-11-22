@@ -678,7 +678,7 @@ namespace ldb {
             this->Construct_with_null();
         }
 
-        move_only_function(nullptr_t) noexcept {
+        move_only_function(std::nullptr_t) noexcept {
             this->Construct_with_null();
         }
 
@@ -727,7 +727,7 @@ namespace ldb {
         }
 
         move_only_function&
-        operator=(nullptr_t) noexcept {
+        operator=(std::nullptr_t) noexcept {
             this->Checked_destroy(this->Data);
             this->Reset_to_null();
             return *this;
@@ -768,7 +768,7 @@ namespace ldb {
         }
 
         [[nodiscard]] friend bool
-        operator==(const move_only_function& This, nullptr_t) noexcept {
+        operator==(const move_only_function& This, std::nullptr_t) noexcept {
             return This.Is_null();
         }
     };
