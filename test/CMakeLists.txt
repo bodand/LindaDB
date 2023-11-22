@@ -52,4 +52,4 @@ add_executable(lindart-test lindart.cxx)
 target_link_libraries(lindart-test PUBLIC MPI::MPI_CXX LindaRT)
 
 add_test(NAME "LindaRT-MPI"
-         COMMAND "${MPIEXEC_EXECUTABLE}" -n 32 $<TARGET_FILE:lindart-test>)
+         COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lindart-test>)
