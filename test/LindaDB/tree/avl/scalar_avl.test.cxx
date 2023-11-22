@@ -36,16 +36,18 @@
 
 
 #include <algorithm>
+#include <iostream>
 #include <random>
 #include <ranges>
 
 #include <catch2/catch_test_macros.hpp>
-#include <ldb/index/tree/impl/avl/avl_tree.hxx>
+#include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/payload.hxx>
+#include <ldb/index/tree/payload_dispatcher.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
-using sut_type = lit::avl_tree<int, int, 1>;
+using sut_type = lit::avl2_tree<int, int, 1>;
 
 TEST_CASE("new AVL-tree can be constructed") {
     CHECK_NOTHROW(sut_type{});
@@ -162,4 +164,34 @@ TEST_CASE("new AVL-tree can remove elements") {
         res = sut.remove(lit::any_value_query(1));
         REQUIRE_FALSE(res.has_value());
     }
+}
+
+TEST_CASE("new scalar AVL-tree can add elements indefinitely",
+          "[.long]") {
+    std::mt19937_64 rng(std::random_device{}());
+    std::uniform_int_distribution<int> key(100, 999'999);
+    sut_type sut;
+    for (int i = 0; i < 2'000'000; ++i) {
+        sut.insert(key(rng), i);
+    }
+    SUCCEED();
+}
+
+TEST_CASE("new scalar AVL-tree can remove elements indefinitely",
+          "[.long]") {
+    std::mt19937_64 rng(std::random_device{}());
+    std::uniform_int_distribution<int> key(100, 999'999);
+    sut_type sut;
+    for (int i = 0; i < 2'000'000; ++i) {
+        sut.insert(key(rng), i);
+    }
+
+    for (int i = 0; i < 2'000'000; ++i) {
+        auto res = sut.remove(lit::any_value_query(key(rng)));
+        if (res) {
+            CHECK(*res > 0);
+            CHECK(*res < 2'000'000);
+        }
+    }
+    SUCCEED();
 }

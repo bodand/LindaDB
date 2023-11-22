@@ -50,6 +50,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include "index/tree/impl/avl2/avl2_tree.hxx"
+
 namespace ldb {
     struct store {
         void
@@ -221,7 +223,9 @@ namespace ldb {
         mutable LDB_MUTEX(std::mutex, _read_mtx);
         mutable LDB_MUTEX(std::mutex, _indexes);
         mutable std::condition_variable_any _wait_read;
-        std::array<index::tree::legacy_tree<lv::linda_value, pointer_type>, 2> _header_indices{};
+        std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>,
+                   2>
+               _header_indices{};
         std::optional<std::function<move_only_function<void()>(lv::linda_tuple)>> _start_bcast;
         storage_type _data{};
     };

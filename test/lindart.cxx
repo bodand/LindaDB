@@ -56,7 +56,7 @@ main(int argc, char** argv) {
     spdlog::set_pattern("%H:%M:%S.%f %l [%P] [%t] (%s:%#): %v");
 
     if (rank == 0) {
-        store.in(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));
+        store.rd(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));
         std::cout << "rank0: " << data << "\n";
     }
     else {

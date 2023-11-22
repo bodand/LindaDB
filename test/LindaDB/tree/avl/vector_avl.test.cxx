@@ -41,11 +41,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/impl/avl/avl_tree.hxx>
+#include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/payload.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
-using sut_type = lit::avl_tree<int, int, 2, lps::vector_payload<int, int, 2>>;
+using sut_type = ldb::index::tree::avl2_tree<int, int, 2, lps::vector_payload<int, int, 2>>;
+
 
 TEST_CASE("new vector AVL-tree can be constructed") {
     CHECK_NOTHROW(sut_type{});
@@ -119,4 +121,3 @@ TEST_CASE("new vector AVL-tree can search elements") {
         CHECK(*res == 2);
     }
 }
-

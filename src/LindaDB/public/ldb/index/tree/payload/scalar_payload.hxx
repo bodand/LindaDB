@@ -99,8 +99,20 @@ namespace ldb::index::tree::payloads {
         [[nodiscard]] constexpr bool
         empty() const noexcept { return !_value.has_value(); }
 
-        [[nodiscard]] constexpr bool
-        have_priority() const noexcept { return false; }
+        bool
+        try_merge(scalar_payload& other) {
+            if (capacity() - size() < other.size()) return false;
+            if (other.full()) {
+                _value = other._value;
+                other._value = std::nullopt;
+            }
+            return true;
+        }
+
+        void
+        merge_until_full(scalar_payload& other) {
+            std::ignore = try_merge(other);
+        }
 
         template<index_query<value_type> Q>
         [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
@@ -163,6 +175,7 @@ namespace ldb::index::tree::payloads {
         template<index_query<value_type> Q>
         std::optional<value_type>
         remove(Q query) {
+            if (!_value.has_value()) return std::nullopt;
             if (kv_key() == query.key()
                 && kv_value() == query) return kv_value_destructive();
             return std::nullopt;

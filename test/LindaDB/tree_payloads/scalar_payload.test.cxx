@@ -76,13 +76,6 @@ TEST_CASE("scalar_payload default initializes as having capacity one") {
     CHECK(sut.capacity() == 1);
 }
 
-// NOLINTNEXTLINE
-TEST_CASE("empty scalar_payload does not have priority") {
-    const lps::scalar_payload<int, int> sut;
-
-    CHECK_FALSE(sut.have_priority());
-}
-
 constexpr const static auto Test_Key = 42;
 constexpr const static auto Test_Value = 42;
 

@@ -76,6 +76,8 @@ namespace ldb::index::tree {
         { payload.force_set_upper(key, value) } -> std::same_as<std::optional<typename T::bundle_type>>;
         { payload.force_set_upper(std::move(bundle)) } -> std::same_as<std::optional<typename T::bundle_type>>;
         { payload.remove(query) } -> std::same_as<std::optional<typename T::value_type>>;
+        { payload.merge_until_full(payload) } -> std::same_as<void>;
+        { payload.try_merge(payload) } -> std::same_as<bool>;
 
         { payload <=> key } -> std::same_as<std::weak_ordering>;
         { payload == key } -> std::same_as<bool>;

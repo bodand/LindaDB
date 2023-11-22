@@ -45,6 +45,8 @@
 #include <ldb/index/tree/tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 
+#include "index/tree/impl/avl2/avl2_tree.hxx"
+
 namespace ldb {
     namespace meta {
         struct finder {
@@ -269,7 +271,7 @@ namespace ldb {
 
         template<class V, std::size_t C, class P, auto Ext = std::dynamic_extent>
         std::optional<std::optional<V>>
-        try_read_indices(std::span<const index::tree::legacy_tree<lv::linda_value, V, C, P>, Ext> indices) const {
+        try_read_indices(std::span<const index::tree::avl2_tree<lv::linda_value, V, C, P>, Ext> indices) const {
             LDB_PROF_SCOPE("QueryTuple_ReadIndex");
             std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
 
@@ -289,7 +291,7 @@ namespace ldb {
 
         template<class V, std::size_t C, class P, auto Ext = std::dynamic_extent>
         std::pair<std::size_t, std::optional<std::optional<V>>>
-        try_read_and_remove_indices(std::span<index::tree::legacy_tree<lv::linda_value, V, C, P>, Ext> indices) const {
+        try_read_and_remove_indices(std::span<index::tree::avl2_tree<lv::linda_value, V, C, P>, Ext> indices) const {
             LDB_PROF_SCOPE("QueryTuple_ReadRemoveIndex");
             std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
             std::size_t index_idx{};

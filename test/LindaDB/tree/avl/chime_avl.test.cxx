@@ -36,16 +36,18 @@
 
 
 #include <algorithm>
+#include <iostream>
 #include <random>
 #include <ranges>
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/impl/avl/avl_tree.hxx>
+#include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/payload.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
-using sut_type = lit::avl_tree<int, int, 2, lps::chime_payload<int, int, 2>>;
+using sut_type = ldb::index::tree::avl2_tree<int, int, 2>;
 
 TEST_CASE("new chime AVL-tree can be constructed") {
     CHECK_NOTHROW(sut_type{});
@@ -174,4 +176,41 @@ TEST_CASE("new chime AVL-tree can remove elements") {
         REQUIRE(res.has_value());
         CHECK(*res == 3);
     }
+}
+
+TEST_CASE("new chime AVL-tree can add elements indefinitely",
+          "[.long]") {
+    std::mt19937_64 rng(std::random_device{}());
+    std::uniform_int_distribution<int> key(100, 999'999);
+    sut_type sut;
+    for (int i = 0; i < 2'000'000; ++i) {
+        auto key_val = key(rng);
+        sut.insert(key_val, i);
+        auto f = sut.search(lit::any_value_query(key_val));
+        REQUIRE(f.has_value());
+    }
+}
+
+TEST_CASE("new chime AVL-tree can remove elements indefinitely",
+          "[.long]") {
+    std::mt19937_64 rng(std::random_device{}());
+    std::uniform_int_distribution<int> key(100, 999'999);
+    sut_type sut;
+    for (int i = 0; i < 2'000'000; ++i) {
+        auto key_val = key(rng);
+        SPDLOG_INFO("INSERT ({}, {})", key_val, i);
+        sut.insert(key_val, i);
+    }
+
+    std::cerr << "REMOVING\n";
+    for (int i = 0; i < 2'000'000; ++i) {
+        auto key_val = key(rng);
+        SPDLOG_INFO("DELETE ({}, {})", key_val, i);
+        auto res = sut.remove(lit::any_value_query(key_val));
+        if (res) {
+            CHECK(*res > 0);
+            CHECK(*res < 2'000'000);
+        }
+    }
+    SUCCEED();
 }

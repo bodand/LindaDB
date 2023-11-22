@@ -56,25 +56,30 @@ namespace ldb::index::tree::payloads {
         using size_type = std::size_t;
         using bundle_type = std::pair<key_type, value_type>;
 
-        constexpr vector_payload() = default;
+        constexpr
+        vector_payload() = default;
 
         template<class K2 = K, class V2 = value_type>
         constexpr vector_payload(K2&& key, V2&& value)
              : _data_sz(1),
                _data({std::make_pair(std::forward<K2>(key), std::forward<V2>(value))}) { }
 
-        constexpr explicit vector_payload(bundle_type&& bundle)
+        constexpr explicit
+        vector_payload(bundle_type&& bundle)
              : _data_sz(1),
                _data({std::move(bundle)}) { }
 
-        constexpr explicit vector_payload(const bundle_type& bundle)
+        constexpr explicit
+        vector_payload(const bundle_type& bundle)
              : _data_sz(1),
                _data({bundle}) { }
 
-        constexpr vector_payload(const vector_payload& cp)
+        constexpr
+        vector_payload(const vector_payload& cp)
             requires(std::copyable<std::pair<K, value_type>>)
         = default;
-        constexpr vector_payload(vector_payload&& mv) noexcept = default;
+        constexpr
+        vector_payload(vector_payload&& mv) noexcept = default;
         constexpr vector_payload&
         operator=(const vector_payload& cp)
             requires(std::copyable<std::pair<K, value_type>>)
@@ -82,7 +87,8 @@ namespace ldb::index::tree::payloads {
         constexpr vector_payload&
         operator=(vector_payload&& mv) noexcept = default;
 
-        constexpr ~vector_payload() noexcept = default;
+        constexpr ~
+        vector_payload() noexcept = default;
 
         [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
         operator<=>(const auto& key) const noexcept {
@@ -109,6 +115,29 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr bool
         have_priority() const noexcept { return _data_sz < 2; }
+
+        bool
+        try_merge(vector_payload& other) {
+            if (capacity() - size() < other.size()) return false;
+            // todo: proper merge algorithm
+            for (std::size_t i = 0; i < other.size(); ++i) {
+                auto succ = try_set(other._data[i]);
+                assert(succ);
+            }
+            other._data_sz = 0;
+            return true;
+        }
+
+        void
+        merge_until_full(vector_payload& other) {
+            if (size() == capacity()) return;
+            // todo: proper merge algorithm
+            for (std::size_t i = 0; i < other.size(); ++i) {
+                auto succ = try_set(other._data[i]);
+                if (!succ) break;
+                --other._data_sz;
+            }
+        }
 
         template<index_query<value_type> Q>
         [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>

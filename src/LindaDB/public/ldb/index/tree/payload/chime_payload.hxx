@@ -129,6 +129,33 @@ namespace ldb::index::tree::payloads {
             return std::weak_ordering::equivalent;
         }
 
+        bool
+        try_merge(chime_payload& other) {
+            if (capacity() - size() < other.size()) return false;
+            // todo: proper merge algorithm
+            for (std::size_t i = 0; i < other.size(); ++i) {
+                auto succ = try_set(bundle_type{
+                       .key = other._keys[i],
+                       .data = other._sets[i].flush()});
+                assert(succ);
+            }
+            other._data_sz = 0;
+            return true;
+        }
+
+        void
+        merge_until_full(chime_payload& other) {
+            if (size() == capacity()) return;
+            // todo: proper merge algorithm
+            for (std::size_t i = 0; i < other.size(); ++i) {
+                auto succ = try_set(bundle_type{
+                       .key = other._keys[i],
+                       .data = other._sets[i].flush()});
+                if (!succ) break;
+                --other._data_sz;
+            }
+        }
+
         [[nodiscard]] bool
         try_set(const key_type& key, const value_type& value) {
             LDB_PROF_SCOPE_C("ChimePayload_Insert", prof::color_insert);
