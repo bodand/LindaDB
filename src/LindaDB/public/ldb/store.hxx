@@ -38,8 +38,12 @@
 
 #include <algorithm>
 #include <array>
-#include <barrier>
+#include <atomic>
+#include <condition_variable>
 #include <functional>
+#include <mutex>
+#include <optional>
+#include <thread>
 
 #include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
