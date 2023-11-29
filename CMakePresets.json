@@ -102,14 +102,6 @@
       }
     },
     {
-      "name": "linux-clang",
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
-        "CMAKE_C_COMPILER": "/usr/bin/clang"
-      }
-    },
-    {
       "name": "vcpkg-rel-no-dbg",
       "description": "Tries to disable building Debug objects for Release builds w/ vcpkg",
       "hidden": true,
@@ -250,8 +242,7 @@
       "description": "Debug build of cg3 for x86_64 using Clang on Linux",
       "inherits": [
         "linux-build",
-        "cmake-debug-type",
-        "linux-clang"
+        "cmake-debug-type"
       ],
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-linux-clang.cmake",
@@ -267,8 +258,7 @@
       "inherits": [
         "vcpkg-rel-no-dbg",
         "linux-build",
-        "cmake-release-type",
-        "linux-clang"
+        "cmake-release-type"
       ],
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-linux-clang.cmake",
@@ -283,8 +273,7 @@
       "description": "Debug build of cg3 for arm using Clang on Linux",
       "inherits": [
         "linux-build",
-        "cmake-debug-type",
-        "linux-clang"
+        "cmake-debug-type"
       ],
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm64-linux-clang.cmake",
@@ -300,8 +289,7 @@
       "inherits": [
         "vcpkg-rel-no-dbg",
         "linux-build",
-        "cmake-release-type",
-        "linux-clang"
+        "cmake-release-type"
       ],
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm64-linux-clang.cmake",
