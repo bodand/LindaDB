@@ -8,6 +8,7 @@
 #ifndef LINDADB_MOVE_ONLY_FUNCTION_HXX
 #define LINDADB_MOVE_ONLY_FUNCTION_HXX
 
+#include <cstring>
 #include <functional>
 #include <type_traits>
 
@@ -216,15 +217,15 @@ namespace ldb {
         return Ptr;
     }
 
-        template<class Rx, bool, class... Types>
-        struct Invoke_t {
-            using Call = Rx(__stdcall*)(const Move_only_function_data&, Types&&...);
-        };
+    template<class Rx, bool, class... Types>
+    struct Invoke_t {
+        using Call = Rx(__stdcall*)(const Move_only_function_data&, Types&&...);
+    };
 
-        template<class Rx, class... Types>
-        struct Invoke_t<Rx, true, Types...> {
-            using Call = Rx(__stdcall*)(const Move_only_function_data&, Types&&...) noexcept;
-        };
+    template<class Rx, class... Types>
+    struct Invoke_t<Rx, true, Types...> {
+        using Call = Rx(__stdcall*)(const Move_only_function_data&, Types&&...) noexcept;
+    };
 
     template<class Rx, bool Noexcept, class... Types>
     class Move_only_function_base {
