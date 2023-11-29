@@ -41,6 +41,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload/chime_payload.hxx>
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/query_tuple.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
@@ -302,4 +304,23 @@ TEST_CASE("multi-element chime_payload remains sorted after insert") {
     CHECK(sut == Test_Key);
     CHECK(sut > Test_Key3 - 1);
     CHECK(sut < Test_Key2 + 1);
+}
+
+TEST_CASE("chime_payload removes correct element") {
+    lps::chime_payload<ldb::lv::linda_value, ldb::lv::linda_tuple*, 8> sut;
+    std::vector buf{
+           ldb::lv::linda_tuple("asd", 1, "dsa"),
+           ldb::lv::linda_tuple("asd", 2, "dsa"),
+           ldb::lv::linda_tuple("asd", 3, "dsa"),
+           ldb::lv::linda_tuple("asd", 4, "dsa"),
+    };
+    for (int i = 0; i < 4; ++i) {
+        REQUIRE(sut.try_set(ldb::lv::linda_value("asd"), &buf[i]));
+    }
+
+    std::string data;
+    auto res = sut.remove(ldb::index::tree::value_query(ldb::lv::linda_value("asd"),
+                                                        ldb::query_tuple("asd", 3, ldb::ref(&data))));
+    REQUIRE(res.has_value());
+    CHECK(*res == &buf[2]);
 }

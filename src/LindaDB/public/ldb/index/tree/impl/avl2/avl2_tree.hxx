@@ -383,6 +383,11 @@ namespace ldb::index::tree {
         using key_type = payload_type::key_type;
         using value_type = payload_type::value_type;
 
+        [[nodiscard]] std::size_t
+        node_capacity() const {
+            return root->data.capacity();
+        }
+
         template<index_query<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         search(const Q& query) const {

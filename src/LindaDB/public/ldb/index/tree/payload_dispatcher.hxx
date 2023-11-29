@@ -48,8 +48,8 @@ namespace ldb::index::tree {
     consteval std::size_t
     cluster_for_minimized_overhead_effect(std::size_t payload_size,
                                           std::size_t node_overhead,
-                                          std::size_t clustering_req) {
-        constexpr const auto accept_level_value = .899999998L;
+                                          const std::size_t clustering_req) {
+        constexpr const auto accept_level_value = .979999998L;
         if (clustering_req != 0) return clustering_req;
 
         const auto total_payload = [payload_size](std::size_t factor) {
@@ -69,12 +69,11 @@ namespace ldb::index::tree {
     template<class K, class V, std::size_t Clustering = 0>
     struct payload_dispatcher {
         constexpr const static std::size_t overhead_size = sizeof(std::unique_ptr<int>) * 2
-                                                           + sizeof(std::unique_ptr<int>*)
-                                                           + sizeof(std::vector<V>);
+                                                           + sizeof(std::unique_ptr<int>*);
         using type = payloads::chime_payload<
                K,
                V,
-               cluster_for_minimized_overhead_effect(sizeof(K) + sizeof(V), overhead_size, Clustering)>;
+               cluster_for_minimized_overhead_effect(sizeof(K) + sizeof(std::vector<V>), overhead_size, Clustering)>;
     };
 
     template<class K, class V>

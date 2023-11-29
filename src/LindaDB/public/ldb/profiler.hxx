@@ -40,6 +40,9 @@
 #  include <tracy/Tracy.hpp>
 #endif
 
+#include <mutex>
+#include <cstring>
+
 namespace ldb::prof {
     [[maybe_unused]] constexpr const static auto color_search = 0xF0F000;
     [[maybe_unused]] constexpr const static auto color_insert = 0x00F0F0;

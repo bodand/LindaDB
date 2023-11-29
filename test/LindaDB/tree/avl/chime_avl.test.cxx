@@ -44,6 +44,10 @@
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/payload.hxx>
 
+#include "ldb/lv/linda_tuple.hxx"
+#include "ldb/lv/linda_value.hxx"
+#include "ldb/query_tuple.hxx"
+
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
 using sut_type = ldb::index::tree::avl2_tree<int, int, 2>;
@@ -269,6 +273,25 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         REQUIRE(n.has_value());
         CHECK(*n == 0);
     }
+}
+
+TEST_CASE("new chime AVL-tree removes correct element") {
+    ldb::index::tree::avl2_tree<ldb::lv::linda_value, ldb::lv::linda_tuple*> sut;
+    std::vector buf{
+           ldb::lv::linda_tuple("asd", 1, "dsa"),
+           ldb::lv::linda_tuple("asd", 2, "dsa"),
+           ldb::lv::linda_tuple("asd", 3, "dsa"),
+           ldb::lv::linda_tuple("asd", 4, "dsa"),
+    };
+    for (int i = 0; i < 4; ++i) {
+        sut.insert(ldb::lv::linda_value("asd"), &buf[i]);
+    }
+
+    std::string data;
+    auto res = sut.remove(ldb::index::tree::value_query(ldb::lv::linda_value("asd"),
+                                                        ldb::query_tuple("asd", 3, ldb::ref(&data))));
+    REQUIRE(res.has_value());
+    CHECK(*res == &buf[2]);
 }
 
 TEST_CASE("new chime AVL-tree can remove elements indefinitely",

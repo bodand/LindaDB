@@ -328,7 +328,7 @@ namespace ldb::index::tree::payloads {
             pop(Q query) {
                 LDB_PROF_SCOPE("ChimeValueSet_Push");
                 assert(!empty());
-                if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
+                if (auto it = std::find(_values.begin(), _values.end(), query);
                     it != _values.end()) {
 
                     auto cp = *it;

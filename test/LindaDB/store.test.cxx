@@ -37,6 +37,7 @@
 
 #include <chrono>
 #include <concepts>
+#include <latch>
 #include <random>
 
 #include <catch2/catch_test_macros.hpp>
@@ -458,31 +459,30 @@ TEST_CASE("serial reads/writes proceeds",
     }
 }
 
-TEST_CASE("reads/writes don't break in this specific case") {
+TEST_CASE("store removes correct element for query") {
     ldb::store store;
-    int buf{};
-    store.out(lv::linda_tuple("asd", 216925));
-    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
-    CHECK(buf == 216925);
-    store.out(lv::linda_tuple("asd", 108405));
-    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
-    CHECK(buf == 108405);
-    store.out(lv::linda_tuple("asd", 233055));
-    store.out(lv::linda_tuple("asd", 135438));
-    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
-    CHECK(buf == 233055);
-    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
-    CHECK(buf == 135438);
-    store.out(lv::linda_tuple("asd", 211804));
-    store.in(ldb::query_tuple("asd", ldb::ref(&buf)));
-    CHECK(buf == 211804);
+    std::latch start(2);
+
+    lv::linda_tuple tuple("asd", 2, "dsa");
+    std::jthread writer([&tuple, &store, &start] {
+        start.arrive_and_wait();
+        store.out(lv::linda_tuple("asd", 3, "dsa"));
+        store.out(lv::linda_tuple("asd", 4, "dsa"));
+        store.out(tuple); // 2
+    });
+
+    std::string data;
+    start.arrive_and_wait();
+    auto res = store.in(ldb::query_tuple("asd", 2, ldb::ref(&data)));
+    CHECK(res == tuple);
 }
 
-TEST_CASE("parallel reads/writes do not deadlock") {
+TEST_CASE("parallel reads/writes do not deadlock",
+          "[.long]") {
     static std::uniform_int_distribution<unsigned> time_dist(1'000'000U, 30'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
-    constexpr const static auto repeat_count = 1200;
+    constexpr const static auto repeat_count = 12000;
     ldb::store store;
 
     auto adder = [&store](std::string name) {

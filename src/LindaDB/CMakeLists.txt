@@ -77,7 +77,7 @@ target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaDB
-                      PRIVATE internal-coverage internal-warnings internal-lto)
+                      PRIVATE internal-coverage internal-warnings internal-lto spdlog::spdlog)
 target_compile_features(LindaDB PUBLIC cxx_std_20)
 
 if (TARGET Tracy::TracyClient)
