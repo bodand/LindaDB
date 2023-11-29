@@ -45,7 +45,6 @@ add_library(LindaDB STATIC
             public/ldb/index/tree/payload_dispatcher.hxx
             public/ldb/lv/linda_tuple.hxx
             public/ldb/lv/linda_value.hxx
-            public/ldb/profiler.hxx
             public/ldb/query_tuple.hxx
             public/ldb/store.hxx
             src/data/chunked_list.cxx

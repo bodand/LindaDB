@@ -53,7 +53,7 @@
 
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
-#include <ldb/profiler.hxx>
+#include <ldb/common.hxx>
 
 namespace ldb::index::tree::payloads {
     template<class K, std::movable P>
@@ -94,8 +94,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] std::weak_ordering
         operator<=>(const auto& other) const noexcept(noexcept(kv_key() <=> other)) {
-            LDB_PROF_SCOPE("ScalarPayload_Ordering");
-            if (empty()) return std::weak_ordering::equivalent;
+                        if (empty()) return std::weak_ordering::equivalent;
             return kv_key() <=> other;
         }
 
@@ -127,19 +126,17 @@ namespace ldb::index::tree::payloads {
         }
 
         template<index_query<value_type> Q>
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
+        [[nodiscard]] constexpr std::optional<value_type>
         try_get(Q query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
-            LDB_PROF_SCOPE_C("ScalarPayload_Search", ldb::prof::color_search);
-            if (empty()) return std::nullopt;
+                        if (empty()) return std::nullopt;
             if (kv_key() != query.key()) return std::nullopt;
             if (kv_value() != query) return std::nullopt;
             return {kv_value()};
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 bool
+        [[nodiscard]] constexpr bool
         try_set(const key_type& key, const value_type& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
-            LDB_PROF_SCOPE_C("ScalarPayload_Insert", ldb::prof::color_insert);
-            if (full()) {
+                        if (full()) {
                 if (kv_key() == key) {
                     kv_value() = value;
                     return true;
@@ -150,15 +147,14 @@ namespace ldb::index::tree::payloads {
             return true;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 bool
+        [[nodiscard]] constexpr bool
         try_set(const bundle_type& bundle) noexcept(noexcept(try_set(bundle.first, bundle.second))) {
             return try_set(bundle.first, bundle.second);
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
-            LDB_PROF_SCOPE_C("ScalarPayload_InsertAndSquish", ldb::prof::color_insert);
-            if (!empty() && kv_key() == key) {
+                        if (!empty() && kv_key() == key) {
                 kv_value() = value;
                 return std::nullopt;
             }
@@ -167,18 +163,18 @@ namespace ldb::index::tree::payloads {
             return res;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(const key_type& key, const value_type& value) noexcept(noexcept(force_set_lower(key, value))) {
             return force_set_lower(key, value);
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(bundle_type&& bundle) noexcept(noexcept(force_set_lower(bundle.first, bundle.second))) {
             auto&& [key, value] = std::move(bundle);
             return force_set_lower(std::move(key), std::move(value));
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(bundle_type&& bundle) noexcept(noexcept(force_set_upper(bundle.first, bundle.second))) {
             auto&& [key, value] = std::move(bundle);
             return force_set_upper(std::move(key), std::move(value));
@@ -238,31 +234,27 @@ namespace ldb::index::tree::payloads {
             return os << "(1 1 (" << pl._value->first << " " << pl._value->second << "))";
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator==(const scalar_payload<K, P>& self, const K& other) noexcept(noexcept(self.kv_key() == other)) {
-            LDB_PROF_SCOPE("ScalarPayload_LeftEq");
-            if (self.empty()) return true;
+                        if (self.empty()) return true;
             return self.kv_key() == other;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator==(const K& other, const scalar_payload<K, P>& self) noexcept(noexcept(other == self.kv_key())) {
-            LDB_PROF_SCOPE("ScalarPayload_RightEq");
-            if (self.empty()) return true;
+                        if (self.empty()) return true;
             return other == self.kv_key();
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator!=(const scalar_payload<K, P>& self, const K& other) noexcept(noexcept(self.kv_key() != other)) {
-            LDB_PROF_SCOPE("ScalarPayload_LeftNe");
-            if (self.empty()) return false;
+                        if (self.empty()) return false;
             return self.kv_key() != other;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator!=(const K& other, const scalar_payload<K, P>& self) noexcept(noexcept(other != self.kv_key())) {
-            LDB_PROF_SCOPE("ScalarPayload_RightNe");
-            if (self.empty()) return false;
+                        if (self.empty()) return false;
             return other != self.kv_key();
         }
 

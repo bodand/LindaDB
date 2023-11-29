@@ -60,12 +60,11 @@ namespace ldb {
 
         void
         out(const lv::linda_tuple& tuple) {
-            LDB_PROF_SCOPE_C("Store_out", prof::color_out);
             std::optional<move_only_function<void()>> wait_bcast{};
             if (_start_bcast) wait_bcast = (*_start_bcast)(tuple);
             auto new_it = _data.push_back(tuple);
             {
-                LDB_LOCK(lck, _indexes);
+                std::unique_lock lck(_indexes);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -78,10 +77,9 @@ namespace ldb {
 
         void
         out_nosignal(const lv::linda_tuple& tuple) {
-            LDB_PROF_SCOPE_C("Store_out", prof::color_out);
             auto new_it = _data.push_back(tuple);
             {
-                LDB_LOCK(lck, _indexes);
+                std::unique_lock lck(_indexes);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -94,17 +92,15 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         rdp(const query_tuple<Args...>& query) const {
-            LDB_PROF_SCOPE_C("Store_rdp", prof::color_rd);
             return try_read(query);
         }
 
         template<class... Args>
         lv::linda_tuple
         rd(const query_tuple<Args...>& query) const {
-            LDB_PROF_SCOPE_C("Store_in", prof::color_in);
             for (;;) {
                 {
-                    LDB_LOCK(lck, _indexes);
+                    std::unique_lock lck(_indexes);
                     if (auto read = try_read(query)) {
                         return *read;
                     }
@@ -113,7 +109,7 @@ namespace ldb {
                     _sync_needed = 0;
                     continue;
                 }
-                LDB_LOCK(lck, _read_mtx);
+                std::unique_lock lck(_read_mtx);
                 _wait_read.wait(lck, [this] { return _sync_needed > 0; });
             }
         }
@@ -121,17 +117,15 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         inp(const query_tuple<Args...>& query) {
-            LDB_PROF_SCOPE_C("Store_inp", prof::color_in);
             return try_read_and_remove(query);
         }
 
         template<class... Args>
         lv::linda_tuple
         in(const query_tuple<Args...>& query) {
-            LDB_PROF_SCOPE_C("Store_in", prof::color_in);
             for (;;) {
                 {
-                    LDB_LOCK(lck, _indexes);
+                    std::unique_lock lck(_indexes);
                     if (auto read = try_read_and_remove(query)) {
                         return *read;
                     }
@@ -140,7 +134,7 @@ namespace ldb {
                     _sync_needed = 0;
                     continue;
                 }
-                LDB_LOCK(lck, _read_mtx);
+                std::unique_lock lck(_read_mtx);
                 _wait_read.wait(lck, [this] { return _sync_needed > 0; });
             }
         }
@@ -157,7 +151,7 @@ namespace ldb {
 
         void
         notify_readers() const {
-            LDB_LOCK(lck, _read_mtx);
+            std::unique_lock lck(_read_mtx);
             ++_sync_needed;
             _wait_read.notify_all();
         }
@@ -165,7 +159,6 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         try_read(const query_tuple<Args...>& query) const {
-            LDB_PROF_SCOPE("Store_inner_TryRead");
             if (auto index_res = query.try_read_indices(std::span(_header_indices));
                 index_res.has_value()) {
                 if (*index_res) return ***index_res; // Maybe Maybe Iterator -> 3 deref
@@ -181,7 +174,6 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         try_read_and_remove(const query_tuple<Args...>& query) {
-            LDB_PROF_SCOPE("Store_inner_TryReadRemove");
             if (auto [index_idx, index_res] = query.try_read_and_remove_indices(std::span(_header_indices));
                 index_res.has_value()) {
                 if (!*index_res) return std::nullopt;
@@ -203,8 +195,8 @@ namespace ldb {
 
 
         mutable std::atomic<int> _sync_needed = 0;
-        mutable LDB_MUTEX(std::mutex, _read_mtx);
-        mutable LDB_MUTEX(std::mutex, _indexes);
+        mutable std::mutex _read_mtx;
+        mutable std::mutex _indexes;
         mutable std::condition_variable_any _wait_read;
         std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>,
                    2>

@@ -42,7 +42,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/profiler.hxx>
+#include <ldb/common.hxx>
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
 
@@ -279,7 +279,6 @@ TEST_CASE("store does not deadlock trivially when out is called on a waiting in"
     auto query = ldb::query_tuple("asd", ldb::ref(&rand));
 
     const auto adder = std::jthread([&store]() {
-        LDB_TNAME("AdderThread");
         for (int i = 0; i < repeat_count; ++i) {
             auto val = lv::linda_tuple("asd", val_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
@@ -486,7 +485,6 @@ TEST_CASE("parallel reads/writes do not deadlock",
     ldb::store store;
 
     auto adder = [&store](std::string name) {
-        LDB_TNAME(name.c_str());
         for (int i = 0; i < repeat_count; ++i) {
             auto val = lv::linda_tuple("asd", val_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
@@ -494,7 +492,6 @@ TEST_CASE("parallel reads/writes do not deadlock",
         }
     };
     auto gatherer = [&store](std::string name) {
-        LDB_TNAME(name.c_str());
         for (int i = 0; i < repeat_count; ++i) {
             int rand{};
             auto query = ldb::query_tuple("asd", ldb::ref(&rand));

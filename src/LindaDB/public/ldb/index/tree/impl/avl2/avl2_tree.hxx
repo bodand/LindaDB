@@ -39,10 +39,12 @@
 #include <cstdint>
 #include <execution>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 
+#include <ldb/common.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload_dispatcher.hxx>
-#include <ldb/profiler.hxx>
 
 namespace ldb::index::tree {
     enum avlbf : std::int8_t {
@@ -357,7 +359,6 @@ namespace ldb::index::tree {
 
         static void
         release(std::unique_ptr<avl2_node>* subtree) noexcept {
-            LDB_PROF_SCOPE("TreeNode_ReleaseSubtree");
             while ((*subtree)->_left && (*subtree)->_right) {
                 subtree = &(*subtree)->_left;
             }
@@ -391,7 +392,7 @@ namespace ldb::index::tree {
         template<index_query<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         search(const Q& query) const {
-            LDB_SLOCK(lck, _mtx);
+            std::shared_lock lck(_mtx);
             const auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
@@ -401,7 +402,7 @@ namespace ldb::index::tree {
         void
         insert(const key_type& key,
                const value_type& value) {
-            LDB_LOCK(lck, _mtx);
+            std::unique_lock lck(_mtx);
             std::unique_ptr<node_type>* parent = nullptr;
             std::unique_ptr<node_type>* current = &root;
             while (*current) {
@@ -515,7 +516,7 @@ namespace ldb::index::tree {
         template<index_query<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         remove(const Q& query) {
-            LDB_LOCK(lck, _mtx);
+            std::scoped_lock lck(_mtx);
             auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
@@ -947,7 +948,7 @@ namespace ldb::index::tree {
         }
 
         std::unique_ptr<node_type> root{};
-        mutable LDB_SMUTEX(std::shared_mutex, _mtx);
+        mutable std::shared_mutex _mtx;
     };
 }
 
