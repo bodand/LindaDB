@@ -156,7 +156,6 @@ find_package(Catch2 CONFIG)
 if (LINDA_DB_USE_PROFILER)
     find_package(Tracy CONFIG REQUIRED)
 endif ()
-find_package(spdlog CONFIG REQUIRED)
 
 # targets
 set(PROJECT_TARGETS)

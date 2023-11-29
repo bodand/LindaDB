@@ -41,7 +41,6 @@
 #include <lrt/runtime.hxx>
 
 #include <mpi.h>
-#include <spdlog/spdlog.h>
 
 int
 main(int argc, char** argv) {
@@ -56,18 +55,14 @@ main(int argc, char** argv) {
     if (rank == 0) {
         for (int i = 2; i <= size; ++i) {
             ldb::query_tuple query("rank", static_cast<const int>(i), ldb::ref(&data));
-            SPDLOG_INFO("READ[{}]({})", rank, query.dump_string());
             auto red = store.in(query);
-            SPDLOG_INFO("READ-OK[{}]{}", rank, red.dump_string());
-            std::cout << "rank0: " << data << "\n";
+            std::cout << "rank0: " << data << "from " << i << "\n";
         }
     }
     else {
         data = "Hello World!";
         ldb::lv::linda_tuple tuple{"rank", rank + 1, "Hello World"};
-        SPDLOG_INFO("WRITE[{}]{}", rank, tuple.dump_string());
         store.out(tuple);
-        SPDLOG_INFO("WRITE-OK[{}]{}", rank, tuple.dump_string());
         std::cout << "rank" << rank << ": finishing\n";
     }
 }

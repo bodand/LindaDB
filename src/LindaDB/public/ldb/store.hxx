@@ -51,8 +51,6 @@
 #include <ldb/query_tuple.hxx>
 #include <ldb/support/move_only_function.hxx>
 
-#include <spdlog/spdlog.h>
-
 namespace ldb {
     struct store {
         [[nodiscard]] std::size_t
@@ -68,7 +66,6 @@ namespace ldb {
             auto new_it = _data.push_back(tuple);
             {
                 LDB_LOCK(lck, _indexes);
-                SPDLOG_INFO("INSERT {}", tuple.dump_string());
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -135,9 +132,7 @@ namespace ldb {
             for (;;) {
                 {
                     LDB_LOCK(lck, _indexes);
-                    SPDLOG_INFO("REMOVE {}", query.dump_string());
                     if (auto read = try_read_and_remove(query)) {
-                    SPDLOG_INFO("REMOVED {} -> {}", query.dump_string(), read->dump_string());
                         return *read;
                     }
                 }
@@ -146,9 +141,7 @@ namespace ldb {
                     continue;
                 }
                 LDB_LOCK(lck, _read_mtx);
-                // SPDLOG_INFO("SLEEP {}", query.dump_string());
                 _wait_read.wait(lck, [this] { return _sync_needed > 0; });
-                // SPDLOG_INFO("AWAKEN {}", query.dump_string());
             }
         }
 
