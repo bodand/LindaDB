@@ -51,7 +51,7 @@
 #include <vector>
 
 #include <ldb/index/tree/payload.hxx>
-#include <ldb/profiler.hxx>
+#include <ldb/common.hxx>
 
 namespace ldb::index::tree::payloads {
     template<std::movable K, std::movable V, std::size_t Clustering>
@@ -95,10 +95,9 @@ namespace ldb::index::tree::payloads {
         constexpr ~
         vector_payload() noexcept = default;
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
+        [[nodiscard]] constexpr std::weak_ordering
         operator<=>(const auto& key) const noexcept {
-            LDB_PROF_SCOPE("VectorPayload_Ordering");
-            if (empty()) return std::weak_ordering::equivalent;
+                        if (empty()) return std::weak_ordering::equivalent;
             auto mem_min_key = min_key();
             auto mem_max_key = max_key();
             if (key < mem_min_key) return std::weak_ordering::greater;
@@ -145,10 +144,9 @@ namespace ldb::index::tree::payloads {
         }
 
         template<index_query<value_type> Q>
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
+        [[nodiscard]] constexpr std::optional<value_type>
         try_get(Q query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
-            LDB_PROF_SCOPE_C("VectorPayload_Search", prof::color_search);
-            if (empty()) return std::nullopt;
+                        if (empty()) return std::nullopt;
             auto data_end_offset = static_cast<std::ptrdiff_t>(_data_sz);
             if (auto it = std::lower_bound(std::begin(_data),
                                            std::next(std::begin(_data), data_end_offset),
@@ -161,21 +159,19 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 bool
+        [[nodiscard]] constexpr bool
         try_set(const key_type& key, const value_type& value) {
-            LDB_PROF_SCOPE_C("VectorPayload_Insert", ldb::prof::color_insert);
-            return upsert_kv(true, key, value) & (INSERTED | UPDATED);
+                        return upsert_kv(true, key, value) & (INSERTED | UPDATED);
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 bool
+        [[nodiscard]] constexpr bool
         try_set(const bundle_type& bundle) {
             return try_set(bundle.first, bundle.second);
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(const key_type& key, const value_type& value) {
-            LDB_PROF_SCOPE_C("VectorPayload_InsertAndSquish", ldb::prof::color_insert);
-            if (auto res = upsert_kv(true, key, value);
+                        if (auto res = upsert_kv(true, key, value);
                 res == FULL) {
                 auto squished = _data[0];
                 std::move(std::next(std::begin(_data)),
@@ -189,10 +185,9 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(const key_type& key, const value_type& value) {
-            LDB_PROF_SCOPE_C("VectorPayload_InsertAndSquish", ldb::prof::color_insert);
-            if (auto res = upsert_kv(true, key, value);
+                        if (auto res = upsert_kv(true, key, value);
                 res == FULL) {
                 auto squished = _data.back();
                 --_data_sz;
@@ -203,23 +198,22 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(bundle_type&& bundle) {
             auto&& [key, value] = std::move(bundle);
             return force_set_lower(std::move(key), std::move(value));
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(bundle_type&& bundle) {
             auto&& [key, value] = std::move(bundle);
             return force_set_upper(std::move(key), std::move(value));
         }
 
         template<index_query<value_type> Q>
-        LDB_CONSTEXPR23 std::optional<value_type>
+        constexpr std::optional<value_type>
         remove(Q query) {
-            LDB_PROF_SCOPE_C("VectorPayload_Remove", prof::color_remove);
-            assert(!empty());
+                        assert(!empty());
             auto data_end = std::next(begin(_data), _data_sz);
             auto it = std::ranges::lower_bound(begin(_data), data_end, query.key());
             if (it == data_end) return std::nullopt;
@@ -246,28 +240,24 @@ namespace ldb::index::tree::payloads {
             return os << ")";
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator==(const vector_payload<key_type, value_type, Clustering>& self, const key_type& other) noexcept(noexcept(self <=> other)) {
-            LDB_PROF_SCOPE("VectorPayload_LeftEq");
-            return (self <=> other) == 0;
+                        return (self <=> other) == 0;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator==(const key_type& other, const vector_payload<key_type, value_type, Clustering>& self) noexcept(noexcept(other <=> self)) {
-            LDB_PROF_SCOPE("VectorPayload_RightEq");
-            return (other <=> self) == 0;
+                        return (other <=> self) == 0;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator!=(const vector_payload<key_type, value_type, Clustering>& self, const key_type& other) noexcept(noexcept(other <=> self)) {
-            LDB_PROF_SCOPE("VectorPayload_LeftNe");
-            return (self <=> other) != 0;
+                        return (self <=> other) != 0;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator!=(const key_type& other, const vector_payload<key_type, value_type, Clustering>& self) noexcept(noexcept(other <=> self)) {
-            LDB_PROF_SCOPE("VectorPayload_RightNe");
-            return (other <=> self) != 0;
+                        return (other <=> self) != 0;
         }
 
         [[nodiscard]] constexpr const key_type&
@@ -294,10 +284,9 @@ namespace ldb::index::tree::payloads {
             FULL = 1U << 3U
         };
 
-        LDB_CONSTEXPR23 upsert_status
+        constexpr upsert_status
         upsert_kv(bool do_upsert, const key_type& key, const value_type& value) {
-            LDB_PROF_SCOPE_C("VectorPayload_Upsert", prof::color_insert);
-            if (_data_sz < 2) { // with 0 or 1 elems insertion is trivial
+                        if (_data_sz < 2) { // with 0 or 1 elems insertion is trivial
                 if (_data[0].first == key) {
                     if (!do_upsert) return FAILURE;
                     _data[0].second = value;

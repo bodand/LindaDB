@@ -7,7 +7,6 @@
   ],
   "dependencies": [
     "mimalloc",
-    "tracy",
     "catch2",
     "fakeit",
     {

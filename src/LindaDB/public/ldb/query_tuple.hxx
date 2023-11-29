@@ -78,12 +78,11 @@ namespace ldb {
         match_type(T* ref) noexcept : _ref(ref) { }
 
         template<class... Args>
-        [[nodiscard]] LDB_CONSTEXPR23 auto
+        [[nodiscard]] constexpr auto
         operator<=>(const std::variant<Args...>& value) const noexcept
             requires((std::same_as<T, Args> || ...))
         {
-            LDB_PROF_SCOPE("MatchType_Variant");
-            if (auto found = std::get_if<T>(&value);
+                        if (auto found = std::get_if<T>(&value);
                 found) {
                 *_ref = *found;
                 return std::strong_ordering::equal;
@@ -136,12 +135,10 @@ namespace ldb {
         {
             return std::visit([field = mv._field]<class V>(V&& val) {
                 if constexpr (std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<V>>) {
-                    LDB_PROF_SCOPE("MatchValue_VariantToValue_Value");
-                    return field <=> std::forward<V>(val);
+                                        return field <=> std::forward<V>(val);
                 }
                 else {
-                    LDB_PROF_SCOPE("MatchValue_VariantToValue_Type");
-                    auto t_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
+                                        auto t_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
                         std::size_t idx{};
                         (meta::finder(idx)(std::same_as<T, Args>, Is) || ...);
                         return idx;
@@ -179,10 +176,9 @@ namespace ldb {
              : _field(field) { }
 
         template<class... Args2>
-        [[nodiscard]] friend LDB_CONSTEXPR23 auto
+        [[nodiscard]] friend constexpr auto
         operator<=>(const std::variant<Args2...>& value, const match_value& mv) noexcept(noexcept(mv._field <=> value)) {
-            LDB_PROF_SCOPE("MatchValue_VariantToVariant");
-            return value <=> mv._field;
+                        return value <=> mv._field;
         }
 
         constexpr static std::true_type
@@ -275,13 +271,11 @@ namespace ldb {
         template<class V, std::size_t C, class P, auto Ext = std::dynamic_extent>
         std::optional<std::optional<V>>
         try_read_indices(std::span<const index::tree::avl2_tree<lv::linda_value, V, C, P>, Ext> indices) const {
-            LDB_PROF_SCOPE("QueryTuple_ReadIndex");
-            std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
+                        std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
 
             [this, &ret, &indices]<std::size_t... Is>(std::index_sequence<Is...>) {
-                auto aggregator = [this, &ret, &indices]<std::size_t Idx>() LDB_CONSTEXPR23 {
-                    LDB_PROF_SCOPE("QueryTuple_ReadConcreteIndex");
-                    if (!_indexable[Idx]) return true;
+                auto aggregator = [this, &ret, &indices]<std::size_t Idx>() constexpr {
+                                        if (!_indexable[Idx]) return true;
                     if (indices.size() < Idx) return false;
                     ret = std::optional(indices[Idx].search(index::tree::value_query(std::get<Idx>(_payload), *this)));
                     return !*ret;
@@ -295,14 +289,12 @@ namespace ldb {
         template<class V, std::size_t C, class P, auto Ext = std::dynamic_extent>
         std::pair<std::size_t, std::optional<std::optional<V>>>
         try_read_and_remove_indices(std::span<index::tree::avl2_tree<lv::linda_value, V, C, P>, Ext> indices) const {
-            LDB_PROF_SCOPE("QueryTuple_ReadRemoveIndex");
-            std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
+                        std::optional<std::optional<V>> ret = std::nullopt; // top-level nullopt -> cannot use index
             std::size_t index_idx{};
 
-            [this, &index_idx, &ret, &indices]<std::size_t... Is>(std::index_sequence<Is...>) LDB_CONSTEXPR23 {
-                auto aggregator = [this, &index_idx, &ret, &indices]<std::size_t Idx>() LDB_CONSTEXPR23 {
-                    LDB_PROF_SCOPE("QueryTuple_ReadRemoveConcreteIndex");
-                    if (!_indexable[Idx]) return true;
+            [this, &index_idx, &ret, &indices]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
+                auto aggregator = [this, &index_idx, &ret, &indices]<std::size_t Idx>() constexpr {
+                                        if (!_indexable[Idx]) return true;
                     if (indices.size() < Idx) return false;
                     index_idx = Idx;
                     ret = std::optional(indices[Idx].remove(index::tree::value_query(std::get<Idx>(_payload), *this)));
@@ -343,10 +335,9 @@ namespace ldb {
             }
         };
 
-        friend LDB_CONSTEXPR23 std::partial_ordering
+        friend constexpr std::partial_ordering
         operator<=>(const lv::linda_tuple& lt, const query_tuple& query) {
-            LDB_PROF_SCOPE("QueryTuple_Match");
-            if (lt.size() != sizeof...(Matcher)) return lt.size() <=> sizeof...(Matcher);
+                        if (lt.size() != sizeof...(Matcher)) return lt.size() <=> sizeof...(Matcher);
             return [&lt, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
                 std::partial_ordering order = std::strong_ordering::equal;
                 std::ignore = (matcher(order)(std::get<Is>(payload) <=> lt[Is]) && ...);
@@ -355,10 +346,9 @@ namespace ldb {
         }
 
         template<meta::tuple_wrapper TupleWrapper>
-        friend LDB_CONSTEXPR23 std::partial_ordering
+        friend constexpr std::partial_ordering
         operator<=>(const TupleWrapper& tw, const query_tuple& query) {
-            LDB_PROF_SCOPE("QueryTuple_MatchWrapper");
-            if (tw->size() != sizeof...(Matcher)) return tw->size() <=> sizeof...(Matcher);
+                        if (tw->size() != sizeof...(Matcher)) return tw->size() <=> sizeof...(Matcher);
             return [&tw, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
                 std::partial_ordering order = std::strong_ordering::equal;
                 std::ignore = (matcher(order)(std::get<Is>(payload) <=> (*tw)[Is]) && ...);
@@ -366,17 +356,15 @@ namespace ldb {
             }(std::make_index_sequence<sizeof...(Matcher)>());
         }
 
-        friend LDB_CONSTEXPR23 bool
+        friend constexpr bool
         operator==(const lv::linda_tuple& lt, const query_tuple& query) {
-            LDB_PROF_SCOPE("QueryTuple_MatchEq");
-            return (lt <=> query) == 0;
+                        return (lt <=> query) == 0;
         }
 
         template<meta::tuple_wrapper TupleWrapper>
-        friend LDB_CONSTEXPR23 bool
+        friend constexpr bool
         operator==(const TupleWrapper& tw, const query_tuple& query) {
-            LDB_PROF_SCOPE("QueryTuple_MatchWrapperEq");
-            return (*tw <=> query) == 0;
+                        return (*tw <=> query) == 0;
         }
 
         std::array<bool, sizeof...(Matcher)> _indexable{meta::matcher_type<Matcher>::indexable()...};

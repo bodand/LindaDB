@@ -41,7 +41,7 @@
 #include <ranges>
 
 #include <ldb/lv/linda_value.hxx>
-#include <ldb/profiler.hxx>
+#include <ldb/common.hxx>
 #include <ldb/support/move_only_function.hxx>
 #include <lrt/serialize/tuple.hxx>
 
