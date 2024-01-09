@@ -35,6 +35,7 @@
  */
 
 #include <iostream>
+#include <syncstream>
 
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
@@ -56,13 +57,15 @@ main(int argc, char** argv) {
         for (int i = 2; i <= size; ++i) {
             ldb::query_tuple query("rank", static_cast<const int>(i), ldb::ref(&data));
             auto red = store.in(query);
-            std::cout << "rank0: " << data << "from " << i << "\n";
+            std::osyncstream(std::cout) << "rank0: " << red << " from " << i << "\n"
+                                        << std::flush;
         }
     }
     else {
         data = "Hello World!";
-        ldb::lv::linda_tuple tuple{"rank", rank + 1, "Hello World"};
+        ldb::lv::linda_tuple tuple{"rank", rank + 1, data};
         store.out(tuple);
-        std::cout << "rank" << rank << ": finishing\n";
+        std::osyncstream(std::cout) << "rank" << rank << ": finishing\n"
+                                    << std::flush;
     }
 }

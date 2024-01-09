@@ -183,6 +183,14 @@ TEST_CASE("empty chunked_list can be iterated over") {
     }
 }
 
+TEST_CASE("single element chunked_list can be iterated over") {
+    ld::chunked_list<int> data;
+    data.push_back(1);
+    for (int i : data) {
+        CHECK(i == 1);
+    }
+}
+
 TEST_CASE("chunked_list can be iterated over") {
     ld::chunked_list<int> data;
     for (int i = 0; i < 32; ++i) {
@@ -191,6 +199,16 @@ TEST_CASE("chunked_list can be iterated over") {
     for (int const& it : data) {
         CHECK(it > 0);
     }
+}
+
+TEST_CASE("chunked_list can be linearly searched in even if there are holes") {
+    ld::chunked_list<int> data;
+    for (int i = 0; i < 32; ++i) {
+        data.emplace_back(i + 1);
+    }
+    data.erase(std::next(std::begin(data), 16));
+    auto it = std::ranges::find(data, 32);
+    CHECK(*it == 32);
 }
 
 TEST_CASE("chunked_list can be deleted from using an iterator") {

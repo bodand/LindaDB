@@ -39,10 +39,13 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
+#include <iostream>
 #include <mutex>
 #include <optional>
+#include <syncstream>
 #include <thread>
 #include <type_traits>
 
@@ -194,11 +197,7 @@ namespace ldb {
                 if (*index_res) return ***index_res; // Maybe Maybe Iterator -> 3 deref
                 return std::nullopt;
             }
-            auto it = std::ranges::find_if(_data, [&query](const auto& stored) {
-                return stored == query;
-            });
-            if (it == _data.end()) return std::nullopt;
-            return *it;
+            return _data.locked_find(query);
         }
 
         template<class... Args>
@@ -216,11 +215,7 @@ namespace ldb {
                 _data.erase(it);
                 return res;
             }
-            auto it = std::ranges::find_if(_data, [&query](const auto& stored) {
-                return stored == query;
-            });
-            if (it == _data.end()) return std::nullopt;
-            return *it;
+            return _data.locked_destructive_find(query);
         }
 
         [[nodiscard]] bool
