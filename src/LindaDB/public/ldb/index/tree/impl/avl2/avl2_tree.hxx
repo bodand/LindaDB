@@ -617,6 +617,8 @@ namespace ldb::index::tree {
             }
 
             auto* current = target;
+            assert(current);
+            assert(*current);
             auto* parent = (*current)->parent();
 
             while ((*current)->parent()) {
