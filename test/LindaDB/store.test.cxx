@@ -41,8 +41,8 @@
 #include <random>
 
 #include <catch2/catch_test_macros.hpp>
-#include <ldb/lv/linda_tuple.hxx>
 #include <ldb/common.hxx>
+#include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
 
@@ -484,14 +484,16 @@ TEST_CASE("parallel reads/writes do not deadlock",
     constexpr const static auto repeat_count = 12000;
     ldb::store store;
 
-    auto adder = [&store](std::string name) {
+    auto adder = [&store](std::string_view name) {
+        std::ignore = name;
         for (int i = 0; i < repeat_count; ++i) {
             auto val = lv::linda_tuple("asd", val_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
             store.out(val);
         }
     };
-    auto gatherer = [&store](std::string name) {
+    auto gatherer = [&store](std::string_view name) {
+        std::ignore = name;
         for (int i = 0; i < repeat_count; ++i) {
             int rand{};
             auto query = ldb::query_tuple("asd", ldb::ref(&rand));

@@ -44,6 +44,7 @@
 #include <mutex>
 #include <optional>
 #include <thread>
+#include <type_traits>
 
 #include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
@@ -53,18 +54,12 @@
 
 namespace ldb {
     struct store {
-        [[nodiscard]] std::size_t
-        index_clustering() const {
-            return _header_indices[0].node_capacity();
-        }
-
         void
         out(const lv::linda_tuple& tuple) {
             std::optional<move_only_function<void()>> wait_bcast{};
             if (_start_bcast) wait_bcast = (*_start_bcast)(tuple);
             auto new_it = _data.push_back(tuple);
             {
-                std::unique_lock lck(_indexes);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -79,7 +74,6 @@ namespace ldb {
         out_nosignal(const lv::linda_tuple& tuple) {
             auto new_it = _data.push_back(tuple);
             {
-                std::unique_lock lck(_indexes);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -92,51 +86,29 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         rdp(const query_tuple<Args...>& query) const {
-            return try_read(query);
+            return retrieve_weak(query,
+                                 std::mem_fn(&store::read<Args...>));
         }
 
         template<class... Args>
         lv::linda_tuple
         rd(const query_tuple<Args...>& query) const {
-            for (;;) {
-                {
-                    std::unique_lock lck(_indexes);
-                    if (auto read = try_read(query)) {
-                        return *read;
-                    }
-                }
-                if (_sync_needed > 0) {
-                    _sync_needed = 0;
-                    continue;
-                }
-                std::unique_lock lck(_read_mtx);
-                _wait_read.wait(lck, [this] { return _sync_needed > 0; });
-            }
+            return retrieve_strong(query,
+                                   std::mem_fn(&store::read<Args...>));
         }
 
         template<class... Args>
         std::optional<lv::linda_tuple>
         inp(const query_tuple<Args...>& query) {
-            return try_read_and_remove(query);
+            return retrieve_weak(query,
+                                 std::mem_fn(&store::read_and_remove<Args...>));
         }
 
         template<class... Args>
         lv::linda_tuple
         in(const query_tuple<Args...>& query) {
-            for (;;) {
-                {
-                    std::unique_lock lck(_indexes);
-                    if (auto read = try_read_and_remove(query)) {
-                        return *read;
-                    }
-                }
-                if (_sync_needed > 0) {
-                    _sync_needed = 0;
-                    continue;
-                }
-                std::unique_lock lck(_read_mtx);
-                _wait_read.wait(lck, [this] { return _sync_needed > 0; });
-            }
+            return retrieve_strong(query,
+                                   std::mem_fn(&store::read_and_remove<Args...>));
         }
 
         template<class Fn>
@@ -148,17 +120,75 @@ namespace ldb {
     private:
         using storage_type = data::chunked_list<lv::linda_tuple>;
         using pointer_type = storage_type::iterator;
+        // TODO(C++23): update retreive_(strong|weak) to use deducing this and remove duplication
+
+        template<class Extractor, class... Args>
+        lv::linda_tuple
+        retrieve_strong(const query_tuple<Args...>& query,
+                        Extractor&& extractor)
+            requires(std::invocable<Extractor, store, decltype(query)>)
+        {
+            for (;;) {
+                if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
+                if (check_and_reset_sync_need()) continue;
+                wait_for_sync();
+            }
+        }
+
+        template<class Extractor, class... Args>
+        lv::linda_tuple
+        retrieve_strong(const query_tuple<Args...>& query,
+                        Extractor&& extractor) const
+            requires(std::invocable<Extractor, const store, decltype(query)>)
+        {
+            for (;;) {
+                if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
+                if (check_and_reset_sync_need()) continue;
+                wait_for_sync();
+            }
+        }
+
+        template<class Extractor, class... Args>
+        std::optional<lv::linda_tuple>
+        retrieve_weak(const query_tuple<Args...>& query,
+                      Extractor&& extractor)
+            requires(std::invocable<Extractor, store, decltype(query)>)
+        {
+            return std::forward<Extractor>(extractor)(this, query);
+        }
+
+        template<class Extractor, class... Args>
+        std::optional<lv::linda_tuple>
+        retrieve_weak(const query_tuple<Args...>& query,
+                      Extractor&& extractor) const
+            requires(std::invocable<Extractor, const store, decltype(query)>)
+        {
+            return std::forward<Extractor>(extractor)(this, query);
+        }
 
         void
-        notify_readers() const {
+        wait_for_sync() const {
             std::unique_lock lck(_read_mtx);
-            ++_sync_needed;
+            auto sync_check_over_this = [this]() noexcept {
+                return check_sync_need();
+            };
+            _wait_read.wait(lck, sync_check_over_this);
+        }
+
+        void
+        notify_readers() const noexcept {
+            mark_sync_need();
+            notify_sync_start();
+        }
+
+        void
+        notify_sync_start() const noexcept {
             _wait_read.notify_all();
         }
 
         template<class... Args>
         std::optional<lv::linda_tuple>
-        try_read(const query_tuple<Args...>& query) const {
+        read(const query_tuple<Args...>& query) const {
             if (auto index_res = query.try_read_indices(std::span(_header_indices));
                 index_res.has_value()) {
                 if (*index_res) return ***index_res; // Maybe Maybe Iterator -> 3 deref
@@ -173,7 +203,7 @@ namespace ldb {
 
         template<class... Args>
         std::optional<lv::linda_tuple>
-        try_read_and_remove(const query_tuple<Args...>& query) {
+        read_and_remove(const query_tuple<Args...>& query) {
             if (auto [index_idx, index_res] = query.try_read_and_remove_indices(std::span(_header_indices));
                 index_res.has_value()) {
                 if (!*index_res) return std::nullopt;
@@ -193,14 +223,26 @@ namespace ldb {
             return *it;
         }
 
+        [[nodiscard]] bool
+        check_and_reset_sync_need() const noexcept {
+            return _sync_needed.exchange(0, std::memory_order::acq_rel) > 0;
+        }
+
+        [[nodiscard]] bool
+        check_sync_need() const noexcept {
+            return _sync_needed.load(std::memory_order::acquire) > 0;
+        }
+
+        void
+        mark_sync_need() const noexcept {
+            _sync_needed.fetch_add(1, std::memory_order::acq_rel);
+        }
 
         mutable std::atomic<int> _sync_needed = 0;
         mutable std::mutex _read_mtx;
-        mutable std::mutex _indexes;
-        mutable std::condition_variable_any _wait_read;
-        std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>,
-                   2>
-               _header_indices{};
+        mutable std::condition_variable _wait_read;
+
+        std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>, 2> _header_indices{};
         std::optional<std::function<move_only_function<void()>(lv::linda_tuple)>> _start_bcast;
         storage_type _data{};
     };
