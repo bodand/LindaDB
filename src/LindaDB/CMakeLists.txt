@@ -35,6 +35,7 @@
 #   components.
 
 add_library(LindaDB STATIC
+            public/ldb/bcast/null_broadcast.hxx
             public/ldb/data/chunked_list.hxx
             public/ldb/index/tree/payload/chime_payload.hxx
             public/ldb/index/tree/payload/scalar_payload.hxx

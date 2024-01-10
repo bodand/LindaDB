@@ -42,10 +42,14 @@
 
 #include <ldb/lv/linda_value.hxx>
 #include <ldb/common.hxx>
-#include <ldb/support/move_only_function.hxx>
 #include <lrt/serialize/tuple.hxx>
 
 namespace {
+    template<class T>
+    struct fail {
+        constexpr static const auto value = false;
+    };
+
 #ifdef __cpp_lib_byteswap
     using std::byteswap;
 #else
@@ -86,7 +90,7 @@ namespace {
             }
         }
         else {
-            static_assert(ldb::fail<T>::value, "mixed endian machines are not supported");
+            static_assert(fail<T>::value, "mixed endian machines are not supported");
         }
     }
 

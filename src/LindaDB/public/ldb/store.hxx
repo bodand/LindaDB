@@ -36,53 +36,49 @@
 #ifndef LREMOVEDADB_STORE_HXX
 #define LREMOVEDADB_STORE_HXX
 
-#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
-#include <iostream>
 #include <mutex>
 #include <optional>
-#include <syncstream>
-#include <thread>
 #include <type_traits>
 
+#include <ldb/bcast/broadcast.hxx>
+#include <ldb/bcast/null_broadcast.hxx>
 #include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query_tuple.hxx>
-#include <ldb/support/move_only_function.hxx>
 
 namespace ldb {
     struct store {
         void
         out(const lv::linda_tuple& tuple) {
-            std::optional<move_only_function<void()>> wait_bcast{};
-            if (_start_bcast) wait_bcast = (*_start_bcast)(tuple);
+            const auto await_handle = broadcast_insert(_broadcast, tuple);
             auto new_it = _data.push_back(tuple);
-            {
-                for (std::size_t i = 0;
-                     i < _header_indices.size() && i < tuple.size();
-                     ++i) {
-                    _header_indices[i].insert(tuple[i], new_it);
-                }
+
+            for (std::size_t i = 0;
+                 i < _header_indices.size() && i < tuple.size();
+                 ++i) {
+                _header_indices[i].insert(tuple[i], new_it);
             }
-            if (wait_bcast) (*wait_bcast)();
+
+            await(await_handle);
             notify_readers();
         }
 
         void
         out_nosignal(const lv::linda_tuple& tuple) {
             auto new_it = _data.push_back(tuple);
-            {
-                for (std::size_t i = 0;
-                     i < _header_indices.size() && i < tuple.size();
-                     ++i) {
-                    _header_indices[i].insert(tuple[i], new_it);
-                }
+
+            for (std::size_t i = 0;
+                 i < _header_indices.size() && i < tuple.size();
+                 ++i) {
+                _header_indices[i].insert(tuple[i], new_it);
             }
+
             notify_readers();
         }
 
@@ -114,10 +110,10 @@ namespace ldb {
                                    std::mem_fn(&store::read_and_remove<Args...>));
         }
 
-        template<class Fn>
+        template<broadcaster Bcast>
         void
-        set_broadcast(Fn&& fn) {
-            _start_bcast = std::forward<Fn>(fn);
+        set_broadcast(Bcast&& bcast) {
+            _broadcast = std::forward<Bcast>(bcast);
         }
 
     private:
@@ -238,7 +234,7 @@ namespace ldb {
         mutable std::condition_variable _wait_read;
 
         std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>, 2> _header_indices{};
-        std::optional<std::function<move_only_function<void()>(lv::linda_tuple)>> _start_bcast;
+        broadcast _broadcast = null_broadcast{};
         storage_type _data{};
     };
 }

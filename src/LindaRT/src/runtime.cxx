@@ -49,61 +49,85 @@
 
 namespace {
     constexpr const int LINDA_RT_TERMINATE_TAG = 0xDB'00'01;
-    constexpr const int LINDA_RT_DB_SYNC_TAG = 0xDB'00'02;
+    constexpr const int LINDA_RT_DB_SYNC_INSERT_TAG = 0xDB'00'02;
+    constexpr const int LINDA_RT_DB_SYNC_DELETE_TAG = 0xDB'00'03;
 
-    struct bcast_awaiter {
-        bcast_awaiter(std::vector<MPI_Request>&& reqs,
-                      std::unique_ptr<std::byte[]>&& buf)
+    struct mpi_request_vector_awaiter final {
+        mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
+                                   std::unique_ptr<std::byte[]>&& buf)
              : _reqs(std::move(reqs)),
                _buf(std::move(buf)) { }
 
-        void
-        operator()() {
-            MPI_Waitall(static_cast<int>(_reqs.size()), _reqs.data(), MPI_STATUS_IGNORE);
+    private:
+        friend void
+        await(mpi_request_vector_awaiter& awaiter) {
+            MPI_Waitall(static_cast<int>(awaiter._reqs.size()),
+                        awaiter._reqs.data(),
+                        MPI_STATUS_IGNORE);
         }
 
-    private:
         std::vector<MPI_Request> _reqs;
         std::unique_ptr<std::byte[]> _buf;
     };
 
+    static_assert(ldb::awaitable<mpi_request_vector_awaiter>);
+
     struct bcast_handler {
+        using await_type = mpi_request_vector_awaiter;
+
         explicit
-        bcast_handler(int rank, int size)
+        bcast_handler(const int rank, const int size)
              : _myrank(rank),
                _size(size) { }
 
-        ldb::move_only_function<void()>
-
-        operator()(ldb::lv::linda_tuple tuple) const {
-            std::vector<MPI_Request> req(static_cast<std::size_t>(_size), MPI_REQUEST_NULL);
-            auto [val, val_sz] = lrt::serialize(tuple);
+    private:
+        [[nodiscard]] std::vector<MPI_Request>
+        broadcast_with_tag(int tag, std::span<std::byte> bytes) const {
+            std::vector req(static_cast<std::size_t>(_size), MPI_REQUEST_NULL);
             std::vector<int> idx(static_cast<std::size_t>(_size));
             std::iota(idx.begin(), idx.end(), std::size_t{});
             std::transform(std::execution::par_unseq,
                            idx.begin(),
                            idx.end(),
                            req.begin(),
-                           [&val, val_sz, my_rank = _myrank](int rank) {
-                               MPI_Request req;
+                           [bytes, tag, my_rank = _myrank](int rank) {
                                if (rank == my_rank) return MPI_REQUEST_NULL;
-                               auto status = MPI_Isend(val.get(),
-                                                       static_cast<int>(val_sz),
-                                                       MPI_CHAR,
-                                                       rank,
-                                                       LINDA_RT_DB_SYNC_TAG,
-                                                       MPI_COMM_WORLD,
-                                                       &req);
+
+                               MPI_Request req;
+                               const auto status = MPI_Isend(bytes.data(),
+                                                             static_cast<int>(bytes.size()),
+                                                             MPI_CHAR,
+                                                             rank,
+                                                             tag,
+                                                             MPI_COMM_WORLD,
+                                                             &req);
                                if (status != 0) {
                                    return MPI_REQUEST_NULL;
                                }
                                return req;
                            });
 
-            return bcast_awaiter(std::move(req), std::move(val));
+            return req;
         }
 
-    private:
+        friend mpi_request_vector_awaiter
+        broadcast_insert(const bcast_handler& handler,
+                         const ldb::lv::linda_tuple& tuple) {
+            auto [val, val_sz] = lrt::serialize(tuple);
+            auto reqs = handler.broadcast_with_tag(LINDA_RT_DB_SYNC_INSERT_TAG,
+                                                   {val.get(), val_sz});
+            return {std::move(reqs), std::move(val)};
+        }
+
+        friend mpi_request_vector_awaiter
+        broadcast_delete(const bcast_handler& handler,
+                         const ldb::lv::linda_tuple& tuple) {
+            auto [val, val_sz] = lrt::serialize(tuple);
+            auto reqs = handler.broadcast_with_tag(LINDA_RT_DB_SYNC_DELETE_TAG,
+                                                   {val.get(), val_sz});
+            return {std::move(reqs), std::move(val)};
+        }
+
         int _myrank;
         int _size;
     };
@@ -154,7 +178,7 @@ lrt::runtime::recv_thread_worker() {
             continue;
         }
         auto buf = std::make_unique<std::byte[]>(static_cast<std::size_t>(len));
-        MPI_Recv(buf.get(), len, MPI_CHAR, MPI_ANY_SOURCE, LINDA_RT_DB_SYNC_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(buf.get(), len, MPI_CHAR, MPI_ANY_SOURCE, LINDA_RT_DB_SYNC_INSERT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         auto rx_tuple = deserialize({buf.get(), static_cast<unsigned>(len)});
         _store.out_nosignal(rx_tuple);
     }
