@@ -39,18 +39,51 @@
 #ifndef LINDADB_LINDA_TUPLE_HXX
 #define LINDADB_LINDA_TUPLE_HXX
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <compare>
 #include <cstddef>
+#include <iterator>
+#include <limits>
 #include <ostream>
 #include <span>
-#include <sstream>
+#include <type_traits>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include <ldb/lv/linda_value.hxx>
 
 namespace ldb::lv {
+    namespace meta {
+        template<class T>
+        struct ensure_const_impl {
+            using type = const T;
+        };
+
+        template<class T>
+        struct ensure_const_impl<const T> {
+            using type = const T;
+        };
+
+        template<class T>
+        using ensure_const = ensure_const_impl<T>::type;
+
+        template<class T, class>
+        struct match_constness_of_impl {
+            using type = T;
+        };
+
+        template<class T, class U>
+        struct match_constness_of_impl<T, const U> {
+            using type = ensure_const_impl<T>::type;
+        };
+
+        template<class T, class U>
+        using match_constness_of = match_constness_of_impl<T, U>::type;
+    }
+
     struct linda_tuple final {
         explicit linda_tuple()
              : _size(0) { }
@@ -118,6 +151,205 @@ namespace ldb::lv {
         operator[](std::size_t idx) const noexcept { return get_at(idx); }
 
     private:
+        template<class ValueType>
+        struct iterator_impl final {
+            using difference_type = std::ptrdiff_t;
+            using value_type = ValueType;
+            using reference = std::add_lvalue_reference_t<value_type>;
+            using const_reference = std::add_lvalue_reference_t<meta::ensure_const<value_type>>;
+            using pointer = std::add_pointer_t<value_type>;
+            using const_pointer = std::add_pointer_t<meta::ensure_const<ValueType>>;
+            using iterator_category = std::random_access_iterator_tag;
+
+            constexpr iterator_impl() = default;
+
+            constexpr iterator_impl(const iterator_impl& cp) noexcept = default;
+            constexpr iterator_impl&
+            operator=(const iterator_impl& cp) noexcept = default;
+
+            constexpr iterator_impl(iterator_impl&& cp) noexcept = default;
+            constexpr iterator_impl&
+            operator=(iterator_impl&& cp) noexcept = default;
+
+            constexpr ~iterator_impl() = default;
+
+            constexpr void
+            swap(iterator_impl& other) noexcept {
+                using std::swap;
+                swap(_owner, other._owner);
+                swap(_position, other._position);
+            }
+
+            [[nodiscard]] constexpr auto
+            operator<=>(const iterator_impl& other) const noexcept {
+                assert(arithmetic_meaningful_with(other));
+
+                if (other._owner == nullptr && _owner == nullptr) return std::strong_ordering::equal;
+                if (other._owner == nullptr) {
+                    if (is_positional_end()) return std::strong_ordering::equal;
+                    return std::strong_ordering::less;
+                }
+                if (_owner == nullptr) {
+                    if (other.is_positional_end()) return std::strong_ordering::equal;
+                    return std::strong_ordering::greater;
+                }
+
+                assert(_owner != nullptr);
+                assert(other._owner != nullptr);
+
+                return _position <=> other._position;
+            }
+
+            [[nodiscard]] constexpr auto
+            operator==(const iterator_impl& other) const noexcept {
+                return std::is_eq(*this <=> other);
+            }
+
+            [[nodiscard]] constexpr reference
+            operator*() const noexcept(noexcept((*_owner)[_position])) {
+                assert(!is_end());
+                return (*_owner)[_position];
+            }
+
+            constexpr iterator_impl&
+            operator++() noexcept {
+                assert(!is_end());
+                ++_position;
+                return *this;
+            }
+
+            constexpr iterator_impl // NOLINT(*-dcl21-cpp)
+            operator++(int) noexcept {
+                assert(!is_end());
+                const iterator_impl ret = *this;
+                ++_position;
+                return ret;
+            }
+
+            constexpr iterator_impl&
+            operator+=(difference_type diff) noexcept {
+                assert(valid_step(diff));
+                if (diff > 0) _position += diff;
+                if (diff < 0) _position -= static_cast<std::size_t>(-diff);
+                return *this;
+            }
+
+            constexpr iterator_impl&
+            operator--() noexcept {
+                assert(!is_begin());
+                --_position;
+                return *this;
+            }
+
+            constexpr iterator_impl // NOLINT(*-dcl21-cpp)
+            operator--(int) noexcept {
+                assert(!is_begin());
+                const iterator_impl ret = *this;
+                --_position;
+                return ret;
+            }
+
+            constexpr iterator_impl&
+            operator-=(difference_type diff) noexcept {
+                assert(valid_step(-diff));
+                if (diff > 0) _position -= diff;
+                if (diff < 0) _position += static_cast<std::size_t>(-diff);
+                return *this;
+            }
+
+            [[nodiscard]] constexpr pointer
+            operator->() const noexcept(noexcept((*_owner)[_position])) {
+                assert(!is_end());
+                return std::addressof((*_owner)[_position]);
+            }
+
+            [[nodiscard]] constexpr reference
+            operator[](difference_type diff) const noexcept(noexcept((*_owner)[_position + diff])) {
+                assert(valid_step(diff));
+                auto accessIdx = _position;
+                if (diff > 0) accessIdx += static_cast<decltype(_position)>(diff);
+                if (diff < 0) accessIdx -= static_cast<decltype(_position)>(-diff);
+                return (*_owner)[accessIdx];
+            }
+
+        private:
+            [[nodiscard]] friend constexpr auto
+            operator+(difference_type diff, iterator_impl it) {
+                auto ret = it;
+                return ret += diff;
+            }
+
+            [[nodiscard]] friend constexpr auto
+            operator+(iterator_impl it, difference_type diff) {
+                auto ret = it;
+                return ret += diff;
+            }
+
+            [[nodiscard]] friend constexpr auto
+            operator-(iterator_impl it, difference_type diff) {
+                auto ret = it;
+                return ret -= diff;
+            }
+
+            [[nodiscard]] friend constexpr difference_type
+            operator-(iterator_impl a, iterator_impl b) {
+                assert(a.arithmetic_meaningful_with(b));
+                if (a._owner == nullptr && b._owner == nullptr) return 0;
+                if (a._owner == nullptr) return static_cast<difference_type>(b._owner->_size - b._position);
+                if (b._owner == nullptr) return static_cast<difference_type>(a._position - a._owner->_size);
+
+                // prevent overflows with 1) value being too big for diff type
+                //  or 2) size_t - size_t ending in negative (and getting wrapped)
+                if (a._position > b._position) return a._position - b._position;
+                const auto diff = b._position - a._position;
+                // ...or fail screaming
+                assert(diff < std::numeric_limits<difference_type>::max());
+
+                return -static_cast<difference_type>(diff);
+            }
+
+            using tuple_type = meta::match_constness_of<linda_tuple, value_type>;
+            friend linda_tuple;
+
+            constexpr iterator_impl(tuple_type* owner, size_t position)
+                 : _owner(owner), _position(position) { }
+
+            [[nodiscard]] constexpr bool
+            arithmetic_meaningful_with(iterator_impl other) const noexcept {
+                if (_owner == nullptr) return true;
+                if (other._owner == nullptr) return true;
+                return _owner == other._owner;
+            }
+
+            [[nodiscard]] constexpr bool
+            valid_step(difference_type by) const noexcept {
+                if (!_owner) return false;
+                if (by < 0) return _position >= -by;
+                if (by > 0) return _owner->_size - _position >= by;
+                return true;
+            }
+
+            [[nodiscard]] constexpr bool
+            is_begin() const noexcept {
+                return _position == 0;
+            }
+
+            [[nodiscard]] constexpr bool
+            is_end() const noexcept {
+                return _owner == nullptr
+                       || is_positional_end();
+            }
+
+            [[nodiscard]] constexpr bool
+            is_positional_end() const noexcept {
+                assert(_owner);
+                return _position == _owner->_size;
+            }
+
+            tuple_type* _owner{nullptr};
+            std::size_t _position{static_cast<std::size_t>(-1)};
+        };
+
         friend std::ostream&
         operator<<(std::ostream& os, const linda_tuple& tuple);
 
@@ -133,6 +365,24 @@ namespace ldb::lv {
                      linda_value,
                      std::vector<linda_value>>
                _tail{};
+
+    public:
+        using iterator = iterator_impl<linda_value>;
+        using const_iterator = iterator_impl<const linda_value>;
+
+        [[nodiscard]] constexpr auto
+        begin() { return iterator(this, 0); }
+        [[nodiscard]] constexpr auto
+        cbegin() { return const_iterator(this, 0); }
+        [[nodiscard]] constexpr auto
+        cbegin() const { return const_iterator(this, 0); }
+
+        [[nodiscard]] constexpr auto
+        end() { return iterator(this, _size); }
+        [[nodiscard]] constexpr auto
+        cend() { return const_iterator(this, _size); }
+        [[nodiscard]] constexpr auto
+        cend() const { return const_iterator(this, _size); }
     };
 
 

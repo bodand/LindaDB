@@ -1,6 +1,6 @@
 /* LindaDB project
  *
- * Copyright (c) 2023 András Bodor <bodand@pm.me>
+ * Copyright (c) 2024 András Bodor <bodand@pm.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,67 +28,55 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-18.
+ * Originally created: 2024-01-12.
  *
- * src/LindaDB/public/ldb/lv/linda_value --
+ * test/LindaDB/lv/linda_value --
+ *   Test for the lv::linda_value type and associated operations.
  */
 
-#ifndef LINDADB_LINDA_VALUE_HXX
-#define LINDADB_LINDA_VALUE_HXX
-
-#include <concepts>
 #include <cstdint>
-#include <ostream>
-#include <string>
-#include <string_view>
-#include <variant>
+#include <sstream>
 
-namespace ldb::lv {
-    using linda_value = std::variant<
-           std::int16_t,
-           std::uint16_t,
-           std::int32_t,
-           std::uint32_t,
-           std::int64_t,
-           std::uint64_t,
-           std::string,
-           float,
-           double>;
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <ldb/lv/linda_value.hxx>
 
-    namespace helper {
-        struct printer {
-            explicit
-            printer(std::ostream& os) : _os(os) { }
+namespace lv = ldb::lv;
 
-            template<std::integral T>
-            void
-            operator()(T i) {
-                _os << i;
-            }
-
-            template<std::floating_point T>
-            void
-            operator()(T f) {
-                _os << f;
-            }
-
-            void
-            operator()(std::string_view str) {
-                _os << str;
-            }
-
-        private:
-            std::ostream& _os;
-        };
-    }
-
-    inline namespace io {
-        inline std::ostream&
-        operator<<(std::ostream& os, const linda_value& lv) {
-            std::visit(helper::printer(os), lv);
-            return os;
-        }
-    }
+TEMPLATE_TEST_CASE("linda_value prints as integer value",
+                   "[linda_value]",
+                   std::int16_t,
+                   std::uint16_t,
+                   std::int32_t,
+                   std::uint32_t,
+                   std::int64_t,
+                   std::uint64_t) {
+    using namespace lv::io;
+    const lv::linda_value val = static_cast<TestType>(42);
+    std::ostringstream oss;
+    oss << val;
+    CHECK(oss.str() == "42");
 }
 
-#endif //LINDADB_LINDA_VALUE_HXX
+TEMPLATE_TEST_CASE("linda_value prints as float value",
+                   "[linda_value]",
+                   float,
+                   double) {
+    using namespace lv::io;
+    const lv::linda_value val = static_cast<TestType>(42.12);
+    std::ostringstream oss;
+    oss << val;
+    CHECK(oss.str().substr(0, 5) == "42.12");
+}
+
+TEST_CASE("linda_value prints as string value",
+          "[linda_value]") {
+    using namespace lv::io;
+    using namespace std::literals;
+    const auto string_value = "some string"s;
+
+    const lv::linda_value val = string_value;
+    std::ostringstream oss;
+    oss << val;
+    CHECK(oss.str() == string_value);
+}

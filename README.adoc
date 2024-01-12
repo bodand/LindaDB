@@ -1,7 +1,7 @@
 = LindaDB
 :icons: font
 
-HPC-centric, distributed IMDB for the linda language's implementation.
+Distributed IMDB for the linda language's implementation.
 
 == Description
 
