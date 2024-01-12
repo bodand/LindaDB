@@ -314,7 +314,7 @@ TEST_CASE("chime_payload removes correct element") {
            ldb::lv::linda_tuple("asd", 3, "dsa"),
            ldb::lv::linda_tuple("asd", 4, "dsa"),
     };
-    for (int i = 0; i < 4; ++i) {
+    for (unsigned i = 0; i < 4; ++i) {
         REQUIRE(sut.try_set(ldb::lv::linda_value("asd"), &buf[i]));
     }
 

@@ -229,7 +229,7 @@ namespace ldb::lv {
             constexpr iterator_impl&
             operator+=(difference_type diff) noexcept {
                 assert(valid_step(diff));
-                if (diff > 0) _position += diff;
+                if (diff > 0) _position += static_cast<std::size_t>(diff);
                 if (diff < 0) _position -= static_cast<std::size_t>(-diff);
                 return *this;
             }
@@ -252,7 +252,7 @@ namespace ldb::lv {
             constexpr iterator_impl&
             operator-=(difference_type diff) noexcept {
                 assert(valid_step(-diff));
-                if (diff > 0) _position -= diff;
+                if (diff > 0) _position -= static_cast<std::size_t>(diff);
                 if (diff < 0) _position += static_cast<std::size_t>(-diff);
                 return *this;
             }
@@ -300,7 +300,12 @@ namespace ldb::lv {
 
                 // prevent overflows with 1) value being too big for diff type
                 //  or 2) size_t - size_t ending in negative (and getting wrapped)
-                if (a._position > b._position) return a._position - b._position;
+                if (a._position > b._position) {
+                    const auto diff = a._position - b._position;
+                    // ...or fail screaming
+                    assert(diff < std::numeric_limits<difference_type>::max());
+                    return static_cast<difference_type>(diff);
+                }
                 const auto diff = b._position - a._position;
                 // ...or fail screaming
                 assert(diff < std::numeric_limits<difference_type>::max());

@@ -42,6 +42,7 @@
 #include <memory>
 #include <optional>
 #include <shared_mutex>
+#include <mutex>
 
 #include <ldb/common.hxx>
 #include <ldb/index/tree/index_query.hxx>

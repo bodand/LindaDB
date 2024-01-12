@@ -473,7 +473,7 @@ namespace ldb::data {
             void
             dec(size_type by = 1U) {
                 while (by != 0) {
-                    while (--_index >= 0) {
+                    while (--_index < static_cast<std::size_t>(-1)) {
                         if (_chunk->valid_at_index(_index)) --by;
                         if (by == 0) return;
                     }
