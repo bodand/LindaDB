@@ -1,6 +1,8 @@
 = LindaDB
 :icons: font
 
+image::https://codecov.io/github/bodand/LindaDB/graph/badge.svg?token=DVmLsKIJVr[]
+
 Distributed IMDB for the linda language's implementation.
 
 == Description
