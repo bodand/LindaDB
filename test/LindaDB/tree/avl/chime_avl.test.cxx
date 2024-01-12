@@ -35,14 +35,12 @@
  */
 
 
-#include <algorithm>
 #include <iostream>
 #include <random>
-#include <ranges>
+#include <string>
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
-#include <ldb/index/tree/payload.hxx>
 
 #include "ldb/lv/linda_tuple.hxx"
 #include "ldb/lv/linda_value.hxx"
@@ -283,7 +281,7 @@ TEST_CASE("new chime AVL-tree removes correct element") {
            ldb::lv::linda_tuple("asd", 3, "dsa"),
            ldb::lv::linda_tuple("asd", 4, "dsa"),
     };
-    for (int i = 0; i < 4; ++i) {
+    for (unsigned i = 0; i < 4; ++i) {
         sut.insert(ldb::lv::linda_value("asd"), &buf[i]);
     }
 
