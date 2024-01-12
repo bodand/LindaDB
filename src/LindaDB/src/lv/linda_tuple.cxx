@@ -34,10 +34,16 @@
  *   Implements the functions of the linda_tuple type.
  */
 
+#include <cassert>
+#include <cstddef>
+#include <ostream>
+#include <vector>
+
 #include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/linda_value.hxx>
 
 ldb::lv::linda_value&
-ldb::lv::linda_tuple::get_at(std::size_t idx) {
+ldb::lv::linda_tuple::get_at(std::size_t idx) noexcept {
     assert(idx < _size);
     if (idx < 3) return _data_ref[idx];
     if (_size == 4 && idx == 3) return std::get<linda_value>(_tail);
@@ -46,7 +52,7 @@ ldb::lv::linda_tuple::get_at(std::size_t idx) {
 }
 
 const ldb::lv::linda_value&
-ldb::lv::linda_tuple::get_at(std::size_t idx) const {
+ldb::lv::linda_tuple::get_at(std::size_t idx) const noexcept {
     assert(idx < _size);
     if (idx < 3) return _data_ref[idx];
     if (_size == 4 && idx == 3) return std::get<linda_value>(_tail);

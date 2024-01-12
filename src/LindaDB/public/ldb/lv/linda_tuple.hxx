@@ -53,8 +53,7 @@
 namespace ldb::lv {
     struct linda_tuple final {
         explicit linda_tuple()
-             : _size(0),
-               _data_ref() { }
+             : _size(0) { }
 
         explicit linda_tuple(linda_value lv1)
              : _size(1),
@@ -81,13 +80,14 @@ namespace ldb::lv {
                _tail(std::vector<linda_value>{lv4, linda_value(std::forward<Args>(lvn))...}) { }
 
         explicit linda_tuple(std::span<linda_value> vals)
-             : _size(vals.size()),
-               _data_ref() {
+             : _size(vals.size()) {
             if (vals.empty()) return;
             if (vals.size() <= 3) {
                 std::ranges::copy(vals, _data_ref.begin());
             }
             else {
+                using std::begin;
+                using std::end;
                 std::ranges::copy(begin(vals), std::next(begin(vals), 3), _data_ref.begin());
                 if (vals.size() == 4) {
                     _tail = vals[3];
@@ -104,37 +104,31 @@ namespace ldb::lv {
         }
 
         auto
-        operator<=>(const linda_tuple& rhs) const {
+        operator<=>(const linda_tuple& rhs) const noexcept {
             return _size <=> rhs._size;
         }
 
         [[nodiscard]] bool
-        operator==(const linda_tuple& rhs) const = default;
+        operator==(const linda_tuple& rhs) const noexcept = default;
 
         [[nodiscard]] linda_value&
-        operator[](std::size_t idx) { return get_at(idx); }
+        operator[](std::size_t idx) noexcept { return get_at(idx); }
 
         [[nodiscard]] const linda_value&
-        operator[](std::size_t idx) const { return get_at(idx); }
+        operator[](std::size_t idx) const noexcept { return get_at(idx); }
 
-        std::string
-        dump_string() const {
-            std::stringstream ss;
-            ss << *this;
-            return ss.str();
-        }
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const linda_tuple& tuple);
 
         [[nodiscard]] linda_value&
-        get_at(std::size_t idx);
+        get_at(std::size_t idx) noexcept;
 
         [[nodiscard]] const linda_value&
-        get_at(std::size_t idx) const;
+        get_at(std::size_t idx) const noexcept;
 
         std::size_t _size;
-        std::array<linda_value, 3> _data_ref;
+        std::array<linda_value, 3> _data_ref{};
         std::variant<std::monostate,
                      linda_value,
                      std::vector<linda_value>>
