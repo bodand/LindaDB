@@ -38,6 +38,7 @@
 #include <iostream>
 #include <random>
 #include <string>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>

@@ -36,13 +36,15 @@
 #ifndef AVL2_TREE_HXX
 #define AVL2_TREE_HXX
 
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
-#include <execution>
 #include <memory>
-#include <mutex>
+#include <optional>
 #include <shared_mutex>
 
 #include <ldb/common.hxx>
+#include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload_dispatcher.hxx>
 
@@ -344,8 +346,7 @@ namespace ldb::index::tree {
             if (_right) _right->apply(fn);
         }
 
-        ~
-        avl2_node() {
+        ~avl2_node() {
             assert(_left.get() != this);
             assert(_right.get() != this);
             if (_left) release(&_left);
@@ -383,11 +384,6 @@ namespace ldb::index::tree {
         using payload_type = PayloadType;
         using key_type = payload_type::key_type;
         using value_type = payload_type::value_type;
-
-        [[nodiscard]] std::size_t
-        node_capacity() const {
-            return root->data.capacity();
-        }
 
         template<index_query<value_type> Q>
         [[nodiscard]] std::optional<value_type>
