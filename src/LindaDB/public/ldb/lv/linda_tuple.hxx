@@ -295,8 +295,8 @@ namespace ldb::lv {
             operator-(iterator_impl a, iterator_impl b) {
                 assert(a.arithmetic_meaningful_with(b));
                 if (a._owner == nullptr && b._owner == nullptr) return 0;
-                if (a._owner == nullptr) return static_cast<difference_type>(b._owner->_size - b._position);
-                if (b._owner == nullptr) return static_cast<difference_type>(a._position - a._owner->_size);
+                if (a._owner == nullptr) return static_cast<difference_type>(b._owner->size() - b._position);
+                if (b._owner == nullptr) return static_cast<difference_type>(a._position - a._owner->size());
 
                 // prevent overflows with 1) value being too big for diff type
                 //  or 2) size_t - size_t ending in negative (and getting wrapped)

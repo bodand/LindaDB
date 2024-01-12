@@ -33,18 +33,60 @@
  * test/LindaDB/bcast/broadcast --
  *   
  */
+#include <utility>
+
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/bcast/broadcast.hxx>
 #include <ldb/bcast/null_broadcast.hxx>
+#include <ldb/lv/linda_tuple.hxx>
 
 TEST_CASE("awaitable can be awaited") {
     const ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
     await(await_bcast);
 }
 
-TEST_CASE("awaitable can be moved") {
+TEST_CASE("default constructed awaitable can be awaited, is nop") {
+    const ldb::broadcast_awaitable await_bcast;
+    await(await_bcast);
+}
+
+TEST_CASE("awaitable can be move constructed") {
     ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
     const ldb::broadcast_awaitable await_bcast2 = std::move(await_bcast);
     await(await_bcast2);
 }
 
+TEST_CASE("awaitable can be move assigned") {
+    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
+    ldb::broadcast_awaitable await_bcast2;
+    await_bcast2 = std::move(await_bcast);
+    await(await_bcast2);
+}
+
+TEST_CASE("broadcaster can broadcast insert") {
+    const ldb::broadcast bcast = ldb::null_broadcast{};
+    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
+}
+
+TEST_CASE("broadcaster can broadcast delete") {
+    const ldb::broadcast bcast = ldb::null_broadcast{};
+    await(broadcast_delete(bcast, ldb::lv::linda_tuple{}));
+}
+
+TEST_CASE("default constructed broadcaster can be called, is nop") {
+    const ldb::broadcast bcast;
+    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
+}
+
+TEST_CASE("broadcast can be move constructed") {
+    ldb::broadcast bcast = ldb::null_broadcast{};
+    const ldb::broadcast bcast2 = std::move(bcast);
+    await(broadcast_insert(bcast2, ldb::lv::linda_tuple{}));
+}
+
+TEST_CASE("broadcast can be move assigned") {
+    ldb::broadcast bcast = ldb::null_broadcast{};
+    ldb::broadcast bcast2;
+    bcast2 = std::move(bcast);
+    await(broadcast_insert(bcast2, ldb::lv::linda_tuple{}));
+}
