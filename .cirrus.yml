@@ -45,7 +45,7 @@ linux_builds_task:
         VCPKG_MAX_CONCURRENCY: "6"
     - name: "linux-clang-arm64"
       arm_container:
-        image: silkeh/clang:17
+        image: silkeh/clang@sha256:38accb94a4479a8d46750ac2ee830346011450da9e08b32746ce030af35f673a
       env:
         BUILD_ARCH: arm
         CMAKE_ARCH: aarch64

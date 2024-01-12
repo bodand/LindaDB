@@ -264,7 +264,7 @@ namespace ldb::lv {
             }
 
             [[nodiscard]] constexpr reference
-            operator[](difference_type diff) const noexcept(noexcept((*_owner)[_position + diff])) {
+            operator[](difference_type diff) const noexcept(noexcept((*_owner)[_position])) {
                 assert(valid_step(diff));
                 auto accessIdx = _position;
                 if (diff > 0) accessIdx += static_cast<decltype(_position)>(diff);

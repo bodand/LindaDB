@@ -38,7 +38,8 @@
 #define LINDADB_BROADCAST_HXX
 
 #include <concepts>
-#include <type_traits>
+#include <memory>
+#include <utility>
 
 #include <ldb/bcast/broadcaster.hxx>
 #include <ldb/lv/linda_tuple.hxx>
@@ -49,8 +50,7 @@ namespace ldb {
             virtual void
             do_await() = 0;
 
-            virtual ~
-            awaitable_concept() = default;
+            virtual ~awaitable_concept() = default;
         };
 
         template<awaitable Impl>
@@ -59,6 +59,7 @@ namespace ldb {
 
             template<awaitable T = impl_type>
             explicit awaitable_model(T&& init) /* todo noexcept in some cases... */
+                requires(!std::same_as<T, awaitable_model>)
                  : value(std::forward<T>(init)) { }
 
             void
@@ -78,6 +79,7 @@ namespace ldb {
 
     public:
         broadcast_awaitable() = default;
+        ~broadcast_awaitable() = default;
 
         template<awaitable Impl>
         explicit(false) broadcast_awaitable(Impl value)
@@ -94,20 +96,19 @@ namespace ldb {
         broadcast_awaitable&
         operator=(broadcast_awaitable&& other) noexcept {
             if (this == &other) return *this;
-            _impl.reset(other._impl.release());
+            _impl = std::move(other._impl);
             return *this;
         }
     };
 
-    struct broadcast final {
+    class broadcast final {
         struct broadcast_concept {
             virtual broadcast_awaitable
             do_broadcast_insert(const lv::linda_tuple& tuple) = 0;
             virtual broadcast_awaitable
             do_broadcast_delete(const lv::linda_tuple& tuple) = 0;
 
-            virtual ~
-            broadcast_concept() = default;
+            virtual ~broadcast_concept() = default;
         };
 
         template<broadcaster Impl>
@@ -116,6 +117,7 @@ namespace ldb {
 
             template<broadcaster T = impl_type>
             explicit broadcast_model(T&& init) /* todo noexcept in some cases... */
+                requires(!std::same_as<T, broadcast_model>)
                  : bcast(std::forward<T>(init)) { }
 
             broadcast_awaitable
@@ -148,6 +150,7 @@ namespace ldb {
 
     public:
         broadcast() = default;
+        ~broadcast() = default;
 
         template<broadcaster Impl>
         explicit(false) broadcast(Impl value)
@@ -162,7 +165,7 @@ namespace ldb {
         broadcast&
         operator=(broadcast&& other) noexcept {
             if (this == &other) return *this;
-            _impl.reset(other._impl.release());
+            _impl = std::move(other._impl);
             return *this;
         }
     };
