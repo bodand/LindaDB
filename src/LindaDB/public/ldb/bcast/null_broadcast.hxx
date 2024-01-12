@@ -36,15 +36,18 @@
 #ifndef LDB_NULL_BROADCAST_HXX
 #define LDB_NULL_BROADCAST_HXX
 
-#include <ldb/bcast/broadcast.hxx>
+#include <tuple>
+
+#include <ldb/bcast/broadcaster.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 
 namespace ldb {
     struct null_awaiter { };
 
     inline void
-    await(null_awaiter) { }
-
+    await(null_awaiter) {
+        /*nop*/
+    }
     static_assert(awaitable<null_awaiter>);
 
     struct null_broadcast {

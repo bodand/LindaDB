@@ -43,8 +43,8 @@
 #include <compare>
 #include <concepts>
 #include <cstdlib>
+#include <execution>
 #include <iterator>
-#include <ranges>
 #include <shared_mutex>
 #include <tuple>
 #include <utility>
@@ -52,7 +52,6 @@
 
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
-#include <ldb/common.hxx>
 
 namespace ldb::index::tree::payloads {
     template<std::movable K, std::movable V, std::size_t Clustering>
@@ -66,8 +65,7 @@ namespace ldb::index::tree::payloads {
             std::vector<value_type> data;
         };
 
-        constexpr
-        chime_payload() = default;
+        constexpr chime_payload() = default;
 
         template<class K2 = key_type, class V2 = value_type>
         constexpr chime_payload(K2&& key, V2&& value)
@@ -75,25 +73,21 @@ namespace ldb::index::tree::payloads {
                _keys{std::forward<K2>(key)},
                _sets{chime_value_set(std::forward<V2>(value))} { }
 
-        constexpr explicit
-        chime_payload(bundle_type&& bundle)
+        constexpr explicit chime_payload(bundle_type&& bundle)
              : _data_sz(1),
                _keys{std::move(bundle.key)},
                _sets{chime_value_set(std::move(bundle))} { }
 
-        constexpr explicit
-        chime_payload(const bundle_type& bundle)
+        constexpr explicit chime_payload(const bundle_type& bundle)
              : _data_sz(1),
                _keys{bundle.key},
                _sets{chime_value_set(bundle)} { }
 
-        constexpr
-        chime_payload(const chime_payload& cp)
+        constexpr chime_payload(const chime_payload& cp)
             requires(std::copyable<key_type> && std::copyable<value_type>)
         = default;
 
-        constexpr
-        chime_payload(chime_payload&& mv) noexcept = default;
+        constexpr chime_payload(chime_payload&& mv) noexcept = default;
         constexpr chime_payload&
         operator=(const chime_payload& cp)
             requires(std::copyable<key_type> && std::copyable<value_type>)
@@ -102,8 +96,7 @@ namespace ldb::index::tree::payloads {
         constexpr chime_payload&
         operator=(chime_payload&& mv) noexcept = default;
 
-        constexpr ~
-        chime_payload() noexcept = default;
+        constexpr ~chime_payload() noexcept = default;
 
         [[nodiscard]] constexpr size_type
         capacity() const noexcept { return Clustering; }
@@ -123,7 +116,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr std::weak_ordering
         operator<=>(const auto& key) const noexcept {
-                        if (empty()) return std::weak_ordering::equivalent;
+            if (empty()) return std::weak_ordering::equivalent;
             auto mem_min_key = min_key();
             auto mem_max_key = max_key();
             if (key < mem_min_key) return std::weak_ordering::greater;
@@ -167,17 +160,17 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] bool
         try_set(const key_type& key, const value_type& value) {
-                        return upsert_kv(key, {&value, 1}) & (INSERTED | UPDATED);
+            return upsert_kv(key, {&value, 1}) & (INSERTED | UPDATED);
         }
 
         [[nodiscard]] bool
         try_set(const bundle_type& bundle) {
-                        return upsert_kv(bundle.key, bundle.data) & (INSERTED | UPDATED);
+            return upsert_kv(bundle.key, bundle.data) & (INSERTED | UPDATED);
         }
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(const key_type& key, const value_type& value) {
-                        if (auto res = upsert_kv(key, {&value, 1});
+            if (auto res = upsert_kv(key, {&value, 1});
                 res == FULL) {
                 auto squished = bundle_type{.key = _keys[0], .data = _sets[0].flush()};
                 std::move(std::next(std::begin(_keys)),
@@ -195,7 +188,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(const key_type& key, const value_type& value) {
-                        if (auto res = upsert_kv(key, {&value, 1});
+            if (auto res = upsert_kv(key, {&value, 1});
                 res == FULL) {
                 auto squished = bundle_type{.key = _keys.back(), .data = _sets.back().flush()};
                 --_data_sz;
@@ -207,7 +200,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(bundle_type&& bundle) {
-                        auto [key, data] = std::move(bundle);
+            auto [key, data] = std::move(bundle);
             if (auto res = upsert_kv(key, data);
                 res == FULL) {
                 auto squished = bundle_type{.key = _keys[0], .data = _sets[0]};
@@ -226,7 +219,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(bundle_type&& bundle) {
-                        auto [key, data] = std::move(bundle);
+            auto [key, data] = std::move(bundle);
             if (auto res = upsert_kv(key, data);
                 res == FULL) {
                 auto squished = bundle_type{.key = _keys.back(), .data = _sets.back().flush()};
@@ -240,7 +233,7 @@ namespace ldb::index::tree::payloads {
         template<index_query<value_type> Q>
         [[nodiscard]] constexpr std::optional<value_type>
         try_get(const Q& query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
-                        if (empty()) return std::nullopt;
+            if (empty()) return std::nullopt;
             auto data_end = std::next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
             if (auto it = std::lower_bound(begin(_keys),
                                            data_end,
@@ -255,7 +248,7 @@ namespace ldb::index::tree::payloads {
         template<index_query<value_type> Q>
         constexpr std::optional<value_type>
         remove(const Q& query) {
-                        if (empty()) return std::nullopt;
+            if (empty()) return std::nullopt;
             auto key_end = std::next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
             auto it = std::lower_bound(begin(_keys), key_end, query.key());
             if (it == key_end) return std::nullopt;
@@ -276,25 +269,22 @@ namespace ldb::index::tree::payloads {
         template<class Fn>
         void
         apply(Fn&& fn) {
-            std::ranges::for_each_n(_sets.begin(), _data_sz, [fn = std::forward<Fn>(fn)](const auto& set) {
-                set.apply(std::forward<Fn>(fn));
+            std::ranges::for_each_n(_sets.begin(), _data_sz, [fun = std::forward<Fn>(fn)](const auto& set) {
+                set.apply(fun);
             });
         }
 
 
     private:
         struct chime_value_set {
-            constexpr
-            chime_value_set() = default;
+            constexpr chime_value_set() = default;
 
-            constexpr explicit
-            chime_value_set(bundle_type&& bundle)
+            constexpr explicit chime_value_set(bundle_type&& bundle)
                  : _values(std::move(bundle).data) {
                 assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 
-            constexpr explicit
-            chime_value_set(const bundle_type& bundle)
+            constexpr explicit chime_value_set(const bundle_type& bundle)
                  : _values(bundle.data) {
                 assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
@@ -306,7 +296,7 @@ namespace ldb::index::tree::payloads {
 
             constexpr void
             push(std::span<const value_type> val) {
-                                _values.reserve(_values.size() + val.size());
+                _values.reserve(_values.size() + val.size());
                 std::ranges::for_each(val, [&](const auto& item) {
                     auto it = std::ranges::lower_bound(_values, item);
                     _values.insert(it, item);
@@ -316,8 +306,8 @@ namespace ldb::index::tree::payloads {
             template<index_query<value_type> Q>
             [[nodiscard]] constexpr std::optional<value_type>
             pop(Q query) {
-                                assert(!empty());
-                if (auto it = std::find(_values.begin(), _values.end(), query);
+                assert(!empty());
+                if (auto it = std::find(std::execution::par_unseq, _values.begin(), _values.end(), query);
                     it != _values.end()) {
 
                     auto cp = *it;
@@ -330,15 +320,15 @@ namespace ldb::index::tree::payloads {
             template<index_query<value_type> Q>
             [[nodiscard]] constexpr std::optional<value_type>
             get(const Q& query) const {
-                                assert(!empty());
-                if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
+                assert(!empty());
+                if (auto it = std::find(std::execution::par_unseq, _values.begin(), _values.end(), query);
                     it != _values.end()) return *it;
                 return std::nullopt;
             }
 
             [[nodiscard]] constexpr bool
             check(const value_type& val) const {
-                                return std::ranges::binary_search(_values, val);
+                return std::ranges::binary_search(_values, val);
             }
 
             [[nodiscard]] constexpr bool
@@ -348,14 +338,14 @@ namespace ldb::index::tree::payloads {
 
             constexpr std::vector<value_type>
             flush() {
-                                auto res = std::move(_values);
+                auto res = std::move(_values);
                 _values = std::vector<value_type>();
                 return res;
             }
 
             constexpr void
             reset(std::span<value_type> values) {
-                                _values.assign(values.begin(), values.end());
+                _values.assign(values.begin(), values.end());
             }
 
             template<class Fn>
@@ -389,22 +379,22 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] friend constexpr bool
         operator==(const chime_payload<key_type, value_type, Clustering>& self, const key_type& other) noexcept(noexcept(self <=> other)) {
-                        return (self <=> other) == 0;
+            return (self <=> other) == 0;
         }
 
         [[nodiscard]] friend constexpr bool
         operator==(const key_type& other, const chime_payload<key_type, value_type, Clustering>& self) noexcept(noexcept(other <=> self)) {
-                        return (other <=> self) == 0;
+            return (other <=> self) == 0;
         }
 
         [[nodiscard]] friend constexpr bool
         operator!=(const chime_payload<key_type, value_type, Clustering>& self, const key_type& other) noexcept(noexcept(other <=> self)) {
-                        return (self <=> other) != 0;
+            return (self <=> other) != 0;
         }
 
         [[nodiscard]] friend constexpr bool
         operator!=(const key_type& other, const chime_payload<key_type, value_type, Clustering>& self) noexcept(noexcept(other <=> self)) {
-                        return (other <=> self) != 0;
+            return (other <=> self) != 0;
         }
 
         [[nodiscard]] constexpr const key_type&
@@ -427,7 +417,7 @@ namespace ldb::index::tree::payloads {
 
         constexpr std::optional<value_type>
         drop(const key_type& key) {
-                        const auto data_end = next(begin(_keys), _data_sz);
+            const auto data_end = next(begin(_keys), _data_sz);
             const auto it = std::ranges::lower_bound(begin(_keys),
                                                      data_end,
                                                      key);
@@ -447,7 +437,7 @@ namespace ldb::index::tree::payloads {
 
         constexpr upsert_status
         upsert_kv(const key_type& key, std::span<const value_type> value) {
-                        using std::swap;
+            using std::swap;
             if (_data_sz < 2) { // with 0 or 1 elems insertion is trivial
                 if (_data_sz > 0 && _keys[0] == key) {
                     _sets[0].push(value);

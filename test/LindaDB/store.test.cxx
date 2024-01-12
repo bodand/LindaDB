@@ -62,6 +62,23 @@ TEST_CASE("store can store and rdp by value a nonempty tuple") {
     CHECK(*ret == tuple);
 }
 
+TEST_CASE("store can store without signaling and rdp by value a nonempty tuple") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out_nosignal(tuple);
+    auto ret = store.rdp(ldb::query_tuple("asd", 2));
+    REQUIRE(ret.has_value());
+    CHECK(*ret == tuple);
+}
+
+TEST_CASE("store can store and rd by value a nonempty tuple") {
+    ldb::store store;
+    auto tuple = lv::linda_tuple("asd", 2);
+    store.out(tuple);
+    auto ret = store.rd(ldb::query_tuple("asd", 2));
+    CHECK(ret == tuple);
+}
+
 TEST_CASE("store can store and rdp by value a nonempty tuple without index") {
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 5, 4, 3, 2, 1);
@@ -295,6 +312,31 @@ TEST_CASE("store does not deadlock trivially when out is called on a waiting in"
     }
 }
 
+namespace {
+    struct test_broadcaster {
+        using await_type = ldb::null_awaiter;
+        ldb::lv::linda_tuple expected;
+    };
+    [[nodiscard]] ldb::null_awaiter
+    broadcast_insert(test_broadcaster bcast, const lv::linda_tuple& value) {
+        CHECK(bcast.expected == value);
+        return {};
+    }
+    [[nodiscard]] ldb::null_awaiter
+    broadcast_delete(test_broadcaster bcast, const lv::linda_tuple& value) {
+        CHECK(bcast.expected == value);
+        return {};
+    }
+    static_assert(ldb::broadcaster<test_broadcaster>);
+}
+
+TEST_CASE("broadcaster is notified when inserting with signaling") {
+    ldb::store store;
+    const auto tuple = ldb::lv::linda_tuple(1, 2, 3);
+    store.set_broadcast(test_broadcaster(tuple));
+    store.out(tuple);
+}
+
 TEST_CASE("serial insert,insert,remove,insert,remove runs") {
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
@@ -473,6 +515,24 @@ TEST_CASE("store removes correct element for query") {
     std::string data;
     start.arrive_and_wait();
     auto res = store.in(ldb::query_tuple("asd", 2, ldb::ref(&data)));
+    CHECK(res == tuple);
+}
+
+TEST_CASE("store retrieves correct element for query") {
+    ldb::store store;
+    std::latch start(2);
+
+    lv::linda_tuple tuple("asd", 2, "dsa");
+    std::jthread const writer([&tuple, &store, &start] {
+        start.arrive_and_wait();
+        store.out(lv::linda_tuple("asd", 3, "dsa"));
+        store.out(lv::linda_tuple("asd", 4, "dsa"));
+        store.out(tuple); // 2
+    });
+
+    std::string data;
+    start.arrive_and_wait();
+    auto res = store.rd(ldb::query_tuple("asd", 2, ldb::ref(&data)));
     CHECK(res == tuple);
 }
 

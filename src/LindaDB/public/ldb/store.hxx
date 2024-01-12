@@ -38,18 +38,19 @@
 
 #include <array>
 #include <atomic>
-#include <chrono>
+#include <concepts>
 #include <condition_variable>
-#include <functional>
+#include <cstddef>
 #include <mutex>
 #include <optional>
-#include <type_traits>
 
 #include <ldb/bcast/broadcast.hxx>
+#include <ldb/bcast/broadcaster.hxx>
 #include <ldb/bcast/null_broadcast.hxx>
 #include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/linda_value.hxx>
 #include <ldb/query_tuple.hxx>
 
 namespace ldb {
@@ -214,12 +215,12 @@ namespace ldb {
             return _data.locked_destructive_find(query);
         }
 
-        [[nodiscard]] bool
+        [[gnu::always_inline]] [[nodiscard]] bool
         check_and_reset_sync_need() const noexcept {
             return _sync_needed.exchange(0, std::memory_order::acq_rel) > 0;
         }
 
-        [[nodiscard]] bool
+        [[gnu::always_inline]] [[nodiscard]] bool
         check_sync_need() const noexcept {
             return _sync_needed.load(std::memory_order::acquire) > 0;
         }
