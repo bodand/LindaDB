@@ -49,9 +49,9 @@ TEST_CASE("runtime can retrieve a store object") {
     STATIC_CHECK(std::same_as<decltype(rt.store()), ldb::store&>);
     CHECK_NOTHROW(rt.store());
 
-    SECTION("") {
+    SECTION("constant runtime retrieves constant store") {
         const lrt::runtime& const_rt = rt;
         STATIC_CHECK(std::same_as<decltype(const_rt.store()), const ldb::store&>);
-        CHECK_NOTHROW(rt.store());
+        CHECK_NOTHROW(const_rt.store());
     }
 }
