@@ -547,16 +547,18 @@ TEST_CASE("store retrieves correct element for query") {
 TEST_CASE("parallel reads/writes do not deadlock",
           "[.long]") {
     static std::uniform_int_distribution<unsigned> time_dist(500'000U, 1'000'000U);
-    static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
+    static std::normal_distribution<double> key_dist(0, 1'000'000);
+    static std::uniform_int_distribution<int> val_dist(0, 1000);
     static std::mt19937_64 rng(std::random_device{}());
-    constexpr const static auto repeat_count = 12000;
+    constexpr const static auto repeat_count = 50'000;
     ldb::store store;
     std::mutex catch_guard{};
 
     auto adder = [&store](std::string_view name) {
         std::ignore = name;
         for (int i = 0; i < repeat_count; ++i) {
-            auto val = lv::linda_tuple("asd", val_dist(rng));
+            const auto val = lv::linda_tuple(static_cast<std::int32_t>(key_dist(rng)),
+                                             val_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)));
             store.out(val);
         }
@@ -565,14 +567,17 @@ TEST_CASE("parallel reads/writes do not deadlock",
         std::ignore = name;
         for (int i = 0; i < repeat_count; ++i) {
             int rand{};
-            auto query = ldb::query_tuple("asd", ldb::ref(&rand));
-            std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)) / 2);
-            auto ret = store.in(query);
+            const auto key = static_cast<std::int32_t>(key_dist(rng));
+            const auto query = ldb::query_tuple(static_cast<const std::int32_t>(key),
+                                                ldb::ref(&rand));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)) * 1.5);
+            const auto ret = store.inp(query);
+            if (!ret) continue;
 
             // Catch2 seems to break itself?
             // nothing else is shared at this point, so I don't **think** this is LindaDB?
             const std::scoped_lock lck(catch_guard);
-            CHECK(ret[0] == lv::linda_value("asd"));
+            CHECK((*ret)[0] == lv::linda_value(key));
             CHECK(rand >= 100'000);
             CHECK(rand <= 300'000);
         }

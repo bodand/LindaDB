@@ -189,7 +189,7 @@ TEST_CASE("new scalar AVL-tree can remove elements indefinitely",
     for (int i = 0; i < 2'000'000; ++i) {
         auto res = sut.remove(lit::any_value_query(key(rng)));
         if (res) {
-            CHECK(*res > 0);
+            CHECK(*res >= 0);
             CHECK(*res < 2'000'000);
         }
     }

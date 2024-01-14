@@ -303,7 +303,6 @@ TEST_CASE("new chime AVL-tree can remove elements indefinitely",
         sut.insert(key_val, i);
     }
 
-    std::cerr << "REMOVING\n";
     for (int i = 0; i < 2'000'000; ++i) {
         auto key_val = key(rng);
         auto res = sut.remove(lit::any_value_query(key_val));
