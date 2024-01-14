@@ -493,7 +493,7 @@ TEST_CASE("serial insert,insert,remove,insert,remove runs") {
 
 TEST_CASE("serial reads/writes proceeds",
           "[.long]") {
-    static std::normal_distribution<double> key_dist(0, 1'000'000);
+    static std::normal_distribution<double> key_dist(0, 100'000);
     static std::uniform_int_distribution<int> val_dist(0, 1000);
     static std::mt19937_64 rng(std::random_device{}());
     constexpr const static auto repeat_count = 10'000'000;
@@ -557,7 +557,7 @@ TEST_CASE("store retrieves correct element for query") {
 TEST_CASE("parallel reads/writes do not deadlock",
           "[.long]") {
     static std::uniform_int_distribution<unsigned> time_dist(500'000U, 1'000'000U);
-    static std::normal_distribution<double> key_dist(0, 1'000'000);
+    static std::normal_distribution<double> key_dist(0, 10'000);
     static std::uniform_int_distribution<int> val_dist(0, 1000);
     static std::mt19937_64 rng(std::random_device{}());
     constexpr const static auto repeat_count = 50'000;
@@ -588,8 +588,8 @@ TEST_CASE("parallel reads/writes do not deadlock",
             // nothing else is shared at this point, so I don't **think** this is LindaDB?
             const std::scoped_lock lck(catch_guard);
             CHECK((*ret)[0] == lv::linda_value(key));
-            CHECK(rand >= 100'000);
-            CHECK(rand <= 300'000);
+            CHECK(rand >= val_dist.min());
+            CHECK(rand <= val_dist.max());
         }
     };
 
