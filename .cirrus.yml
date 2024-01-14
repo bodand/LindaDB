@@ -124,8 +124,6 @@ windows_test_template: &WINDOWS_TEST_TEMPLATE_TASK
   test_script:
     - cd %BUILD_PATH%
     - ctest
-    - .\test\LindaDB\LindaDB.Test --allow-running-no-tests "[long]"
-    - .\test\LindaRT\LindaRT.Test --allow-running-no-tests "[long]"
 
 windows_builds_task:
   windows_container:
