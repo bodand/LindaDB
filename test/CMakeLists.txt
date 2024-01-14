@@ -55,3 +55,5 @@ target_link_libraries(lindart-test
 
 add_test(NAME "LindaRT-MPI"
          COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lindart-test>)
+set_tests_properties("LindaRT-MPI" PROPERTIES
+                     ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
