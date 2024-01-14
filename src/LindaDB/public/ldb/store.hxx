@@ -183,7 +183,7 @@ namespace ldb {
 
         void
         notify_sync_start() const noexcept {
-            _wait_read.notify_all();
+            _wait_read.notify_one();
         }
 
         template<class... Args>

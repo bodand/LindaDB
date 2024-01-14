@@ -35,8 +35,14 @@
  */
 
 
+#include <array>
+#include <fstream>
+#include <iomanip>
 #include <latch>
+#include <mutex>
+#include <ostream>
 #include <random>
+#include <string_view>
 #include <thread>
 
 #include <catch2/catch_test_macros.hpp>
@@ -477,23 +483,27 @@ TEST_CASE("serial insert,insert,remove,insert,remove runs") {
 
 TEST_CASE("serial reads/writes proceeds",
           "[.long]") {
-    static std::uniform_int_distribution<unsigned> time_dist(10'000'000U, 300'000'000U);
-    static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
+    static std::normal_distribution<double> key_dist(0, 1'000'000);
+    static std::uniform_int_distribution<int> val_dist(0, 1000);
     static std::mt19937_64 rng(std::random_device{}());
-    constexpr const static auto repeat_count = 500000;
+    constexpr const static auto repeat_count = 10'000'000;
+
     ldb::store store;
-
-
     for (int i = 0; i < repeat_count; ++i) {
-        auto val = lv::linda_tuple("asd", val_dist(rng));
+        const auto val = lv::linda_tuple(static_cast<std::int32_t>(key_dist(rng)), val_dist(rng));
         store.out(val);
+
         if (rng() % 2) {
-            int rand{};
-            auto query = ldb::query_tuple("asd", ldb::ref(&rand));
-            auto ret = store.in(query);
-            CHECK(ret[0] == lv::linda_value("asd"));
-            CHECK(rand >= 100'000);
-            CHECK(rand <= 300'000);
+            const auto key = static_cast<std::int32_t>(key_dist(rng));
+
+            int read_val{};
+            const auto query = ldb::query_tuple(static_cast<const std::int32_t>(key), ldb::ref(&read_val));
+            const auto ret = store.inp(query);
+            if (ret) {
+                CHECK((*ret)[0] == lv::linda_value(key));
+                CHECK(read_val >= val_dist.min());
+                CHECK(read_val <= val_dist.max());
+            }
         }
     }
 }
@@ -503,7 +513,7 @@ TEST_CASE("store removes correct element for query") {
     std::latch start(2);
 
     lv::linda_tuple tuple("asd", 2, "dsa");
-    std::jthread writer([&tuple, &store, &start] {
+    std::jthread const writer([&tuple, &store, &start] {
         start.arrive_and_wait();
         store.out(lv::linda_tuple("asd", 3, "dsa"));
         store.out(lv::linda_tuple("asd", 4, "dsa"));
@@ -536,11 +546,12 @@ TEST_CASE("store retrieves correct element for query") {
 
 TEST_CASE("parallel reads/writes do not deadlock",
           "[.long]") {
-    static std::uniform_int_distribution<unsigned> time_dist(1'000'000U, 30'000'000U);
+    static std::uniform_int_distribution<unsigned> time_dist(500'000U, 1'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
     static std::mt19937_64 rng(std::random_device{}());
     constexpr const static auto repeat_count = 12000;
     ldb::store store;
+    std::mutex catch_guard{};
 
     auto adder = [&store](std::string_view name) {
         std::ignore = name;
@@ -550,13 +561,17 @@ TEST_CASE("parallel reads/writes do not deadlock",
             store.out(val);
         }
     };
-    auto gatherer = [&store](std::string_view name) {
+    auto gatherer = [&catch_guard, &store](std::string_view name) {
         std::ignore = name;
         for (int i = 0; i < repeat_count; ++i) {
             int rand{};
             auto query = ldb::query_tuple("asd", ldb::ref(&rand));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)) / 2);
             auto ret = store.in(query);
+
+            // Catch2 seems to break itself?
+            // nothing else is shared at this point, so I don't **think** this is LindaDB?
+            const std::scoped_lock lck(catch_guard);
             CHECK(ret[0] == lv::linda_value("asd"));
             CHECK(rand >= 100'000);
             CHECK(rand <= 300'000);

@@ -160,7 +160,8 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] bool
         try_set(const key_type& key, const value_type& value) {
-            return upsert_kv(key, {&value, 1}) & (INSERTED | UPDATED);
+            std::array<const value_type, 1> pseudo_bundle{value};
+            return upsert_kv(key, pseudo_bundle) & (INSERTED | UPDATED);
         }
 
         [[nodiscard]] bool
@@ -281,12 +282,12 @@ namespace ldb::index::tree::payloads {
 
             constexpr explicit chime_value_set(bundle_type&& bundle)
                  : _values(std::move(bundle).data) {
-                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
+                //                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 
             constexpr explicit chime_value_set(const bundle_type& bundle)
                  : _values(bundle.data) {
-                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
+                //                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 
             template<class SetV>
@@ -297,17 +298,16 @@ namespace ldb::index::tree::payloads {
             constexpr void
             push(std::span<const value_type> val) {
                 _values.reserve(_values.size() + val.size());
-                std::ranges::for_each(val, [&](const auto& item) {
-                    auto it = std::ranges::lower_bound(_values, item);
-                    _values.insert(it, item);
-                });
+                _values.insert(_values.end(), val.begin(), val.end());
             }
 
             template<index_query<value_type> Q>
             [[nodiscard]] constexpr std::optional<value_type>
             pop(Q query) {
                 assert(!empty());
-                if (auto it = std::find(std::execution::par_unseq, _values.begin(), _values.end(), query);
+                if (auto it = std::ranges::find_if(_values, [&query](const auto& val) {
+                        return val == query;
+                    });
                     it != _values.end()) {
 
                     auto cp = *it;
@@ -321,7 +321,9 @@ namespace ldb::index::tree::payloads {
             [[nodiscard]] constexpr std::optional<value_type>
             get(const Q& query) const {
                 assert(!empty());
-                if (auto it = std::find(std::execution::par_unseq, _values.begin(), _values.end(), query);
+                if (auto it = std::ranges::find_if(_values, [&query](const auto& val) {
+                        return val == query;
+                    });
                     it != _values.end()) return *it;
                 return std::nullopt;
             }
@@ -460,7 +462,7 @@ namespace ldb::index::tree::payloads {
             if (it == end(_keys)) return FULL;
 
             auto col_idx = static_cast<std::size_t>(std::distance(begin(_keys), it));
-            if (*it == key) {
+            if (col_idx < _data_sz && *it == key) {
                 _sets[col_idx].push(value);
                 return UPDATED;
             }

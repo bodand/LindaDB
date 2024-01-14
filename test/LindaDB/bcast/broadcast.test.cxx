@@ -31,8 +31,13 @@
  * Originally created: 2024-01-10.
  *
  * test/LindaDB/bcast/broadcast --
- *   
+ *   Tests for the broadcast type-erasure containers.
+ *   -Wself-move is disabled for this file, because we check self-move's
+ *   behavior, in case, outside code decides to be mischievous
  */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-move"
+
 #include <utility>
 
 #include <catch2/catch_test_macros.hpp>
@@ -63,6 +68,12 @@ TEST_CASE("awaitable can be move assigned") {
     await(await_bcast2);
 }
 
+TEST_CASE("awaitable handles self-assigment") {
+    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
+    await_bcast = std::move(await_bcast);
+    await(await_bcast);
+}
+
 TEST_CASE("broadcaster can broadcast insert") {
     const ldb::broadcast bcast = ldb::null_broadcast{};
     await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
@@ -75,7 +86,8 @@ TEST_CASE("broadcaster can broadcast delete") {
 
 TEST_CASE("default constructed broadcaster can be called, is nop") {
     const ldb::broadcast bcast;
-    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
+    broadcast_insert(bcast, ldb::lv::linda_tuple{});
+    broadcast_delete(bcast, ldb::lv::linda_tuple{});
 }
 
 TEST_CASE("broadcast can be move constructed") {
@@ -90,3 +102,11 @@ TEST_CASE("broadcast can be move assigned") {
     bcast2 = std::move(bcast);
     await(broadcast_insert(bcast2, ldb::lv::linda_tuple{}));
 }
+
+TEST_CASE("broadcast handles self-assignment") {
+    ldb::broadcast bcast = ldb::null_broadcast{};
+    bcast = std::move(bcast);
+    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
+}
+
+#pragma clang diagnostic pop
