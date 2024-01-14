@@ -34,13 +34,20 @@
  *   Tests for the chunked list implementation.
  */
 
+#include <tuple>
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "bugprone-inc-dec-in-conditions"
 
+#include <compare>
 #include <concepts>
+#include <iterator>
+#include <numeric>
+#include <type_traits>
 
-#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/data/chunked_list.hxx>
 
+static constexpr const auto gDouble_Chunk_Size = 32;
 namespace ld = ldb::data;
 
 template<class I>
@@ -68,15 +75,15 @@ concept LegacyInputIterator =
               requires std::signed_integral<typename std::incrementable_traits<I>::difference_type>;
           };
 
-template<class It>
+template<class Iter>
 concept LegacyForwardIterator =
-       LegacyInputIterator<It>
-       && std::constructible_from<It>
-       && std::is_reference_v<std::iter_reference_t<It>>
-       && std::same_as<std::remove_cvref_t<std::iter_reference_t<It>>, typename std::indirectly_readable_traits<It>::value_type>
-       && requires(It it) {
-              { it++ } -> std::convertible_to<const It&>;
-              { *it++ } -> std::same_as<std::iter_reference_t<It>>;
+       LegacyInputIterator<Iter>
+       && std::constructible_from<Iter>
+       && std::is_reference_v<std::iter_reference_t<Iter>>
+       && std::same_as<std::remove_cvref_t<std::iter_reference_t<Iter>>, typename std::indirectly_readable_traits<Iter>::value_type>
+       && requires(Iter it) {
+              { it++ } -> std::convertible_to<const Iter&>;
+              { *it++ } -> std::same_as<std::iter_reference_t<Iter>>;
           };
 
 template<class I>
@@ -123,7 +130,7 @@ TEST_CASE("chunked_list<...>::iterator conforms to three-way-comparable",
 
 TEST_CASE("default constructed chunked_list has empty size") {
     const ld::chunked_list<int> data;
-    CHECK(data.size() == 0);
+    CHECK(data.size() == 0); // NOLINT
 }
 
 TEST_CASE("default constructed chunked_list is empty") {
@@ -151,7 +158,7 @@ TEST_CASE("chunked_list with one element has size 1") {
 
 TEST_CASE("chunked_list has correct size after multiple push_backs") {
     ld::chunked_list<int> data;
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < gDouble_Chunk_Size; ++i) {
         data.push_back(i);
     }
     CHECK(data.size() == 32U);
@@ -159,7 +166,7 @@ TEST_CASE("chunked_list has correct size after multiple push_backs") {
 
 TEST_CASE("chunked_list has correct size after multiple emplace_backs") {
     ld::chunked_list<int> data;
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < gDouble_Chunk_Size; ++i) {
         data.emplace_back(i);
     }
     CHECK(data.size() == 32U);
@@ -167,7 +174,7 @@ TEST_CASE("chunked_list has correct size after multiple emplace_backs") {
 
 TEST_CASE("chunked_list is empty after clear") {
     ld::chunked_list<int> data;
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < gDouble_Chunk_Size; ++i) {
         data.emplace_back(i);
     }
     CHECK(data.size() == 32U);
@@ -177,23 +184,24 @@ TEST_CASE("chunked_list is empty after clear") {
 
 TEST_CASE("empty chunked_list can be iterated over") {
     const ld::chunked_list<int> data;
-    for (int const& _ : data) {
-        std::ignore = _;
-        FAIL("value in empty chunked_list");
-    }
+    const auto res = std::accumulate(data.begin(), data.end(), 0, [](auto acc, auto elem) {
+        std::ignore = elem;
+        return acc + 1;
+    });
+    CHECK(res == 0);
 }
 
 TEST_CASE("single element chunked_list can be iterated over") {
     ld::chunked_list<int> data;
     data.push_back(1);
-    for (int i : data) {
+    for (int const i : data) {
         CHECK(i == 1);
     }
 }
 
 TEST_CASE("chunked_list can be iterated over") {
     ld::chunked_list<int> data;
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < gDouble_Chunk_Size; ++i) {
         data.emplace_back(i + 1);
     }
     for (int const& it : data) {
@@ -203,21 +211,20 @@ TEST_CASE("chunked_list can be iterated over") {
 
 TEST_CASE("chunked_list can be linearly searched in even if there are holes") {
     ld::chunked_list<int> data;
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < gDouble_Chunk_Size; ++i) {
         data.emplace_back(i + 1);
     }
-    data.erase(std::next(std::begin(data), 16));
-    auto it = std::ranges::find(data, 32);
-    CHECK(*it == 32);
+    data.erase(std::next(std::begin(data), gDouble_Chunk_Size / 2));
+    auto it = std::ranges::find(data, gDouble_Chunk_Size);
+    CHECK(*it == gDouble_Chunk_Size);
 }
 
 TEST_CASE("chunked_list can be deleted from using an iterator") {
     ld::chunked_list<int> data;
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < gDouble_Chunk_Size; ++i) {
         data.emplace_back(i);
     }
-    auto it = data.begin();
-    data.erase(std::next(it, 3));
+    data.erase(std::next(data.begin(), 3));
     for (int const& it : data) {
         CHECK(it != 3);
     }
@@ -226,7 +233,7 @@ TEST_CASE("chunked_list can be deleted from using an iterator") {
 // NOLINTNEXTLINE
 TEST_CASE("chunked_list iterators are comparable") {
     ld::chunked_list<int> data;
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < gDouble_Chunk_Size; ++i) {
         data.emplace_back(i + 1);
     }
 
@@ -244,3 +251,5 @@ TEST_CASE("chunked_list iterators are comparable") {
         CHECK(data.end() > --data.end());
     }
 }
+
+#pragma clang diagnostic pop

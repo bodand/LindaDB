@@ -35,13 +35,25 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <bit>
+#include <cassert>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <execution>
+#include <limits>
+#include <memory>
 #include <numeric>
-#include <ranges>
+#include <span>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
 
-#include <ldb/lv/linda_value.hxx>
 #include <ldb/common.hxx>
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/linda_value.hxx>
 #include <lrt/serialize/tuple.hxx>
 
 namespace {
@@ -65,24 +77,25 @@ namespace {
 #endif
 
 #ifdef LINDA_RT_BIG_ENDIAN
-    constexpr const auto comm_endian = std::endian::big;
+    constexpr const auto communicaiton_endian = std::endian::big;
 #else
-    constexpr const auto comm_endian = std::endian::little;
+    constexpr const auto communication_endian = std::endian::little;
 #endif
 
     template<std::integral T>
     constexpr T
     swap_unless_comm_endian(T val) noexcept {
-        if constexpr (std::endian::big == std::endian::native) { // on big endian system
-            if constexpr (comm_endian == std::endian::big) {     // comm order is big
+        using enum std::endian;
+        if constexpr (big == native) {          // on big endian system
+            if constexpr (communication_endian == big) { // comm order is big
                 return val;
             }
             else { // comm order is little
                 return byteswap(val);
             }
         }
-        else if constexpr (std::endian::little == std::endian::native) { // on little endian system
-            if constexpr (comm_endian == std::endian::big) {             // comm order is big
+        else if constexpr (little == native) {  // on little endian system
+            if constexpr (communication_endian == big) { // comm order is big
                 return byteswap(val);
             }
             else { // comm order is little
@@ -174,8 +187,7 @@ namespace {
         static_assert(std::numeric_limits<double>::is_iec559,
                       "LindaRT requires IEEE754 doubles");
 
-        explicit
-        value_serializator(std::byte* buf) : buf(buf) { }
+        explicit value_serializator(std::byte* buf) : buf(buf) { }
         std::byte* buf;
 
         template<std::integral T>

@@ -607,11 +607,11 @@ namespace ldb::data {
         LDB_CONSTEXPR23 void
         erase_unguarded(iterator it) {
             auto chunk = it._chunk;
-            const auto i = it._index;
+            const auto it_idx = it._index;
             assert(chunk);
-            assert(chunk->valid_at_index(i));
+            assert(chunk->valid_at_index(it_idx));
 
-            chunk->destroy_at_index(i);
+            chunk->destroy_at_index(it_idx);
             if (chunk->empty()) {
                 _chunks.erase(next(_chunks.begin(),
                                    static_cast<difference_type>(chunk->_chunk_index)));
