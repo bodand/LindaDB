@@ -13,6 +13,8 @@ linux_test_template: &LINUX_TEST_TEMPLATE_TASK
   test_script:
     - cd ${BUILD_PATH}
     - ctest --output-on-failure
+    - ./LindaDB/LindaDB.Test --allow-running-no-tests "[long]"
+    - ./LindaRT/LindaRT.Test --allow-running-no-tests "[long]"
 
   coverage_script:
     - cd ${BUILD_PATH}
@@ -121,12 +123,14 @@ windows_test_template: &WINDOWS_TEST_TEMPLATE_TASK
   test_script:
     - cd %BUILD_PATH%
     - ctest
+    - .\LindaDB\LindaDB.Test --allow-running-no-tests "[long]"
+    - .\LindaRT\LindaRT.Test --allow-running-no-tests "[long]"
 
 windows_builds_task:
   windows_container:
     image: cirrusci/windowsservercore:2019
     cpu: 4
-    memory: 8G
+    memory: 10G
 
   dependencies_script:
     - choco install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.Component.VC.Runtime.UCRTSDK --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.ATL"
