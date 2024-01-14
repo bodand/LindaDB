@@ -13,8 +13,8 @@ linux_test_template: &LINUX_TEST_TEMPLATE_TASK
   test_script:
     - cd ${BUILD_PATH}
     - ctest --output-on-failure
-    - ./test/LindaDB/LindaDB.Test --allow-running-no-tests "[long]"
-    - ./test/LindaRT/LindaRT.Test --allow-running-no-tests "[long]"
+    - ./test/LindaDB/LindaDB.Test --allow-running-no-tests -d yes "[long]"
+    - ./test/LindaRT/LindaRT.Test --allow-running-no-tests -d yes "[long]"
 
   coverage_script:
     - cd ${BUILD_PATH}
