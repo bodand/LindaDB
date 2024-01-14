@@ -58,7 +58,7 @@ linux_builds_task:
 
   env:
     CIRRUS_CLONE_SUBMODULES: "true"
-    LLVM_PROFILE_FILE: %m-%p.profraw
+    LLVM_PROFILE_FILE: "%m-%p.profraw"
     VCPKG_DEFAULT_BINARY_CACHE: ${CIRRUS_WORKING_DIR}/vcpkg-bincache
     CMAKE_PRESET: lnx-${CG_TOOLCHAIN}-${BUILD_ARCH}-rel
     CMAKE_BUILD_PRESET: release-linux-${BUILD_ARCH}-${CG_TOOLCHAIN}
@@ -158,7 +158,7 @@ windows_builds_task:
   env:
     CIRRUS_CLONE_SUBMODULES: "true"
     BUILD_ARCH: x64
-    LLVM_PROFILE_FILE: %m-%p.profraw
+    LLVM_PROFILE_FILE: "^%m-^%p.profraw"
     VCPKG_DEFAULT_BINARY_CACHE: "%CIRRUS_WORKING_DIR%\\vcpkg-bincache"
     CMAKE_PRESET: win-%CG_TOOLCHAIN%-%BUILD_ARCH%-rel
     CMAKE_BUILD_PRESET: release-windows-%BUILD_ARCH%-%CG_TOOLCHAIN%
