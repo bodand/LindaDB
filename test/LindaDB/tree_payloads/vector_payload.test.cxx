@@ -87,6 +87,48 @@ TEST_CASE("empty vector_payload has priority") {
     CHECK(sut.have_priority());
 }
 
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is copyable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = sut;
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is copy assignable") {
+    const sut_type<> sut;
+
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = sut;
+
+    CHECK(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is movable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = std::move(sut);
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is move assignable") {
+    sut_type<> sut;
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = std::move(sut);
+
+    CHECK(sut2.empty());
+}
+
+
 // ordering of test keys: Test_Key3 < Test_Key < Test_Key2
 // the test suite relies on this ordering, so even if
 // modifying the keys retain this property

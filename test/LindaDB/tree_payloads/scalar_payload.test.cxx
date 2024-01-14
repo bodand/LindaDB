@@ -76,6 +76,51 @@ TEST_CASE("scalar_payload default initializes as having capacity one") {
     CHECK(sut.capacity() == 1);
 }
 
+template<class = int>
+using sut_type = lps::scalar_payload<int, int>;
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is copyable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = sut;
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is copy assignable") {
+    const sut_type<> sut;
+
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = sut;
+
+    CHECK(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is movable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = std::move(sut);
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is move assignable") {
+    sut_type<> sut;
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = std::move(sut);
+
+    CHECK(sut2.empty());
+}
+
+
 constexpr const static auto Test_Key = 42;
 constexpr const static auto Test_Value = 42;
 

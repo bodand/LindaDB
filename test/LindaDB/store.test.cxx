@@ -44,11 +44,13 @@
 #include <random>
 #include <string_view>
 #include <thread>
+#include <tuple>
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
+#include "ldb/bcast/broadcaster.hxx"
 
 namespace lv = ldb::lv;
 using namespace std::literals;
@@ -290,6 +292,14 @@ TEST_CASE("store can repeat inp calls for missing tuple") {
     }
 }
 
+TEST_CASE("store can store zero length tuples") {
+    ldb::store store;
+    const auto tuple = lv::linda_tuple();
+    store.out(tuple);
+    const auto found = store.in(ldb::query_tuple());
+    CHECK(found == tuple);
+}
+
 TEST_CASE("store does not deadlock trivially when out is called on a waiting in") {
     static std::uniform_int_distribution<unsigned> time_dist(500'000U, 1'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);
@@ -337,7 +347,7 @@ namespace {
 TEST_CASE("broadcaster is notified when inserting with signaling") {
     ldb::store store;
     const auto tuple = ldb::lv::linda_tuple(1, 2, 3);
-    store.set_broadcast(test_broadcaster(tuple));
+    store.set_broadcast(test_broadcaster{tuple});
     store.out(tuple);
 }
 

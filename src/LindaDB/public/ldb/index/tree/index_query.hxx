@@ -75,9 +75,7 @@ namespace ldb::index::tree {
         }
         friend constexpr auto
         operator==(const auto& a, const any_value_query& b) noexcept {
-            std::ignore = a;
-            std::ignore = b;
-            return true;
+            return std::is_eq(a <=> b);
         }
     };
     static_assert(index_query<any_value_query<int>, int>);
@@ -110,7 +108,7 @@ namespace ldb::index::tree {
         
         friend constexpr bool
         operator==(const auto& a, const value_query& b) noexcept {
-            return a == b._value;
+            return std::is_eq(a <=> b);
         }
     };
     static_assert(index_query<value_query<int, int>, int>);

@@ -300,7 +300,7 @@ namespace ldb {
                     ret = std::optional(indices[Idx].remove(index::tree::value_query(std::get<Idx>(_payload), *this)));
                     return !*ret;
                 };
-                (aggregator.template operator()<Is>() && ...);
+                std::ignore = (aggregator.template operator()<Is>() && ...);
             }(std::make_index_sequence<sizeof...(Matcher)>());
 
             return {index_idx, ret};

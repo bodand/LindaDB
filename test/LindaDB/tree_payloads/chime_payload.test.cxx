@@ -43,6 +43,7 @@
 #include <ldb/index/tree/payload/chime_payload.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query_tuple.hxx>
+#include "ldb/index/tree/index_query.hxx"
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
@@ -60,6 +61,47 @@ TEST_CASE("chime_payload default initializes as empty") {
     const sut_type<> sut;
 
     CHECK(sut.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is copyable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = sut;
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is copy assignable") {
+    const sut_type<> sut;
+
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = sut;
+
+    CHECK(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is movable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = std::move(sut);
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is move assignable") {
+    sut_type<> sut;
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = std::move(sut);
+
+    CHECK(sut2.empty());
 }
 
 // NOLINTNEXTLINE
