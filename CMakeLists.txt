@@ -100,8 +100,13 @@ if (NOT DEFINED ENV{CG_DEPLOYMENT})
         AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH vs_llvmx64_bindir)
         cmake_path(GET vs_llvmx64_bindir PARENT_PATH vs_llvmx64_dir)
-        set(clang_profile_lib "${vs_llvmx64_dir}/lib/clang/16/lib/windows/clang_rt.profile-x86_64.lib")
-        target_link_libraries(internal-coverage INTERFACE "${clang_profile_lib}")
+        if (CMAKE_CXX_COMPILER_VERSION MATCHES [[^([1-9][0-9]*)\.]])
+            set(clang_profile_lib "${vs_llvmx64_dir}/lib/clang/${CMAKE_MATCH_1}/lib/windows/clang_rt.profile-x86_64.lib")
+            target_link_libraries(internal-coverage INTERFACE "${clang_profile_lib}")
+        else ()
+            message(WARNING
+                    "Cannot deduce Clang Runtime location: cannot calculate the major version of the compiler is from: ${CMAKE_CXX_COMPILER_VERSION}")
+        endif ()
     else ()
         target_link_options(internal-coverage INTERFACE
                             $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
