@@ -200,19 +200,23 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         read_and_remove(const query_tuple<Args...>& query) {
-            if (auto [index_idx, index_res] = query.try_read_and_remove_indices(std::span(_header_indices));
+            if (const auto [index_idx, index_res] = query.try_read_and_remove_indices(std::span(_header_indices));
                 index_res.has_value()) {
                 if (!*index_res) return std::nullopt;
-                auto it = **index_res;
-                auto res = *it;
+                const auto it = **index_res;
+                const auto res = *it;
+                auto bcast = broadcast_delete(_broadcast, res);
                 for (std::size_t i = 0U; i < _header_indices.size(); ++i) {
                     if (i == index_idx) continue;
                     std::ignore = _header_indices[i].remove(index::tree::value_query(res[i], it));
                 }
                 _data.erase(it);
+                await(bcast);
                 return res;
             }
-            return _data.locked_destructive_find(query);
+            const auto res = _data.locked_destructive_find(query);
+            if (res) await(broadcast_delete(_broadcast, *res));
+            return res;
         }
 
         [[gnu::always_inline]] [[nodiscard]] bool

@@ -41,8 +41,8 @@
 #include <ios>
 #include <iostream>
 #include <memory>
-#include <numeric>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -57,17 +57,6 @@ namespace {
     constexpr const int LINDA_RT_TERMINATE_TAG = 0xDB'00'01;
     constexpr const int LINDA_RT_DB_SYNC_INSERT_TAG = 0xDB'00'02;
     constexpr const int LINDA_RT_DB_SYNC_DELETE_TAG = 0xDB'00'03;
-
-    constexpr std::byte
-    payload_from_command(int tag) {
-        assert(tag > 0);
-        return static_cast<std::byte>(static_cast<unsigned>(tag) & 0xFFU);
-    }
-
-    constexpr int
-    command_from_payload(std::byte received) {
-        return static_cast<int>(static_cast<unsigned>(received) | 0xDB'00'00U);
-    }
 
     struct mpi_request_vector_awaiter final {
         mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
@@ -93,48 +82,67 @@ namespace {
 
     static_assert(ldb::awaitable<mpi_request_vector_awaiter>);
 
-    struct bcast_handler final {
+    MPI_Request
+    start_send_buffer_to_with_tag(const std::span<std::byte> buffer,
+                                  int to_rank,
+                                  int tag) {
+        auto req = MPI_REQUEST_NULL;
+        if (const auto status = MPI_Isend(buffer.data(),
+                                          static_cast<int>(buffer.size()),
+                                          MPI_CHAR,
+                                          to_rank,
+                                          tag,
+                                          MPI_COMM_WORLD,
+                                          &req);
+            status != 0) return MPI_REQUEST_NULL;
+        return req;
+    }
+
+    struct manual_broadcast_handler final {
         using await_type = mpi_request_vector_awaiter;
 
-        explicit bcast_handler(const int rank, const int size)
-             : _myrank(rank),
-               _size(size) { }
+        static manual_broadcast_handler
+        for_communicator(MPI_Comm comm) {
+            int rank;
+            int comm_size;
+            MPI_Comm_rank(comm, &rank);
+            MPI_Comm_size(comm, &comm_size);
+            return {rank, comm_size};
+        }
 
     private:
+        manual_broadcast_handler(const int rank, const int size)
+             : _myrank(rank),
+               _size(static_cast<std::size_t>(size)) { }
+
+        [[nodiscard]] std::vector<int>
+        get_recipients() const {
+            std::vector<int> recipient_ranks(_size - 1);
+            std::ranges::generate(recipient_ranks, [idx = 0, skipped = _myrank]() mutable {
+                const auto rank = idx++;
+                if (rank == skipped) return idx++;
+                return rank;
+            });
+            return recipient_ranks;
+        }
+
         [[nodiscard]] std::vector<MPI_Request>
         broadcast_with_tag(int tag, std::span<std::byte> bytes) const {
-            const auto ranks_sz = static_cast<std::size_t>(_size);
-            std::vector requests(ranks_sz, MPI_REQUEST_NULL);
-
-            std::vector<int> ranks(ranks_sz);
-            std::iota(ranks.begin(), ranks.end(), 0);
-
+            std::vector requests(_size, MPI_REQUEST_NULL);
+            const auto recipient_ranks = get_recipients();
             std::transform(std::execution::par_unseq,
-                           ranks.begin(),
-                           ranks.end(),
+                           recipient_ranks.begin(),
+                           recipient_ranks.end(),
                            requests.begin(),
-                           [bytes, tag, my_rank = _myrank](int rank) {
-                               if (rank == my_rank) return MPI_REQUEST_NULL;
-
-                               MPI_Request req;
-                               if (const auto status = MPI_Isend(bytes.data(),
-                                                                 static_cast<int>(bytes.size()),
-                                                                 MPI_CHAR,
-                                                                 rank,
-                                                                 tag,
-                                                                 MPI_COMM_WORLD,
-                                                                 &req);
-                                   status == 0) {
-                                   return req;
-                               }
-                               return MPI_REQUEST_NULL;
+                           [bytes, tag](int rank) {
+                               return start_send_buffer_to_with_tag(bytes, rank, tag);
                            });
 
             return requests;
         }
 
         friend mpi_request_vector_awaiter
-        broadcast_insert(const bcast_handler& handler,
+        broadcast_insert(const manual_broadcast_handler& handler,
                          const ldb::lv::linda_tuple& tuple) {
             auto [val, val_sz] = lrt::serialize(tuple);
             auto reqs = handler.broadcast_with_tag(LINDA_RT_DB_SYNC_INSERT_TAG,
@@ -143,7 +151,7 @@ namespace {
         }
 
         friend mpi_request_vector_awaiter
-        broadcast_delete(const bcast_handler& handler,
+        broadcast_delete(const manual_broadcast_handler& handler,
                          const ldb::lv::linda_tuple& tuple) {
             auto [val, val_sz] = lrt::serialize(tuple);
             auto reqs = handler.broadcast_with_tag(LINDA_RT_DB_SYNC_DELETE_TAG,
@@ -152,27 +160,32 @@ namespace {
         }
 
         int _myrank;
-        int _size;
+        std::size_t _size;
     };
-}
 
-lrt::runtime::
-       runtime(int* argc, char*** argv)
-     : _recv_thr(&lrt::runtime::recv_thread_worker, this) {
-    if (!_mpi_inited.test_and_set()) {
+    struct incompatible_mpi_exception : std::runtime_error {
+        incompatible_mpi_exception()
+             : std::runtime_error("MPI_Init_thread: insufficient threading capabilities: "
+                                  "LindaRT requires at least MPI_THREAD_SERIALIZED but the current "
+                                  "MPI runtime cannot provide this functionality.") { }
+    };
+
+    void
+    init_threaded_mpi(int* argc, char*** argv) {
         int got_thread = MPI_THREAD_SINGLE;
         MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &got_thread);
+
         if (got_thread == MPI_THREAD_SINGLE
-            || got_thread == MPI_THREAD_FUNNELED) {
-            throw std::runtime_error("MPI_Init_thread: insufficient threading capabilities: "
-                                     "LindaRT requires at least MPI_THREAD_SERIALIZED but the current "
-                                     "MPI runtime cannot provide this functionality.");
-        }
+            || got_thread == MPI_THREAD_FUNNELED) throw incompatible_mpi_exception();
     }
-    int world_size;
+}
+
+lrt::runtime::runtime(int* argc, char*** argv)
+     : _recv_thr(&lrt::runtime::recv_thread_worker, this) {
+    if (!_mpi_inited.test_and_set()) init_threaded_mpi(argc, argv);
+
     MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    _store.set_broadcast(bcast_handler(_rank, world_size));
+    _store.set_broadcast(manual_broadcast_handler::for_communicator(MPI_COMM_WORLD));
     _recv_start.test_and_set();
     _recv_start.notify_all();
 }
