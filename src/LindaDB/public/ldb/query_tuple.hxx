@@ -49,218 +49,13 @@
 
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/linda_value.hxx>
+#include <ldb/query/make_matcher.hxx>
+#include <ldb/query/match_type.hxx>
+#include <ldb/query/match_value.hxx>
+#include <ldb/query/tuple_query_if.hxx>
 
 namespace ldb {
-    namespace meta {
-        struct finder {
-            explicit
-            finder(size_t& idx) : idx(idx) { }
-            std::size_t& idx;
-
-            bool
-            operator()(auto* ptr, std::size_t ptr_idx) const noexcept {
-                if (ptr == nullptr) return false;
-                idx = ptr_idx;
-                return true;
-            }
-            bool
-            operator()(bool same, std::size_t ptr_idx) const noexcept {
-                if (!same) return false;
-                idx = ptr_idx;
-                return true;
-            }
-        };
-    }
-
-    template<class T>
-    struct match_type {
-        constexpr explicit
-        match_type(T* ref) noexcept : _ref(ref) { }
-
-        template<class... Args>
-        [[nodiscard]] constexpr auto
-        operator<=>(const std::variant<Args...>& value) const noexcept
-            requires((std::same_as<T, Args> || ...))
-        {
-            if (auto found = std::get_if<T>(&value);
-                found) {
-                *_ref = *found;
-                return std::strong_ordering::equal;
-            }
-
-            auto valid_idx = [&value]<std::size_t... Is>(std::index_sequence<Is...>) {
-                std::size_t idx{};
-                (meta::finder(idx)(std::get_if<Args>(&value), Is) || ...);
-                return idx;
-            }(std::make_index_sequence<sizeof...(Args)>());
-            auto t_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
-                std::size_t idx{};
-                (meta::finder(idx)(std::same_as<T, Args>, Is) || ...);
-                return idx;
-            }(std::make_index_sequence<sizeof...(Args)>());
-
-            return valid_idx <=> t_idx;
-        }
-
-        constexpr static std::false_type
-        indexable() { return {}; }
-
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const match_type&) {
-            return os << "Type(" << typeid(T).name() << ")";
-        }
-
-        T* _ref;
-    };
-
-    template<class T>
-    struct match_value {
-        constexpr
-        match_value() noexcept = default;
-
-        template<class U>
-        explicit constexpr match_value(U&& field) noexcept(std::is_nothrow_constructible_v<T, U>)
-            requires(!std::same_as<U, match_value>)
-             : _field(std::forward<U>(field)) { }
-
-        explicit constexpr
-        match_value(T& field)
-             : _field(field) { }
-
-        template<class... Args>
-        [[nodiscard]] friend constexpr auto
-        operator<=>(const std::variant<Args...>& value, const match_value& mv) noexcept(noexcept(std::declval<T>() == mv._field))
-            requires((std::same_as<T, Args> || ...))
-        {
-            return std::visit([field = mv._field]<class V>(V&& val) {
-                if constexpr (std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<V>>) {
-                    return field <=> std::forward<V>(val);
-                }
-                else {
-                    auto t_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
-                        std::size_t idx{};
-                        (meta::finder(idx)(std::same_as<T, Args>, Is) || ...);
-                        return idx;
-                    }(std::make_index_sequence<sizeof...(Args)>());
-                    auto v_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
-                        std::size_t idx{};
-                        (meta::finder(idx)(std::same_as<V, Args>, Is) || ...);
-                        return idx;
-                    }(std::make_index_sequence<sizeof...(Args)>());
-                    return v_idx <=> t_idx;
-                }
-            },
-                              value);
-        }
-
-        constexpr static std::true_type
-        indexable() { return {}; }
-
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const match_value& val) {
-            return os << val._field;
-        }
-
-        T _field;
-    };
-
-    template<class... Args>
-    struct match_value<std::variant<Args...>> {
-        constexpr
-        match_value() noexcept = default;
-
-        explicit constexpr
-        match_value(const std::variant<Args...>& field) noexcept(std::is_nothrow_copy_constructible_v<std::variant<Args...>>)
-             : _field(field) { }
-
-        template<class... Args2>
-        [[nodiscard]] friend constexpr auto
-        operator<=>(const std::variant<Args2...>& value, const match_value& mv) noexcept(noexcept(mv._field <=> value)) {
-            return value <=> mv._field;
-        }
-
-        constexpr static std::true_type
-        indexable() { return {}; }
-
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const match_value& val) {
-            std::visit([&os](const auto& x) {
-                os << x;
-            },
-                       val._field);
-            return os;
-        }
-
-        std::variant<Args...> _field;
-    };
-
-    template<class T>
-    match_value(T t) -> match_value<T>;
-
-    template<class T>
-    auto
-    ref(T* ptr) { return match_type<T>{ptr}; }
-
-    namespace meta {
-        template<class T>
-        struct make_matcher_impl {
-            using type = match_value<T>;
-
-            template<class U = T>
-            constexpr auto
-            operator()(U&& val) const noexcept {
-                return match_value(std::forward<U>(val));
-            }
-        };
-
-        template<class CharT, std::size_t N>
-        struct make_matcher_impl<const CharT (&)[N]> {
-            using type = match_value<std::basic_string<CharT>>;
-
-            template<class U = const CharT*>
-            constexpr auto
-            operator()(U&& val) const noexcept {
-                return match_value<std::basic_string<CharT>>(std::forward<U>(val));
-            }
-        };
-
-        template<class P>
-        struct make_matcher_impl<const match_type<P>&> {
-            using type = match_type<P>;
-
-            template<class M = match_type<P>>
-            constexpr auto
-            operator()(const M& matcher) const noexcept {
-                return matcher;
-            }
-        };
-
-        template<class P>
-        struct make_matcher_impl<match_type<P>> {
-            using type = match_type<P>;
-
-            template<class M = match_type<P>>
-            constexpr auto
-            operator()(M matcher) const noexcept {
-                return matcher;
-            }
-        };
-
-        template<class T>
-        constexpr const static auto make_matcher = make_matcher_impl<T>{};
-
-        template<class T>
-        using matcher_type = make_matcher_impl<T>::type;
-
-        template<class TW>
-        concept tuple_wrapper = requires(const TW& tw) {
-            { *tw } -> std::same_as<lv::linda_tuple&>;
-        };
-    }
-
     template<class... Matcher>
     struct query_tuple {
         template<class... Args>
@@ -277,7 +72,7 @@ namespace ldb {
                 auto aggregator = [this, &ret, &indices]<std::size_t Idx>() constexpr {
                     if (!_indexable[Idx]) return true;
                     if (indices.size() < Idx) return false;
-                    ret = std::optional(indices[Idx].search(index::tree::value_query(std::get<Idx>(_payload), *this)));
+                    ret = std::optional(indices[Idx].search(index::tree::value_lookup(std::get<Idx>(_payload), *this)));
                     return !*ret;
                 };
                 (aggregator.template operator()<Is>() && ...);
@@ -297,7 +92,7 @@ namespace ldb {
                     if (!_indexable[Idx]) return true;
                     if (indices.size() < Idx) return false;
                     index_idx = Idx;
-                    ret = std::optional(indices[Idx].remove(index::tree::value_query(std::get<Idx>(_payload), *this)));
+                    ret = std::optional(indices[Idx].remove(index::tree::value_lookup(std::get<Idx>(_payload), *this)));
                     return !*ret;
                 };
                 std::ignore = (aggregator.template operator()<Is>() && ...);
@@ -306,14 +101,10 @@ namespace ldb {
             return {index_idx, ret};
         }
 
-        std::string
-        dump_string() const {
-            std::stringstream ss;
-            ss << (*this);
-            return ss.str();
-        }
-
     private:
+        template<class IndexType, class... Args>
+        friend struct manual_fields_query;
+
         friend std::ostream&
         operator<<(std::ostream& os, const query_tuple& val) {
             [&os, &payload = val._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
@@ -323,8 +114,7 @@ namespace ldb {
         }
 
         struct matcher {
-            explicit
-            matcher(std::partial_ordering& ordering) : ordering(ordering) { }
+            explicit matcher(std::partial_ordering& ordering) : ordering(ordering) { }
             std::partial_ordering& ordering;
 
             bool

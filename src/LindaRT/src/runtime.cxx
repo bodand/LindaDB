@@ -222,7 +222,7 @@ lrt::runtime::recv_thread_worker() {
 
         case LINDA_RT_DB_SYNC_DELETE_TAG: {
             const auto rx_deleted = deserialize(payload);
-            // _store.remove_nosignal(rx_deleted); TODO
+             _store.remove_nosignal(rx_deleted);
             break;
         }
 

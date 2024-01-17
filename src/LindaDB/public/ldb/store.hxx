@@ -41,20 +41,31 @@
 #include <concepts>
 #include <condition_variable>
 #include <cstddef>
+#include <functional>
 #include <mutex>
 #include <optional>
+#include <tuple>
+#include <variant>
 
 #include <ldb/bcast/broadcast.hxx>
 #include <ldb/bcast/broadcaster.hxx>
 #include <ldb/bcast/null_broadcast.hxx>
 #include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
+#include <ldb/index/tree/index_query.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
+#include <ldb/query/manual_fields_query.hxx>
+#include <ldb/query/tuple_query.hxx>
 #include <ldb/query_tuple.hxx>
 
 namespace ldb {
     struct store {
+        using storage_type = data::chunked_list<lv::linda_tuple>;
+        using pointer_type = storage_type::iterator;
+        using query_type = tuple_query<index::tree::avl2_tree<lv::linda_value,
+                                                              pointer_type>>;
+
         void
         out(const lv::linda_tuple& tuple) {
             const auto await_handle = broadcast_insert(_broadcast, tuple);
@@ -70,6 +81,70 @@ namespace ldb {
             notify_readers();
         }
 
+        template<class... Args>
+        [[deprecated("Old query API")]] std::optional<lv::linda_tuple>
+        rdp(const query_tuple<Args...>& query) const {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return rdp(manual_fields_query<index_type>::from_query_tuple(query));
+        }
+
+        template<class... Args>
+        [[deprecated("Old query API")]] lv::linda_tuple
+        rd(const query_tuple<Args...>& query) const {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return rd(manual_fields_query<index_type>::from_query_tuple(query));
+        }
+
+        template<class... Args>
+        [[deprecated("Old query API")]] std::optional<lv::linda_tuple>
+        inp(const query_tuple<Args...>& query) {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return inp(manual_fields_query<index_type>::from_query_tuple(query));
+        }
+
+        template<class... Args>
+        [[deprecated("Old query API")]] lv::linda_tuple
+        in(const query_tuple<Args...>& query) {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return in(manual_fields_query<index_type>::from_query_tuple(query));
+        }
+
+
+        std::optional<lv::linda_tuple>
+        rdp(const query_type& query) const {
+            return retrieve_weak(query,
+                                 std::mem_fn(&store::read));
+        }
+
+        lv::linda_tuple
+        rd(const query_type& query) const {
+            return retrieve_strong(query,
+                                   std::mem_fn(&store::read));
+        }
+
+        std::optional<lv::linda_tuple>
+        inp(const query_type& query) {
+            return retrieve_weak(query,
+                                 std::mem_fn(&store::read_and_remove));
+        }
+
+        lv::linda_tuple
+        in(const query_type& query) {
+            return retrieve_strong(query,
+                                   std::mem_fn(&store::read_and_remove));
+        }
+
+
+        template<broadcaster Bcast>
+        void
+        set_broadcast(Bcast&& bcast) {
+            _broadcast = std::forward<Bcast>(bcast);
+        }
+
         void
         out_nosignal(const lv::linda_tuple& tuple) {
             auto new_it = _data.push_back(tuple);
@@ -83,48 +158,19 @@ namespace ldb {
             notify_readers();
         }
 
-        template<class... Args>
-        std::optional<lv::linda_tuple>
-        rdp(const query_tuple<Args...>& query) const {
-            return retrieve_weak(query,
-                                 std::mem_fn(&store::read<Args...>));
-        }
-
-        template<class... Args>
-        lv::linda_tuple
-        rd(const query_tuple<Args...>& query) const {
-            return retrieve_strong(query,
-                                   std::mem_fn(&store::read<Args...>));
-        }
-
-        template<class... Args>
-        std::optional<lv::linda_tuple>
-        inp(const query_tuple<Args...>& query) {
-            return retrieve_weak(query,
-                                 std::mem_fn(&store::read_and_remove<Args...>));
-        }
-
-        template<class... Args>
-        lv::linda_tuple
-        in(const query_tuple<Args...>& query) {
-            return retrieve_strong(query,
-                                   std::mem_fn(&store::read_and_remove<Args...>));
-        }
-
-        template<broadcaster Bcast>
         void
-        set_broadcast(Bcast&& bcast) {
-            _broadcast = std::forward<Bcast>(bcast);
+        remove_nosignal(const lv::linda_tuple& tuple) {
+            // TODO
+            //  retrieve_weak(query,
+            //                std::mem_fn(&store::read_and_remove<Args...>));
         }
 
     private:
-        using storage_type = data::chunked_list<lv::linda_tuple>;
-        using pointer_type = storage_type::iterator;
         // TODO(C++23): update retreive_(strong|weak) to use deducing this and remove duplication
 
-        template<class Extractor, class... Args>
+        template<class Extractor>
         lv::linda_tuple
-        retrieve_strong(const query_tuple<Args...>& query,
+        retrieve_strong(const query_type& query,
                         Extractor&& extractor)
             requires(std::invocable<Extractor, store, decltype(query)>)
         {
@@ -135,9 +181,9 @@ namespace ldb {
             }
         }
 
-        template<class Extractor, class... Args>
+        template<class Extractor>
         lv::linda_tuple
-        retrieve_strong(const query_tuple<Args...>& query,
+        retrieve_strong(const query_type& query,
                         Extractor&& extractor) const
             requires(std::invocable<Extractor, const store, decltype(query)>)
         {
@@ -148,18 +194,18 @@ namespace ldb {
             }
         }
 
-        template<class Extractor, class... Args>
+        template<class Extractor>
         std::optional<lv::linda_tuple>
-        retrieve_weak(const query_tuple<Args...>& query,
+        retrieve_weak(const query_type& query,
                       Extractor&& extractor)
             requires(std::invocable<Extractor, store, decltype(query)>)
         {
             return std::forward<Extractor>(extractor)(this, query);
         }
 
-        template<class Extractor, class... Args>
+        template<class Extractor>
         std::optional<lv::linda_tuple>
-        retrieve_weak(const query_tuple<Args...>& query,
+        retrieve_weak(const query_type& query,
                       Extractor&& extractor) const
             requires(std::invocable<Extractor, const store, decltype(query)>)
         {
@@ -186,33 +232,44 @@ namespace ldb {
             _wait_read.notify_one();
         }
 
-        template<class... Args>
+        struct query_result_visitor {
+            std::optional<pointer_type>
+            operator()(field_incomparable) const noexcept { return {}; }
+
+            std::optional<pointer_type>
+            operator()(field_not_found) const noexcept { return {}; }
+
+            std::optional<pointer_type>
+            operator()(field_found<pointer_type> found) const { return found.value; }
+        };
+
         std::optional<lv::linda_tuple>
-        read(const query_tuple<Args...>& query) const {
-            if (auto index_res = query.try_read_indices(std::span(_header_indices));
-                index_res.has_value()) {
-                if (*index_res) return ***index_res; // Maybe Maybe Iterator -> 3 deref
-                return std::nullopt;
+        read(const query_type& query) const {
+            for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+                const auto result = query.search_on_index(i, _header_indices[i]);
+                if (const auto found = std::visit(query_result_visitor{}, result);
+                    found) return **found;
             }
             return _data.locked_find(query);
         }
 
-        template<class... Args>
         std::optional<lv::linda_tuple>
-        read_and_remove(const query_tuple<Args...>& query) {
-            if (const auto [index_idx, index_res] = query.try_read_and_remove_indices(std::span(_header_indices));
-                index_res.has_value()) {
-                if (!*index_res) return std::nullopt;
-                const auto it = **index_res;
-                const auto res = *it;
-                auto bcast = broadcast_delete(_broadcast, res);
-                for (std::size_t i = 0U; i < _header_indices.size(); ++i) {
-                    if (i == index_idx) continue;
-                    std::ignore = _header_indices[i].remove(index::tree::value_query(res[i], it));
+        read_and_remove(const query_type& query) {
+            for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+                const auto result = query.remove_on_index(i, _header_indices[i]);
+                if (const auto found = std::visit(query_result_visitor{}, result);
+                    found) {
+                    const auto it = *found;
+                    auto tuple = **found; // not-const to allow move from return
+                    auto bcast = broadcast_delete(_broadcast, tuple);
+                    for (std::size_t j = 0; j < _header_indices.size(); ++j) {
+                        if (j == i) continue;
+                        std::ignore = _header_indices[i].remove(index::tree::value_lookup(tuple[i], it));
+                    }
+                    _data.erase(it);
+                    await(bcast);
+                    return tuple;
                 }
-                _data.erase(it);
-                await(bcast);
-                return res;
             }
             const auto res = _data.locked_destructive_find(query);
             if (res) await(broadcast_delete(_broadcast, *res));
