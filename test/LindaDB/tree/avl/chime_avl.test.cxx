@@ -98,7 +98,7 @@ TEST_CASE("new chime AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(4, 2));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -111,7 +111,7 @@ TEST_CASE("new chime AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(1, 2));
         CHECK_NOTHROW(sut.insert(1, 4));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -124,7 +124,7 @@ TEST_CASE("new chime AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(1, 2));
         CHECK_NOTHROW(sut.insert(1, 3));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -139,10 +139,10 @@ TEST_CASE("new chime AVL-tree can remove elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(4, 2));
 
-        auto res = sut.remove(lit::any_value_query(1));
+        auto res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
-        res = sut.remove(lit::any_value_query(1));
+        res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 3);
     }
@@ -155,10 +155,10 @@ TEST_CASE("new chime AVL-tree can remove elements") {
         CHECK_NOTHROW(sut.insert(1, 2));
         CHECK_NOTHROW(sut.insert(1, 3));
 
-        auto res = sut.remove(lit::any_value_query(1));
+        auto res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
-        res = sut.remove(lit::any_value_query(1));
+        res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 3);
     }
@@ -171,10 +171,10 @@ TEST_CASE("new chime AVL-tree can remove elements") {
         CHECK_NOTHROW(sut.insert(1, 2));
         CHECK_NOTHROW(sut.insert(1, 3));
 
-        auto res = sut.remove(lit::any_value_query(1));
+        auto res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
-        res = sut.remove(lit::any_value_query(1));
+        res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 3);
     }
@@ -188,7 +188,7 @@ TEST_CASE("new chime AVL-tree can add elements indefinitely",
     for (int i = 0; i < 2'000'000; ++i) {
         auto key_val = key(rng);
         sut.insert(key_val, i);
-        auto f = sut.search(lit::any_value_query(key_val));
+        auto f = sut.search(lit::any_value_lookup(key_val));
         REQUIRE(f.has_value());
     }
 }
@@ -210,7 +210,7 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         sut_type sut;
         init(sut);
 
-        auto none = sut.remove(lit::any_value_query(999));
+        auto none = sut.remove(lit::any_value_lookup(999));
         CHECK_FALSE(none.has_value());
     }
 
@@ -218,8 +218,8 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         sut_type sut;
         init(sut);
 
-        auto one = sut.remove(lit::any_value_query(1));
-        auto two = sut.remove(lit::any_value_query(2));
+        auto one = sut.remove(lit::any_value_lookup(1));
+        auto two = sut.remove(lit::any_value_lookup(2));
         REQUIRE(one.has_value());
         REQUIRE(two.has_value());
         CHECK(*one == 0);
@@ -230,10 +230,10 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         sut_type sut;
         init(sut);
 
-        auto _35 = sut.remove(lit::any_value_query(35));
+        auto _35 = sut.remove(lit::any_value_lookup(35));
         REQUIRE(_35.has_value());
         CHECK(*_35 == 0);
-        auto _40 = sut.remove(lit::any_value_query(40));
+        auto _40 = sut.remove(lit::any_value_lookup(40));
         REQUIRE(_40.has_value());
         CHECK(*_40 == 0);
     }
@@ -242,8 +242,8 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         sut_type sut;
         init(sut);
 
-        auto ten = sut.remove(lit::any_value_query(10));
-        auto twenty = sut.remove(lit::any_value_query(20));
+        auto ten = sut.remove(lit::any_value_lookup(10));
+        auto twenty = sut.remove(lit::any_value_lookup(20));
         REQUIRE(ten.has_value());
         REQUIRE(twenty.has_value());
         CHECK(*ten == 0);
@@ -255,7 +255,7 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         sut_type sut;
         init(sut);
 
-        auto ex_root = sut.remove(lit::any_value_query(30));
+        auto ex_root = sut.remove(lit::any_value_lookup(30));
         REQUIRE(ex_root.has_value());
         CHECK(*ex_root == 0);
     }
@@ -268,7 +268,7 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         sut.insert(2, 1);
         sut.insert(2, 2);
 
-        auto n = sut.remove(lit::any_value_query(10));
+        auto n = sut.remove(lit::any_value_lookup(10));
         REQUIRE(n.has_value());
         CHECK(*n == 0);
     }
@@ -287,7 +287,7 @@ TEST_CASE("new chime AVL-tree removes correct element") {
     }
 
     std::string data;
-    auto res = sut.remove(ldb::index::tree::value_query(ldb::lv::linda_value("asd"),
+    auto res = sut.remove(ldb::index::tree::value_lookup(ldb::lv::linda_value("asd"),
                                                         ldb::query_tuple("asd", 3, ldb::ref(&data))));
     REQUIRE(res.has_value());
     CHECK(*res == &buf[2]);
@@ -305,7 +305,7 @@ TEST_CASE("new chime AVL-tree can remove elements indefinitely",
 
     for (int i = 0; i < 2'000'000; ++i) {
         auto key_val = key(rng);
-        auto res = sut.remove(lit::any_value_query(key_val));
+        auto res = sut.remove(lit::any_value_lookup(key_val));
         if (res) {
             CHECK(*res >= 0);
             CHECK(*res < 2'000'000);

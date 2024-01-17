@@ -231,7 +231,7 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         [[nodiscard]] constexpr std::optional<value_type>
         try_get(const Q& query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
             if (empty()) return std::nullopt;
@@ -246,7 +246,7 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         constexpr std::optional<value_type>
         remove(const Q& query) {
             if (empty()) return std::nullopt;
@@ -301,7 +301,7 @@ namespace ldb::index::tree::payloads {
                 _values.insert(_values.end(), val.begin(), val.end());
             }
 
-            template<index_query<value_type> Q>
+            template<index_lookup<value_type> Q>
             [[nodiscard]] constexpr std::optional<value_type>
             pop(Q query) {
                 assert(!empty());
@@ -317,7 +317,7 @@ namespace ldb::index::tree::payloads {
                 return std::nullopt;
             }
 
-            template<index_query<value_type> Q>
+            template<index_lookup<value_type> Q>
             [[nodiscard]] constexpr std::optional<value_type>
             get(const Q& query) const {
                 assert(!empty());

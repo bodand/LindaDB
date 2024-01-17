@@ -143,7 +143,7 @@ namespace ldb::index::tree::payloads {
             }
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         [[nodiscard]] constexpr std::optional<value_type>
         try_get(Q query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
                         if (empty()) return std::nullopt;
@@ -210,7 +210,7 @@ namespace ldb::index::tree::payloads {
             return force_set_upper(std::move(key), std::move(value));
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         constexpr std::optional<value_type>
         remove(Q query) {
                         assert(!empty());

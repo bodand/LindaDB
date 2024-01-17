@@ -37,28 +37,28 @@
 #ifndef LINDADB_INDEX_QUERY_HXX
 #define LINDADB_INDEX_QUERY_HXX
 
+#include <compare>
 #include <concepts>
 #include <tuple>
-#include <compare>
 #include <type_traits>
 
 namespace ldb::index::tree {
-    template<class Query, class Match>
-    concept index_query = requires(Query query,
-                                   Match value) {
-        typename Query::key_type;
+    template<class Lookup, class Match>
+    concept index_lookup = requires(Lookup query,
+                                    Match value) {
+        typename Lookup::key_type;
 
-        { query.key() } -> std::same_as<const typename Query::key_type&>;
+        { query.key() } -> std::same_as<const typename Lookup::key_type&>;
         { value <=> query };
         { value == query };
         { value != query };
     };
 
     template<class K>
-    struct any_value_query {
+    struct any_value_lookup {
         using key_type = K;
 
-        explicit any_value_query(key_type key) noexcept(std::is_nothrow_move_constructible_v<key_type>)
+        explicit any_value_lookup(key_type key) noexcept(std::is_nothrow_move_constructible_v<key_type>)
              : _key(std::move(key)) { }
 
         [[nodiscard]] const key_type&
@@ -68,27 +68,27 @@ namespace ldb::index::tree {
         key_type _key;
 
         friend constexpr auto
-        operator<=>(const auto& a, const any_value_query& b) noexcept {
+        operator<=>(const auto& a, const any_value_lookup& b) noexcept {
             std::ignore = a;
             std::ignore = b;
             return std::strong_ordering::equal;
         }
         friend constexpr auto
-        operator==(const auto& a, const any_value_query& b) noexcept {
+        operator==(const auto& a, const any_value_lookup& b) noexcept {
             return std::is_eq(a <=> b);
         }
     };
-    static_assert(index_query<any_value_query<int>, int>);
+    static_assert(index_lookup<any_value_lookup<int>, int>);
 
     template<class K>
-    any_value_query(const K&) -> any_value_query<K>;
+    any_value_lookup(const K&) -> any_value_lookup<K>;
 
     template<class K, class V>
-    struct value_query {
+    struct value_lookup {
         using key_type = K;
         using value_type = V;
 
-        explicit value_query(key_type key,
+        explicit value_lookup(key_type key,
                              value_type value) noexcept(std::is_nothrow_move_constructible_v<key_type>
                                                         && std::is_nothrow_move_constructible_v<value_type>)
              : _key(std::move(key)),
@@ -102,19 +102,19 @@ namespace ldb::index::tree {
         value_type _value;
 
         friend constexpr auto
-        operator<=>(const auto& a, const value_query& b) noexcept {
+        operator<=>(const auto& a, const value_lookup& b) noexcept {
             return a <=> b._value;
         }
-        
+
         friend constexpr bool
-        operator==(const auto& a, const value_query& b) noexcept {
+        operator==(const auto& a, const value_lookup& b) noexcept {
             return std::is_eq(a <=> b);
         }
     };
-    static_assert(index_query<value_query<int, int>, int>);
+    static_assert(index_lookup<value_lookup<int, int>, int>);
 
     template<class K, class V>
-    value_query(const K&, const V&) -> value_query<K, V>;
+    value_lookup(const K&, const V&) -> value_lookup<K, V>;
 }
 
 #endif

@@ -308,7 +308,7 @@ namespace ldb::index::tree {
             return data.force_set_upper(key, value);
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         auto
         find_by_query(const Q& query) const {
             assert(_left.get() != this);
@@ -318,7 +318,7 @@ namespace ldb::index::tree {
             return data.try_get(query);
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         auto
         remove_by_query(const Q& query) {
             assert(_left.get() != this);
@@ -386,7 +386,7 @@ namespace ldb::index::tree {
         using key_type = payload_type::key_type;
         using value_type = payload_type::value_type;
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         search(const Q& query) const {
             std::shared_lock lck(_mtx);
@@ -510,7 +510,7 @@ namespace ldb::index::tree {
         }
 
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         remove(const Q& query) {
             std::scoped_lock lck(_mtx);

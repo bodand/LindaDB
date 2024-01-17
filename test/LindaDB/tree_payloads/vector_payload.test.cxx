@@ -309,20 +309,20 @@ TEST_CASE("full vector_payload as string contains its key and value") {
 // NOLINTNEXTLINE
 TEST_CASE("empty vector_payload returns nullopt in try_get") {
     const sut_type<> sut;
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full vector_payload returns nullopt in try_get with different key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key + 1)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key + 1)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full vector_payload returns Some(value) in try_get with correct key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::optional{Test_Value});
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::optional{Test_Value});
 }
 
 
