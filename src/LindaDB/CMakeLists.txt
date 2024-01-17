@@ -46,6 +46,7 @@ add_library(LindaDB STATIC
             public/ldb/index/tree/payload_dispatcher.hxx
             public/ldb/lv/linda_tuple.hxx
             public/ldb/lv/linda_value.hxx
+            public/ldb/query/concrete_tuple_query.hxx
             public/ldb/query/make_matcher.hxx
             public/ldb/query/manual_fields_query.hxx
             public/ldb/query/match_type.hxx
@@ -62,8 +63,9 @@ add_library(LindaDB STATIC
             src/index/tree/payload.cxx
             src/index/tree/payload_dispatcher.cxx
             src/lv/linda_tuple.cxx
-            src/query/tuple_query.cxx
+            src/query/concrete_tuple_query.cxx
             src/query/manual_fields_query.cxx
+            src/query/tuple_query.cxx
             src/store.cxx)
 
 add_library(LindaDB-malloc STATIC

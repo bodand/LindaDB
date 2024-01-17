@@ -34,21 +34,21 @@
  *   
  */
 #ifndef LINDADB_MANUAL_FIELDS_QUERY_HXX
-#  define LINDADB_MANUAL_FIELDS_QUERY_HXX
+#define LINDADB_MANUAL_FIELDS_QUERY_HXX
 
-#  include <compare>
-#  include <concepts>
-#  include <cstddef>
-#  include <tuple>
-#  include <utility>
+#include <compare>
+#include <concepts>
+#include <cstddef>
+#include <tuple>
+#include <utility>
 
-#  include <ldb/index/tree/index_query.hxx> // NOLINT(*-include-cleaner) actually used
-#  include <ldb/lv/linda_tuple.hxx>
-#  include <ldb/query/make_matcher.hxx>
-#  include <ldb/query/tuple_query_if.hxx>
+#include <ldb/index/tree/index_query.hxx> // NOLINT(*-include-cleaner) actually used
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/query/make_matcher.hxx>
+#include <ldb/query/tuple_query_if.hxx>
 
 // temporary include, until query_tuple has been replaced in caller code
-#  include <ldb/query_tuple.hxx>
+#include <ldb/query_tuple.hxx>
 
 namespace ldb {
     template<class IndexType, class... Matchers>
@@ -62,6 +62,8 @@ namespace ldb {
         manual_fields_query(manual_fields_query&& mv) noexcept = default;
         manual_fields_query&
         operator=(manual_fields_query&& mv) noexcept = default;
+
+        ~manual_fields_query() noexcept = default;
 
         template<class... Args>
         static manual_fields_query<IndexType, Args...>

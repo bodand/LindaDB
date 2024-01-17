@@ -55,6 +55,7 @@
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
+#include <ldb/query/concrete_tuple_query.hxx>
 #include <ldb/query/manual_fields_query.hxx>
 #include <ldb/query/tuple_query.hxx>
 #include <ldb/query_tuple.hxx>
@@ -160,9 +161,11 @@ namespace ldb {
 
         void
         remove_nosignal(const lv::linda_tuple& tuple) {
-            // TODO
-            //  retrieve_weak(query,
-            //                std::mem_fn(&store::read_and_remove<Args...>));
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            const auto removed = retrieve_weak(concrete_tuple_query<index_type>(tuple),
+                                               std::mem_fn(&store::read_and_remove));
+            assert(removed);
         }
 
     private:
