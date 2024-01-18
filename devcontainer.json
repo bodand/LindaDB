@@ -1,0 +1,15 @@
+{
+  "name": "LindaDB",
+  "containerEnv": {
+    "PROJECT_CC_EXE": "/usr/bin/cc",
+    "PROJECT_CXX_EXE": "/usr/bin/c++"
+  },
+  image: "gcc:latest",
+  features: {
+    "ghcr.io/devcontainers/features/git:1":  {},
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "upgradePackages": true,
+      "packages": "pkg-config,curl,ninja-build,zip,unzip,git,aria2,python3"
+    }
+  }
+}
