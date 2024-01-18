@@ -1,6 +1,6 @@
 /* LindaDB project
  *
- * Copyright (c) 2023 András Bodor <bodand@pm.me>
+ * Copyright (c) 2024 András Bodor <bodand@pm.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,46 +28,30 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-10-20.
+ * Originally created: 2024-01-18.
  *
- * src/LindaDB/src/lv/linda_tuple --
- *   Implements the functions of the linda_tuple type.
+ * src/LindaDB/src/common --
+ *   The C++20 compatibility implementation of the common functions.
  */
 
-#include <cassert>
-#include <cstddef>
-#include <ostream>
-#include <vector>
+#include <cstdlib>
+#include <iostream>
+#include <source_location>
+#include <string_view>
 
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/linda_value.hxx>
 #include <ldb/common.hxx>
 
-ldb::lv::linda_value&
-ldb::lv::linda_tuple::get_at(std::size_t idx) noexcept {
-    assert_that(idx < _size);
-    if (idx < 3) return _data_ref[idx];
-    if (_size == 4 && idx == 3) return std::get<linda_value>(_tail);
-    assert_that(_size > 4);
-    return std::get<std::vector<linda_value>>(_tail)[idx - 3];
-}
-
-const ldb::lv::linda_value&
-ldb::lv::linda_tuple::get_at(std::size_t idx) const noexcept {
-    assert_that(idx < _size);
-    if (idx < 3) return _data_ref[idx];
-    if (_size == 4 && idx == 3) return std::get<linda_value>(_tail);
-    assert_that(_size > 4);
-    return std::get<std::vector<linda_value>>(_tail)[idx - 3];
-}
-
-std::ostream&
-ldb::lv::operator<<(std::ostream& os, const ldb::lv::linda_tuple& tuple) {
-    os << "(";
-    for (std::size_t i = 0; i < tuple.size(); ++i) {
-        os << tuple.get_at(i);
-        if (i != tuple.size() - 1) os << ", ";
-    }
-    os << ")";
-    return os;
+void
+ldb::assert_that_impl(const bool cond,
+                      const std::string_view cond_stringified,
+                      const std::string_view message,
+                      const std::source_location src) {
+    if (cond) return;
+    std::cerr << "FATAL: assertion failed '" << cond_stringified << "' "
+              << (message.empty() ? "without message" : "with message: ") << message << "\n"
+              << " at " << src.file_name() << ":" << src.line() << ":" << src.column() << "\n"
+              << " with stacktrace: " << std_stacktrace::current()
+              << "\n"
+              << std::flush;
+    std::abort();
 }

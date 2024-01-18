@@ -50,4 +50,36 @@
 #  define LDB_CONSTEXPR23
 #endif
 
+#if LDB_HAVE_STACKTRACE
+#  include <stacktrace>
+#  define std_stacktrace std::stacktrace
+#else
+#  include <ostream>
+struct std_stacktrace {
+    static std_stacktrace
+    current() { return {}; }
+
+private:
+    friend std::ostream&
+    operator<<(std::ostream& os, std_stacktrace /*unused*/) {
+        return os << "<<STACKTRACE NOT SUPPORTED WHEN COMPILED IN C++20 COMPATIBILITY MODE>>";
+    }
+};
+#endif
+
+#include <source_location>
+#include <string_view>
+
+#define LDB_STR_I(x) #x
+#define LDB_STR(x) LDB_STR_I(x)
+#define assert_that(cond, ...) ::ldb::assert_that_impl(static_cast<bool>(cond), LDB_STR(cond) __VA_OPT__(, ) __VA_ARGS__)
+
+namespace ldb {
+    void
+    assert_that_impl(bool cond,
+                     std::string_view cond_stringified,
+                     std::string_view message = "",
+                     std::source_location source_loc = std::source_location::current());
+}
+
 #endif

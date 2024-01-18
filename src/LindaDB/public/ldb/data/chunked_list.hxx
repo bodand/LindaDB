@@ -120,8 +120,7 @@ namespace ldb::data {
         using difference_type = std::ptrdiff_t;
         using size_type = std::size_t;
 
-        constexpr
-        chunked_list() = default;
+        constexpr chunked_list() = default;
 
         constexpr explicit(false) chunked_list(std::initializer_list<T> initializer_list)
              : _chunks(1 + ((initializer_list.size() - 1) / ChunkSize)) {
@@ -134,8 +133,7 @@ namespace ldb::data {
             }
         }
 
-        constexpr
-        chunked_list(size_type count, const value_type& value)
+        constexpr chunked_list(size_type count, const value_type& value)
              : _chunks(1 + ((count - 1) / ChunkSize)) {
             std::ranges::generate(_chunks, [] { return std::make_unique<data_chunk>(); });
             for (size_type i = 0; i < count; ++i) {
@@ -144,8 +142,7 @@ namespace ldb::data {
             }
         }
 
-        constexpr explicit
-        chunked_list(size_type count)
+        constexpr explicit chunked_list(size_type count)
              : _chunks(1 + ((count - 1) / ChunkSize)) {
             std::ranges::generate(_chunks, [] { return std::make_unique<data_chunk>(); });
             for (size_type i = 0; i < count; ++i) {
@@ -165,15 +162,13 @@ namespace ldb::data {
             }
         }
 
-        constexpr
-        chunked_list(const chunked_list& cp)
+        constexpr chunked_list(const chunked_list& cp)
              : _chunks(cp._chunks.size()) {
             std::ranges::transform(cp._chunks, _chunks.begin(), [](const auto& chunk_ptr) {
                 return std::make_unique<data_chunk>(*chunk_ptr);
             });
         }
-        constexpr
-        chunked_list(chunked_list&& cp) noexcept = default;
+        constexpr chunked_list(chunked_list&& cp) noexcept = default;
 
         constexpr chunked_list&
         operator=(const chunked_list& cp) {
@@ -269,15 +264,15 @@ namespace ldb::data {
 
             [[nodiscard]] constexpr reference
             operator[](size_type idx) noexcept {
-                assert(idx < ChunkSize);
-                assert(valid_at_index(idx));
+                assert_that(idx < ChunkSize, "Index is within chunk bounds");
+                assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<pointer>(&_data[idx * sizeof(T)]);
             }
 
             [[nodiscard]] constexpr const_reference
             operator[](size_type idx) const noexcept {
-                assert(idx < ChunkSize);
-                assert(valid_at_index(idx));
+                assert_that(idx < ChunkSize, "Index is within chunk bounds");
+                assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<const_pointer>(&_data[idx * sizeof(T)]);
             }
 
@@ -285,8 +280,8 @@ namespace ldb::data {
             auto
             emplace(Args&&... args) noexcept(std::is_nothrow_constructible_v<value_type, Args...>) {
                 auto next_idx = static_cast<unsigned>(std::countr_one(_valids));
-                assert(next_idx != ChunkSize);
-                assert(!valid_at_index(next_idx));
+                assert_that(next_idx != ChunkSize, "Next index is within chunk bounds");
+                assert_that(!valid_at_index(next_idx));
                 _valids |= (1U << next_idx);
                 std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
                                   std::forward<Args>(args)...);
@@ -296,8 +291,8 @@ namespace ldb::data {
             auto
             push(const_reference obj) noexcept(std::is_nothrow_copy_constructible_v<value_type>) {
                 auto next_idx = static_cast<unsigned>(std::countr_one(_valids));
-                assert(next_idx != ChunkSize);
-                assert(!valid_at_index(next_idx));
+                assert_that(next_idx != ChunkSize);
+                assert_that(!valid_at_index(next_idx));
                 _valids |= (1U << next_idx);
                 std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
                                   obj);
@@ -306,10 +301,10 @@ namespace ldb::data {
 
             void
             destroy_at_index(size_type idx) {
-                assert(valid_at_index(idx));
+                assert_that(valid_at_index(idx));
                 _valids &= ~(1U << idx);
                 std::destroy_at(std::bit_cast<pointer>(&_data[idx * sizeof(T)]));
-                assert(!valid_at_index(idx));
+                assert_that(!valid_at_index(idx));
             }
 
             [[nodiscard]] constexpr bool
@@ -341,8 +336,7 @@ namespace ldb::data {
                 return _chunk_index == 0;
             }
 
-            ~
-            data_chunk() noexcept {
+            ~data_chunk() noexcept {
                 if (empty()) return;
                 for (std::size_t i = 0; i < ChunkSize; ++i) {
                     if (!valid_at_index(i)) continue;
@@ -434,8 +428,7 @@ namespace ldb::data {
                 return std::is_neq(*this <=> other);
             }
 
-            constexpr
-            iterator_impl() = default;
+            constexpr iterator_impl() = default;
 
             void
             swap(iterator_impl& other) noexcept {
@@ -447,8 +440,7 @@ namespace ldb::data {
 
         private:
             friend chunked_list;
-            constexpr
-            iterator_impl(data_chunk* chunk, size_t index)
+            constexpr iterator_impl(data_chunk* chunk, size_t index)
                  : _chunk(chunk),
                    _index(index) { }
 

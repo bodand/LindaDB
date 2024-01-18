@@ -78,10 +78,10 @@ namespace ldb::index::tree {
                            Args&&... args)
              : data(std::forward<Args>(args)...),
                _parent(par) {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
         }
 
         avl2_node(const avl2_node& other) = delete;
@@ -91,10 +91,10 @@ namespace ldb::index::tree {
                _right(other.release_right()),
                bf(other.bf),
                data(std::move(other.data)) {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
         }
 
         avl2_node&
@@ -116,37 +116,37 @@ namespace ldb::index::tree {
 
         [[nodiscard]] auto
         get_side_of(avl2_node* child) const noexcept {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
             if (child == _left.get()) return std::make_pair<side_pointer, set_side_pointer>(
                    &avl2_node::left_ptr,
                    &avl2_node::set_left);
             if (child == _right.get()) return std::make_pair<side_pointer, set_side_pointer>(
                    &avl2_node::right_ptr,
                    &avl2_node::set_right);
-            assert(false && "non direct child passed to get_side_of");
+            assert_that(false && "non direct child passed to get_side_of");
             LDB_UNREACHABLE;
         }
 
         [[nodiscard]] std::unique_ptr<avl2_node<P>>*
         parent() const {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
             return _parent;
         }
 
         void
         set_parent(std::unique_ptr<avl2_node<P>>* p) {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
             if (p) {
-                assert(*p != nullptr);
-                assert((*p).get() != this);
-                assert((*p).get()->left().get() == this
+                assert_that(*p != nullptr);
+                assert_that((*p).get() != this);
+                assert_that((*p).get()->left().get() == this
                        || (*p).get()->right().get() == this);
             }
             _parent = p;
@@ -154,17 +154,17 @@ namespace ldb::index::tree {
 
         [[nodiscard]] const std::unique_ptr<avl2_node>&
         left() const {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
             return _left;
         }
         [[nodiscard]] decltype(auto)
         release_left() {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
             assert(_parent == nullptr || *_parent != nullptr);
             if (_left) _left->_parent = nullptr;
             return std::move(_left);

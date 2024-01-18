@@ -66,6 +66,7 @@ add_library(LindaDB STATIC
             src/query/concrete_tuple_query.cxx
             src/query/manual_fields_query.cxx
             src/query/tuple_query.cxx
+            src/common.cxx
             src/store.cxx)
 
 add_library(LindaDB-malloc STATIC
@@ -75,8 +76,7 @@ target_include_directories(LindaDB-malloc
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaDB-malloc
                       PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:mimalloc-static>
-                      PRIVATE internal-warnings internal-lto)
-target_compile_features(LindaDB-malloc PUBLIC cxx_std_20)
+                      PRIVATE internal-warnings internal-lto internal-language-level)
 target_compile_definitions(LindaDB-malloc
                            PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
 
@@ -87,8 +87,7 @@ target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaDB
-                      PRIVATE internal-coverage internal-warnings internal-lto)
-target_compile_features(LindaDB PUBLIC cxx_std_20)
+                      PRIVATE internal-coverage internal-warnings internal-lto internal-language-level)
 
 if (TARGET Tracy::TracyClient)
     target_link_libraries(LindaDB PUBLIC Tracy::TracyClient)

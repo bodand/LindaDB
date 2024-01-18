@@ -165,7 +165,7 @@ namespace ldb {
                                                       pointer_type>;
             const auto removed = retrieve_weak(concrete_tuple_query<index_type>(tuple),
                                                std::mem_fn(&store::read_and_remove));
-            assert(removed);
+            assert_that(removed);
         }
 
     private:

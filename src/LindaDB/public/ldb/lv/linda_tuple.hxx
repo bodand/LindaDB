@@ -53,6 +53,7 @@
 #include <variant>
 #include <vector>
 
+#include <ldb/common.hxx>
 #include <ldb/lv/linda_value.hxx>
 
 namespace ldb::lv {
@@ -182,7 +183,7 @@ namespace ldb::lv {
 
             [[nodiscard]] constexpr auto
             operator<=>(const iterator_impl& other) const noexcept {
-                assert(arithmetic_meaningful_with(other));
+                assert_that(arithmetic_meaningful_with(other));
 
                 if (other._owner == nullptr && _owner == nullptr) return std::strong_ordering::equal;
                 if (other._owner == nullptr) {
@@ -194,8 +195,8 @@ namespace ldb::lv {
                     return std::strong_ordering::greater;
                 }
 
-                assert(_owner != nullptr);
-                assert(other._owner != nullptr);
+                assert_that(_owner != nullptr);
+                assert_that(other._owner != nullptr);
 
                 return _position <=> other._position;
             }
@@ -207,20 +208,20 @@ namespace ldb::lv {
 
             [[nodiscard]] constexpr reference
             operator*() const noexcept(noexcept((*_owner)[_position])) {
-                assert(!is_end());
+                assert_that(!is_end());
                 return (*_owner)[_position];
             }
 
             constexpr iterator_impl&
             operator++() noexcept {
-                assert(!is_end());
+                assert_that(!is_end());
                 ++_position;
                 return *this;
             }
 
             constexpr iterator_impl // NOLINT(*-dcl21-cpp)
             operator++(int) noexcept {
-                assert(!is_end());
+                assert_that(!is_end());
                 const iterator_impl ret = *this;
                 ++_position;
                 return ret;
@@ -228,7 +229,7 @@ namespace ldb::lv {
 
             constexpr iterator_impl&
             operator+=(difference_type diff) noexcept {
-                assert(valid_step(diff));
+                assert_that(valid_step(diff));
                 if (diff > 0) _position += static_cast<std::size_t>(diff);
                 if (diff < 0) _position -= static_cast<std::size_t>(-diff);
                 return *this;
@@ -236,14 +237,14 @@ namespace ldb::lv {
 
             constexpr iterator_impl&
             operator--() noexcept {
-                assert(!is_begin());
+                assert_that(!is_begin());
                 --_position;
                 return *this;
             }
 
             constexpr iterator_impl // NOLINT(*-dcl21-cpp)
             operator--(int) noexcept {
-                assert(!is_begin());
+                assert_that(!is_begin());
                 const iterator_impl ret = *this;
                 --_position;
                 return ret;
@@ -251,7 +252,7 @@ namespace ldb::lv {
 
             constexpr iterator_impl&
             operator-=(difference_type diff) noexcept {
-                assert(valid_step(-diff));
+                assert_that(valid_step(-diff));
                 if (diff > 0) _position -= static_cast<std::size_t>(diff);
                 if (diff < 0) _position += static_cast<std::size_t>(-diff);
                 return *this;
@@ -259,13 +260,13 @@ namespace ldb::lv {
 
             [[nodiscard]] constexpr pointer
             operator->() const noexcept(noexcept((*_owner)[_position])) {
-                assert(!is_end());
+                assert_that(!is_end());
                 return std::addressof((*_owner)[_position]);
             }
 
             [[nodiscard]] constexpr reference
             operator[](difference_type diff) const noexcept(noexcept((*_owner)[_position])) {
-                assert(valid_step(diff));
+                assert_that(valid_step(diff));
                 auto accessIdx = _position;
                 if (diff > 0) accessIdx += static_cast<decltype(_position)>(diff);
                 if (diff < 0) accessIdx -= static_cast<decltype(_position)>(-diff);
@@ -293,7 +294,7 @@ namespace ldb::lv {
 
             [[nodiscard]] friend constexpr difference_type
             operator-(iterator_impl a, iterator_impl b) {
-                assert(a.arithmetic_meaningful_with(b));
+                assert_that(a.arithmetic_meaningful_with(b));
                 if (a._owner == nullptr && b._owner == nullptr) return 0;
                 if (a._owner == nullptr) return static_cast<difference_type>(b._owner->size() - b._position);
                 if (b._owner == nullptr) return static_cast<difference_type>(a._position - a._owner->size());
@@ -303,7 +304,7 @@ namespace ldb::lv {
                 if (a._position > b._position) {
                     const auto diff = a._position - b._position;
                     // ...or fail screaming
-                    assert(diff < std::numeric_limits<difference_type>::max());
+                    assert_that(diff < std::numeric_limits<difference_type>::max());
                     return static_cast<difference_type>(diff);
                 }
                 const auto diff = b._position - a._position;

@@ -126,7 +126,7 @@ namespace ldb::index::tree::payloads {
             // todo: proper merge algorithm
             for (std::size_t i = 0; i < other.size(); ++i) {
                 auto succ = try_set(other._data[i]);
-                assert(succ);
+                assert_that(succ);
             }
             other._data_sz = 0;
             return true;
@@ -179,7 +179,7 @@ namespace ldb::index::tree::payloads {
                           std::begin(_data));
                 --_data_sz;
                 res = upsert_kv(false, key, value);
-                assert(res != FAILURE);
+                assert_that(res != FAILURE);
                 return {squished};
             }
             return std::nullopt;
@@ -192,7 +192,7 @@ namespace ldb::index::tree::payloads {
                 auto squished = _data.back();
                 --_data_sz;
                 res = upsert_kv(false, key, value);
-                assert(res != FAILURE);
+                assert_that(res != FAILURE);
                 return {squished};
             }
             return std::nullopt;
@@ -213,7 +213,7 @@ namespace ldb::index::tree::payloads {
         template<index_lookup<value_type> Q>
         constexpr std::optional<value_type>
         remove(Q query) {
-                        assert(!empty());
+                        assert_that(!empty());
             auto data_end = std::next(begin(_data), _data_sz);
             auto it = std::ranges::lower_bound(begin(_data), data_end, query.key());
             if (it == data_end) return std::nullopt;
@@ -262,13 +262,13 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr const key_type&
         min_key() const noexcept {
-            assert(!empty() && "min_key of empty vector_payload");
+            assert_that(!empty() && "min_key of empty vector_payload");
             return _data[0].first;
         }
 
         [[nodiscard]] constexpr const key_type&
         max_key() const noexcept {
-            assert(!empty() && "max_key of empty vector_payload");
+            assert_that(!empty() && "max_key of empty vector_payload");
             return _data[_data_sz - 1].first;
         }
 

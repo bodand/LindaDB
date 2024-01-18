@@ -30,7 +30,7 @@
 # CMakeLists.txt --
 #   The main CMake script for building and managing the project.
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.26)
 enable_language(C)
 enable_language(CXX)
 
@@ -124,6 +124,27 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug"
             $<$<PLATFORM_ID:Linux>:-fsanitize=address,undefined>
     )
 endif ()
+
+try_compile(LDB_HAVE_CXX23
+            SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_cxx23.cxx"
+            LOG_DESCRIPTION "Checking for C++23 support..."
+            CXX_STANDARD 23
+            CXX_EXTENSIONS NO)
+try_compile(LDB_HAVE_STACKTRACE
+            SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_stacktrace.cxx"
+            LOG_DESCRIPTION "Checking for std::stacktrace support..."
+            CXX_STANDARD 23
+            CXX_EXTENSIONS NO)
+add_library(internal-language-level INTERFACE)
+if (LDB_HAVE_CXX23)
+    set(LDB_CXX_FILE_SUFFIX cxx23)
+    target_compile_features(internal-language-level INTERFACE cxx_std_23)
+else ()
+    set(LDB_CXX_FILE_SUFFIX cxx20)
+    target_compile_features(internal-language-level INTERFACE cxx_std_20)
+endif ()
+target_compile_definitions(internal-language-level INTERFACE
+                           LDB_HAVE_STACKTRACE=0$<BOOL:${LDB_HAVE_STACKTRACE}>)
 
 # warnings
 add_library(internal-warnings INTERFACE)

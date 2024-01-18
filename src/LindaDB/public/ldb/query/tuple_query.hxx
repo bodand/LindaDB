@@ -161,14 +161,14 @@ namespace ldb {
         [[nodiscard]] field_match_type<internal_value_type>
         search_on_index(std::size_t field_index,
                         const IndexType& db_index) const {
-            assert(_impl);
+            assert_that(_impl);
             return _impl->do_search_on_index(field_index, db_index);
         }
 
         [[nodiscard]] field_match_type<internal_value_type>
         remove_on_index(std::size_t field_index,
                         IndexType& db_index) const {
-            assert(_impl);
+            assert_that(_impl);
             return _impl->do_remove_on_index(field_index, db_index);
         }
     };

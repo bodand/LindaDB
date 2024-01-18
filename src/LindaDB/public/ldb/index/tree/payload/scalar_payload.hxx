@@ -198,19 +198,19 @@ namespace ldb::index::tree::payloads {
     private:
         [[nodiscard]] const key_type&
         kv_key() const noexcept {
-            assert(!empty());
+            assert_that(!empty());
             return _value->first;
         }
 
         [[nodiscard]] const value_type&
         kv_value() const noexcept {
-            assert(!empty());
+            assert_that(!empty());
             return _value->second;
         }
 
         [[nodiscard]] value_type
         kv_value_destructive() noexcept {
-            assert(!empty());
+            assert_that(!empty());
             auto ret = _value->second;
             _value.reset();
             return ret;
@@ -218,13 +218,13 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] key_type&
         kv_key() noexcept {
-            assert(!empty());
+            assert_that(!empty());
             return _value->first;
         }
 
         [[nodiscard]] value_type&
         kv_value() noexcept {
-            assert(!empty());
+            assert_that(!empty());
             return _value->second;
         }
 

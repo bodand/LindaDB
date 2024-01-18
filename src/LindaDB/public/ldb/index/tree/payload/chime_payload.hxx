@@ -50,6 +50,7 @@
 #include <utility>
 #include <vector>
 
+#include <ldb/common.hxx>
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
 
@@ -132,7 +133,7 @@ namespace ldb::index::tree::payloads {
                 auto succ = try_set(bundle_type{
                        .key = other._keys[i],
                        .data = other._sets[i].flush()});
-                assert(succ);
+                assert_that(succ);
                 std::ignore = succ;
             }
             other._data_sz = 0;
@@ -282,12 +283,12 @@ namespace ldb::index::tree::payloads {
 
             constexpr explicit chime_value_set(bundle_type&& bundle)
                  : _values(std::move(bundle).data) {
-                //                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
+                //                assert_that(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 
             constexpr explicit chime_value_set(const bundle_type& bundle)
                  : _values(bundle.data) {
-                //                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
+                //                assert_that(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 
             template<class SetV>
@@ -304,7 +305,7 @@ namespace ldb::index::tree::payloads {
             template<index_lookup<value_type> Q>
             [[nodiscard]] constexpr std::optional<value_type>
             pop(Q query) {
-                assert(!empty());
+                assert_that(!empty());
                 if (auto it = std::ranges::find_if(_values, [&query](const auto& val) {
                         return val == query;
                     });
@@ -320,7 +321,7 @@ namespace ldb::index::tree::payloads {
             template<index_lookup<value_type> Q>
             [[nodiscard]] constexpr std::optional<value_type>
             get(const Q& query) const {
-                assert(!empty());
+                assert_that(!empty());
                 if (auto it = std::ranges::find_if(_values, [&query](const auto& val) {
                         return val == query;
                     });

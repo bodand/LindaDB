@@ -67,7 +67,7 @@ namespace {
     private:
         friend void
         await(mpi_request_vector_awaiter& awaiter) {
-            assert(!awaiter._finished);
+            assert_that(!awaiter._finished);
             MPI_Waitall(static_cast<int>(awaiter._reqs.size()),
                         awaiter._reqs.data(),
                         MPI_STATUS_IGNORE);

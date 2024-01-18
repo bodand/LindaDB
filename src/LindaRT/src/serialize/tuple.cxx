@@ -279,7 +279,7 @@ namespace {
     template<std::constructible_from T>
     T
     deserialize_numeric(std::byte*& buf, std::size_t& len) {
-        assert(len >= sizeof(T));
+        assert_that(len >= sizeof(T));
         T i{};
         auto value_representation =
                std::bit_cast<std::byte*>(&i);
@@ -312,7 +312,7 @@ namespace {
         case LRT_DOUBLE: return deserialize_numeric<double>(buf, len);
         case LRT_STRING: {
             const auto str_sz = deserialize_numeric<std::string::size_type>(buf, len);
-            assert(len >= str_sz);
+            assert_that(len >= str_sz);
             std::string str(str_sz, '.');
             std::transform(std::execution::par_unseq,
                            buf,
