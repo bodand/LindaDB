@@ -166,7 +166,7 @@ namespace ldb {
             using index_type = index::tree::avl2_tree<lv::linda_value,
                                                       pointer_type>;
             const auto removed = retrieve_weak(concrete_tuple_query<index_type>(tuple),
-                                               std::mem_fn(&store::read_and_remove));
+                                               std::mem_fn(&store::read_and_remove_nosignal));
             assert_that(removed);
         }
 
@@ -281,6 +281,26 @@ namespace ldb {
             const auto res = _data.locked_destructive_find(query);
             if (res) await(broadcast_delete(_broadcast, *res));
             return res;
+        }
+
+        std::optional<lv::linda_tuple>
+        read_and_remove_nosignal(const query_type& query) {
+            std::scoped_lock lck(_header_mtx);
+            for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+                const auto result = query.remove_on_index(i, _header_indices[i]);
+                if (const auto found = std::visit(query_result_visitor{}, result);
+                    found) {
+                    const auto it = *found;
+                    auto tuple = **found; // not-const to allow move from return
+                    for (std::size_t j = 0; j < _header_indices.size(); ++j) {
+                        if (j == i) continue;
+                        std::ignore = _header_indices[i].remove(index::tree::value_lookup(tuple[i], it));
+                    }
+                    _data.erase(it);
+                    return tuple;
+                }
+            }
+            return _data.locked_destructive_find(query);
         }
 
         [[gnu::always_inline]] [[nodiscard]] bool
