@@ -72,6 +72,7 @@ namespace ldb {
             const auto await_handle = broadcast_insert(_broadcast, tuple);
             auto new_it = _data.push_back(tuple);
 
+            std::scoped_lock lck(_header_mtx);
             for (std::size_t i = 0;
                  i < _header_indices.size() && i < tuple.size();
                  ++i) {
@@ -150,6 +151,7 @@ namespace ldb {
         out_nosignal(const lv::linda_tuple& tuple) {
             auto new_it = _data.push_back(tuple);
 
+            std::scoped_lock lck(_header_mtx);
             for (std::size_t i = 0;
                  i < _header_indices.size() && i < tuple.size();
                  ++i) {
