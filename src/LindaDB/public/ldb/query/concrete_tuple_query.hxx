@@ -67,7 +67,7 @@ namespace ldb {
                          const IndexType& db_index) const {
             assert(field_index < _tuple.size());
             if (const auto search_result = db_index.search(index::tree::value_lookup(_tuple[field_index], *this));
-                search_result.has_value()) return field_found{*search_result};
+                search_result.has_value()) return field_found(*search_result);
             return field_not_found{};
         }
 
@@ -76,7 +76,7 @@ namespace ldb {
                          IndexType& db_index) const {
             assert(field_index < _tuple.size());
             if (const auto search_result = db_index.remove(index::tree::value_lookup(_tuple[field_index], *this));
-                search_result.has_value()) return field_found{*search_result};
+                search_result.has_value()) return field_found(*search_result);
             return field_not_found{};
         }
 
