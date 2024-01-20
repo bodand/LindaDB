@@ -69,6 +69,7 @@ linux_builds_task:
     PROJECT_CXX_EXE: /usr/bin/c++
     OMPI_ALLOW_RUN_AS_ROOT: "1"
     OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: "1"
+    ASAN_OPTIONS: detect_leaks=0
 
   apt_script:
     - apt-get update

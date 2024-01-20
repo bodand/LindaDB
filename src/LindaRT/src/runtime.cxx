@@ -209,7 +209,7 @@ lrt::runtime::recv_thread_worker() {
         MPI_Get_count(&stat, MPI_CHAR, &len);
         auto buf = std::vector<std::byte>(static_cast<std::size_t>(len));
 
-        MPI_Recv(buf.data(), len, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &stat);
+        MPI_Recv(buf.data(), len, MPI_CHAR, stat.MPI_SOURCE, stat.MPI_TAG, MPI_COMM_WORLD, &stat);
         const auto command = stat.MPI_TAG;
         const auto payload = std::span<std::byte>(buf);
 
@@ -222,7 +222,7 @@ lrt::runtime::recv_thread_worker() {
 
         case LINDA_RT_DB_SYNC_DELETE_TAG: {
             const auto rx_deleted = deserialize(payload);
-             _store.remove_nosignal(rx_deleted);
+            _store.remove_nosignal(rx_deleted);
             break;
         }
 
