@@ -248,6 +248,7 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         read(const query_type& query) const {
+            std::shared_lock lck(_header_mtx);
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.search_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);
@@ -258,6 +259,7 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         read_and_remove(const query_type& query) {
+            std::scoped_lock lck(_header_mtx);
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.remove_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);
@@ -298,6 +300,7 @@ namespace ldb {
         mutable std::mutex _read_mtx;
         mutable std::condition_variable _wait_read;
 
+        mutable std::shared_mutex _header_mtx;
         std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>, 2> _header_indices{};
         broadcast _broadcast = null_broadcast{};
         storage_type _data{};
