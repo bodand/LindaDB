@@ -139,7 +139,7 @@ namespace ldb {
                        const IndexType& db_index) const {
             if (!matcher_impl.indexable()) return field_incomparable{};
             if (const auto search_result = db_index.search(index::tree::value_lookup(matcher_impl, *this));
-                search_result.has_value()) return field_found{*search_result};
+                search_result.has_value()) return field_found(*search_result);
             return field_not_found{};
         }
 
@@ -149,7 +149,7 @@ namespace ldb {
                        IndexType& db_index) const {
             if (!matcher_impl.indexable()) return field_incomparable{};
             if (const auto search_result = db_index.remove(index::tree::value_lookup(matcher_impl, *this));
-                search_result.has_value()) return field_found{*search_result};
+                search_result.has_value()) return field_found(*search_result);
             return field_not_found{};
         }
 

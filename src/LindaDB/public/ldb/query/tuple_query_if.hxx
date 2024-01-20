@@ -58,6 +58,9 @@ namespace ldb {
     };
 
     template<class T>
+    field_found(T) -> field_found<T>;
+
+    template<class T>
     using field_match_type =
            std::variant<field_incomparable,
                         field_not_found,
