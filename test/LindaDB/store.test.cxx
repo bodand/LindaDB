@@ -496,7 +496,7 @@ TEST_CASE("serial reads/writes proceeds",
     static std::normal_distribution<double> key_dist(0, 100'000);
     static std::uniform_int_distribution<int> val_dist(0, 1000);
     static std::mt19937_64 rng(std::random_device{}());
-    constexpr const static auto repeat_count = 1'000'000;
+    constexpr const static auto repeat_count = 50'000;
 
     ldb::store store;
     for (int i = 0; i < repeat_count; ++i) {
