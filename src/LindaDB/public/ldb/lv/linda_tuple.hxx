@@ -44,6 +44,7 @@
 #include <cassert>
 #include <compare>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <ostream>
@@ -201,7 +202,7 @@ namespace ldb::lv {
                 return _position <=> other._position;
             }
 
-            [[nodiscard]] constexpr auto
+            [[nodiscard]] constexpr bool
             operator==(const iterator_impl& other) const noexcept {
                 return std::is_eq(*this <=> other);
             }
@@ -379,6 +380,8 @@ namespace ldb::lv {
         [[nodiscard]] constexpr auto
         begin() { return iterator(this, 0); }
         [[nodiscard]] constexpr auto
+        begin() const { return const_iterator(this, 0); }
+        [[nodiscard]] constexpr auto
         cbegin() { return const_iterator(this, 0); }
         [[nodiscard]] constexpr auto
         cbegin() const { return const_iterator(this, 0); }
@@ -386,12 +389,24 @@ namespace ldb::lv {
         [[nodiscard]] constexpr auto
         end() { return iterator(this, _size); }
         [[nodiscard]] constexpr auto
+        end() const { return const_iterator(this, _size); }
+        [[nodiscard]] constexpr auto
         cend() { return const_iterator(this, _size); }
         [[nodiscard]] constexpr auto
         cend() const { return const_iterator(this, _size); }
     };
-
-
 }
+
+template<>
+struct ::std::hash<ldb::lv::linda_tuple> {
+    constexpr std::size_t
+    operator()(const ldb::lv::linda_tuple& tuple) const noexcept {
+        std::size_t result = 0;
+        for (const auto& val : tuple) {
+            result ^= std::hash<ldb::lv::linda_value>{}(val);
+        }
+        return result;
+    }
+};
 
 #endif //LINDADB_LINDA_TUPLE_HXX

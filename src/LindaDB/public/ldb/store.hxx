@@ -44,7 +44,9 @@
 #include <functional>
 #include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <tuple>
+#include <unordered_set>
 #include <variant>
 
 #include <ldb/bcast/broadcast.hxx>
@@ -69,14 +71,24 @@ namespace ldb {
 
         void
         out(const lv::linda_tuple& tuple) {
+            {
+                std::scoped_lock lck(_header_mtx);
+                if (const auto it = _removed_later.find(tuple);
+                       it != _removed_later.end()) {
+                    _removed_later.erase(it);
+                    return;
+                }
+            }
             const auto await_handle = broadcast_insert(_broadcast, tuple);
             auto new_it = _data.push_back(tuple);
 
-            std::scoped_lock lck(_header_mtx);
-            for (std::size_t i = 0;
-                 i < _header_indices.size() && i < tuple.size();
-                 ++i) {
-                _header_indices[i].insert(tuple[i], new_it);
+            {
+                std::scoped_lock lck(_header_mtx);
+                for (std::size_t i = 0;
+                     i < _header_indices.size() && i < tuple.size();
+                     ++i) {
+                    _header_indices[i].insert(tuple[i], new_it);
+                }
             }
 
             await(await_handle);
@@ -149,13 +161,23 @@ namespace ldb {
 
         void
         out_nosignal(const lv::linda_tuple& tuple) {
+            {
+                std::scoped_lock lck(_header_mtx);
+                if (const auto it = _removed_later.find(tuple);
+                    it != _removed_later.end()) {
+                    _removed_later.erase(it);
+                    return;
+                }
+            }
             auto new_it = _data.push_back(tuple);
 
-            std::scoped_lock lck(_header_mtx);
-            for (std::size_t i = 0;
-                 i < _header_indices.size() && i < tuple.size();
-                 ++i) {
-                _header_indices[i].insert(tuple[i], new_it);
+            {
+                std::scoped_lock lck(_header_mtx);
+                for (std::size_t i = 0;
+                     i < _header_indices.size() && i < tuple.size();
+                     ++i) {
+                    _header_indices[i].insert(tuple[i], new_it);
+                }
             }
 
             notify_readers();
@@ -167,7 +189,9 @@ namespace ldb {
                                                       pointer_type>;
             const auto removed = retrieve_weak(concrete_tuple_query<index_type>(tuple),
                                                std::mem_fn(&store::read_and_remove_nosignal));
-            assert_that(removed);
+            if (!removed) {
+                _removed_later.insert(tuple);
+            }
         }
 
     private:
@@ -323,6 +347,7 @@ namespace ldb {
         mutable std::condition_variable _wait_read;
 
         mutable std::shared_mutex _header_mtx;
+        std::unordered_set<lv::linda_tuple> _removed_later{};
         std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>, 2> _header_indices{};
         broadcast _broadcast = null_broadcast{};
         storage_type _data{};
