@@ -61,6 +61,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <bit>
 #include <bitset>
 #include <cassert>
@@ -242,7 +243,7 @@ namespace ldb::data {
         struct data_chunk {
             [[nodiscard]] constexpr unsigned
             size() const noexcept {
-                return static_cast<unsigned>(std::popcount(_valids));
+                return static_cast<unsigned>(std::popcount(_valids.load(std::memory_order::acquire)));
             }
 
             [[nodiscard]] constexpr auto
@@ -253,18 +254,29 @@ namespace ldb::data {
             [[nodiscard]] constexpr auto
             full() const noexcept {
                 // todo non-2^n size chunks break
-                return _valids == static_cast<chunk_size_t>(-1);
+                return _valids.load(std::memory_order::acquire) == static_cast<chunk_size_t>(-1);
             }
 
             [[nodiscard]] constexpr auto
             empty() const noexcept {
                 // todo non-2^n size chunks break?
-                return _valids == chunk_size_t{0};
+                return _valids.load(std::memory_order::acquire) == chunk_size_t{0};
+            }
+
+            [[nodiscard]] constexpr auto
+            first_valid_index() const noexcept {
+                return static_cast<unsigned>(std::countr_zero(_valids.load(std::memory_order::acquire)));
+            }
+
+            [[nodiscard]] constexpr auto
+            last_valid_index() const noexcept {
+                return ChunkSize - static_cast<unsigned>(std::countl_zero(_valids.load(std::memory_order::acquire)));
             }
 
             [[nodiscard]] constexpr reference
             operator[](size_type idx) noexcept {
                 assert_that(idx < ChunkSize, "Index is within chunk bounds");
+                std::shared_lock lck(_data_mtx);
                 assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<pointer>(&_data[idx * sizeof(T)]);
             }
@@ -272,6 +284,7 @@ namespace ldb::data {
             [[nodiscard]] constexpr const_reference
             operator[](size_type idx) const noexcept {
                 assert_that(idx < ChunkSize, "Index is within chunk bounds");
+                std::shared_lock lck(_data_mtx);
                 assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<const_pointer>(&_data[idx * sizeof(T)]);
             }
@@ -279,37 +292,66 @@ namespace ldb::data {
             template<class... Args>
             auto
             emplace(Args&&... args) noexcept(std::is_nothrow_constructible_v<value_type, Args...>) {
-                auto next_idx = static_cast<unsigned>(std::countr_one(_valids));
-                assert_that(next_idx != ChunkSize, "Next index is within chunk bounds");
-                assert_that(!valid_at_index(next_idx));
-                _valids |= (1U << next_idx);
-                std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
-                                  std::forward<Args>(args)...);
-                return next_idx;
+                auto local_valids = _valids.load(std::memory_order::acquire);
+                for (;;) {
+                    auto next_idx = static_cast<unsigned>(std::countr_one(local_valids));
+                    assert_that(next_idx != ChunkSize);
+                    assert_that(!valid_at_index(next_idx));
+
+                    const auto new_valids = local_valids | (1U << next_idx);
+
+                    std::scoped_lock lck(_data_mtx);
+                    if (_valids.compare_exchange_strong(local_valids, new_valids, //
+                                                        std::memory_order::acq_rel,
+                                                        std::memory_order::acquire)) {
+                        std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
+                                          std::forward<Args>(args)...);
+                        return next_idx;
+                    }
+                }
             }
 
             auto
             push(const_reference obj) noexcept(std::is_nothrow_copy_constructible_v<value_type>) {
-                auto next_idx = static_cast<unsigned>(std::countr_one(_valids));
-                assert_that(next_idx != ChunkSize);
-                assert_that(!valid_at_index(next_idx));
-                _valids |= (1U << next_idx);
-                std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
-                                  obj);
-                return next_idx;
+                auto local_valids = _valids.load(std::memory_order::acquire);
+                for (;;) {
+                    auto next_idx = static_cast<unsigned>(std::countr_one(local_valids));
+                    assert_that(next_idx != ChunkSize);
+                    assert_that(!valid_at_index(next_idx));
+
+                    const auto new_valids = local_valids | (1U << next_idx);
+
+                    std::scoped_lock lck(_data_mtx);
+                    if (_valids.compare_exchange_strong(local_valids, new_valids, //
+                                                        std::memory_order::acq_rel,
+                                                        std::memory_order::acquire)) {
+                        std::construct_at(std::bit_cast<pointer>(&_data[next_idx * sizeof(T)]),
+                                          obj);
+                        return next_idx;
+                    }
+                }
             }
 
             void
-            destroy_at_index(size_type idx) {
+            destroy_at_index(size_type idx) noexcept(std::is_nothrow_destructible_v<value_type>) {
+                auto local_valids = _valids.load(std::memory_order::acquire);
                 assert_that(valid_at_index(idx));
-                _valids &= ~(1U << idx);
-                std::destroy_at(std::bit_cast<pointer>(&_data[idx * sizeof(T)]));
-                assert_that(!valid_at_index(idx));
+                for (;;) {
+                    const auto new_valids = static_cast<chunk_size_t>(local_valids & ~(1U << idx));
+
+                    std::scoped_lock lck(_data_mtx);
+                    if (_valids.compare_exchange_strong(local_valids, new_valids, //
+                                                        std::memory_order::acq_rel,
+                                                        std::memory_order::acquire)) {
+                        std::destroy_at(std::bit_cast<pointer>(&_data[idx * sizeof(T)]));
+                        return;
+                    }
+                }
             }
 
             [[nodiscard]] constexpr bool
             valid_at_index(size_type idx) const noexcept {
-                return (_valids & (1U << idx)) != 0U;
+                return (_valids.load(std::memory_order::acquire) & (1U << idx)) != 0U;
             }
 
             data_chunk(chunked_list* owner, size_type chunk_index)
@@ -318,26 +360,30 @@ namespace ldb::data {
 
             [[nodiscard]] constexpr data_chunk*
             get_next_chunk(difference_type by = 1) const noexcept {
-                return _owner->next_chunk_after(_chunk_index, by);
+                return _owner->next_chunk_after(_chunk_index.load(std::memory_order::acquire),
+                                                by);
             }
 
             [[nodiscard]] constexpr auto
             operator<=>(const data_chunk& other) const noexcept {
-                return _chunk_index <=> other._chunk_index;
+                return _chunk_index.load(std::memory_order::acquire)
+                       <=> other._chunk_index.load(std::memory_order::acquire);
             }
 
             [[nodiscard]] constexpr auto
             is_final() const noexcept {
-                return _owner->_chunks.size() - 1 == _chunk_index;
+                return _owner->_chunks.size() - 1 == _chunk_index.load(std::memory_order::acquire);
             }
 
             [[nodiscard]] constexpr auto
             is_head() const noexcept {
-                return _chunk_index == 0;
+                return _chunk_index.load(std::memory_order::acquire) == 0;
             }
 
             ~data_chunk() noexcept {
                 if (empty()) return;
+
+                std::scoped_lock lck(_data_mtx);
                 for (std::size_t i = 0; i < ChunkSize; ++i) {
                     if (!valid_at_index(i)) continue;
                     std::destroy_at(std::bit_cast<pointer>(&_data[i * sizeof(T)]));
@@ -346,14 +392,15 @@ namespace ldb::data {
 
             void
             set_index(std::size_t idx) {
-                _chunk_index = idx;
+                _chunk_index.store(idx, std::memory_order::release);
             }
 
         private:
             friend chunked_list;
             const chunked_list* const _owner;
-            size_type _chunk_index;
-            chunk_size_t _valids{};
+            std::atomic<size_type> _chunk_index;
+            std::atomic<chunk_size_t> _valids{};
+            mutable std::shared_mutex _data_mtx;
             alignas(alignof(T)) std::array<std::byte, sizeof(T) * ChunkSize> _data{std::byte{}};
         };
 
@@ -451,7 +498,7 @@ namespace ldb::data {
                         if (by == 0) return;
                     }
                     if (_chunk->is_final()) {
-                        _index = ChunkSize - static_cast<unsigned>(std::countl_zero(_chunk->_valids));
+                        _index = _chunk->last_valid_index();
                         return;
                     }
                     _chunk = _chunk->get_next_chunk(1);
@@ -583,16 +630,14 @@ namespace ldb::data {
         iterator
         begin_unguarded() const {
             if (_chunks.size() == 0) return iterator();
-            return iterator(_chunks[0].get(),
-                            static_cast<unsigned>(std::countr_zero(_chunks[0]->_valids)));
+            return iterator(_chunks[0].get(), _chunks[0]->first_valid_index());
         }
 
         iterator
         end_unguarded() const {
             if (_chunks.empty()) return iterator();
             auto&& back = _chunks.back();
-            return iterator(back.get(),
-                            ChunkSize - static_cast<unsigned>(std::countl_zero(back->_valids)));
+            return iterator(back.get(), back->last_valid_index());
         }
 
         LDB_CONSTEXPR23 void
