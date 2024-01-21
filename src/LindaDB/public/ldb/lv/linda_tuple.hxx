@@ -397,16 +397,18 @@ namespace ldb::lv {
     };
 }
 
-template<>
-struct ::std::hash<ldb::lv::linda_tuple> {
-    constexpr std::size_t
-    operator()(const ldb::lv::linda_tuple& tuple) const noexcept {
-        std::size_t result = 0;
-        for (const auto& val : tuple) {
-            result ^= std::hash<ldb::lv::linda_value>{}(val);
+namespace std {
+    template<>
+    struct hash<ldb::lv::linda_tuple> {
+        constexpr std::size_t
+        operator()(const ldb::lv::linda_tuple& tuple) const noexcept {
+            std::size_t result = 0;
+            for (const auto& val : tuple) {
+                result ^= std::hash<ldb::lv::linda_value>{}(val);
+            }
+            return result;
         }
-        return result;
-    }
-};
+    };
+}
 
 #endif //LINDADB_LINDA_TUPLE_HXX
