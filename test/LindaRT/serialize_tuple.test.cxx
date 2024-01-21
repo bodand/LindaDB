@@ -34,13 +34,16 @@
  *   Tests for serialization of tuples.
  */
 
-#include <chrono>
+#include <array>
 #include <concepts>
-#include <random>
+#include <cstddef>
+#include <string>
+#include <vector>
 
+#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_range_equals.hpp>
-#include <catch2/matchers/catch_matchers_vector.hpp>
 #include <ldb/lv/linda_tuple.hxx>
 #include <lrt/serialize/tuple.hxx>
 
@@ -79,9 +82,9 @@ TEST_CASE("tuple with numbers serializes",
     exp[0] = std::byte{1};
     exp[1] = std::byte{2};
     exp[sizeof(std::size_t) + 1] = int_typemap;
-    exp[sizeof(std::size_t) + 1 + 1] = std::byte{42};
+    exp[sizeof(std::size_t) + 1 + 1] = static_cast<std::byte>(std::get<int>(t[0]));
     exp[sizeof(std::size_t) + 1 + sizeof(int) + 1] = int_typemap;
-    exp[sizeof(std::size_t) + 1 + sizeof(int) + 1 + 1] = std::byte{69};
+    exp[sizeof(std::size_t) + 1 + sizeof(int) + 1 + 1] = static_cast<std::byte>(std::get<int>(t[1]));
     CHECK(serial_sz == exp.size());
     CHECK_THAT(exp, Catch::Matchers::RangeEquals(std::span{serial.get(), serial.get() + serial_sz}));
 }
@@ -131,4 +134,19 @@ TEST_CASE("tuple with string deserializes") {
     const auto& [serial, serial_sz] = ser;
     auto got = lrt::deserialize({serial.get(), serial_sz});
     CHECK(t == got);
+}
+
+TEMPLATE_LIST_TEST_CASE("tuple with all fields can round trip serialization",
+                        "[serialize][deserialize]",
+                        lv::linda_value) {
+    TestType payload{};
+    if constexpr (std::integral<TestType>) payload = 42;
+    if constexpr (std::floating_point<TestType>) payload = 4.2;
+    if constexpr (std::same_as<TestType, std::string>) payload = "42xx";
+
+    const lv::linda_tuple t(payload);
+    const auto [serial, serial_sz] = lrt::serialize(t);
+    CHECK(serial_sz > sizeof(std::size_t) + 1);
+    const auto back = lrt::deserialize({serial.get(), serial_sz});
+    CHECK(t == back);
 }

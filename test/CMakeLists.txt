@@ -49,7 +49,11 @@ add_subdirectory(LindaRT)
 
 find_package(MPI REQUIRED)
 add_executable(lindart-test lindart.cxx)
-target_link_libraries(lindart-test PUBLIC MPI::MPI_CXX LindaRT)
+target_link_libraries(lindart-test
+                      PUBLIC MPI::MPI_CXX LindaRT
+                      PRIVATE internal-coverage)
 
 add_test(NAME "LindaRT-MPI"
          COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lindart-test>)
+set_tests_properties("LindaRT-MPI" PROPERTIES
+                     ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")

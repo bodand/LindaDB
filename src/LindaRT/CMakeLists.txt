@@ -49,8 +49,7 @@ target_include_directories(LindaRT-malloc
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaRT-malloc
                       PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:mimalloc-static>
-                      PRIVATE internal-warnings internal-lto)
-target_compile_features(LindaRT-malloc PUBLIC cxx_std_20)
+                      PRIVATE internal-warnings internal-lto internal-language-level)
 target_compile_definitions(LindaRT-malloc
                            PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
 
@@ -61,10 +60,9 @@ target_include_directories(LindaRT
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaRT
-                      PUBLIC LindaDB
+                      PUBLIC LindaDB internal-language-level
                       PRIVATE MPI::MPI_CXX internal-coverage internal-warnings internal-lto)
 target_compile_definitions(LindaRT-malloc
                            PUBLIC $<$<BOOL:${LINDA_RT_BIG_ENDIAN}>:LINDA_RT_BIG_ENDIAN>)
-target_compile_features(LindaRT PUBLIC cxx_std_20)
 
 list(APPEND PROJECT_TARGETS LindaRT)

@@ -35,6 +35,7 @@
 #   components.
 
 add_library(LindaDB STATIC
+            public/ldb/bcast/null_broadcast.hxx
             public/ldb/data/chunked_list.hxx
             public/ldb/index/tree/payload/chime_payload.hxx
             public/ldb/index/tree/payload/scalar_payload.hxx
@@ -45,7 +46,13 @@ add_library(LindaDB STATIC
             public/ldb/index/tree/payload_dispatcher.hxx
             public/ldb/lv/linda_tuple.hxx
             public/ldb/lv/linda_value.hxx
-            public/ldb/profiler.hxx
+            public/ldb/query/concrete_tuple_query.hxx
+            public/ldb/query/make_matcher.hxx
+            public/ldb/query/manual_fields_query.hxx
+            public/ldb/query/match_type.hxx
+            public/ldb/query/match_value.hxx
+            public/ldb/query/meta_finder.hxx
+            public/ldb/query/tuple_query.hxx
             public/ldb/query_tuple.hxx
             public/ldb/store.hxx
             src/data/chunked_list.cxx
@@ -56,6 +63,10 @@ add_library(LindaDB STATIC
             src/index/tree/payload.cxx
             src/index/tree/payload_dispatcher.cxx
             src/lv/linda_tuple.cxx
+            src/query/concrete_tuple_query.cxx
+            src/query/manual_fields_query.cxx
+            src/query/tuple_query.cxx
+            src/common.cxx
             src/store.cxx)
 
 add_library(LindaDB-malloc STATIC
@@ -65,8 +76,7 @@ target_include_directories(LindaDB-malloc
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaDB-malloc
                       PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:mimalloc-static>
-                      PRIVATE internal-warnings internal-lto)
-target_compile_features(LindaDB-malloc PUBLIC cxx_std_20)
+                      PRIVATE internal-warnings internal-lto internal-language-level)
 target_compile_definitions(LindaDB-malloc
                            PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
 
@@ -77,8 +87,7 @@ target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaDB
-                      PRIVATE internal-coverage internal-warnings internal-lto)
-target_compile_features(LindaDB PUBLIC cxx_std_20)
+                      PRIVATE internal-coverage internal-warnings internal-lto internal-language-level)
 
 if (TARGET Tracy::TracyClient)
     target_link_libraries(LindaDB PUBLIC Tracy::TracyClient)

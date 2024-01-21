@@ -35,8 +35,10 @@
 
 add_covered_test(NAME LindaDB.Test CATCH
                  SOURCES
+                 bcast/broadcast.test.cxx
                  data/chunked_list.test.cxx
                  lv/linda_tuple.test.cxx
+                 lv/linda_value.test.cxx
                  tree/avl/scalar_avl.test.cxx
                  tree/avl/vector_avl.test.cxx
                  tree/avl/chime_avl.test.cxx

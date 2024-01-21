@@ -91,7 +91,7 @@ TEST_CASE("new vector AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(4, 2));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -103,7 +103,7 @@ TEST_CASE("new vector AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(2, 2));
         CHECK_NOTHROW(sut.insert(1, 2));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -115,7 +115,7 @@ TEST_CASE("new vector AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(1, 2));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }

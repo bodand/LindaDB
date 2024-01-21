@@ -35,6 +35,7 @@
 
 add_covered_test(NAME LindaRT.Test CATCH
                  SOURCES
+                 runtime.test.cxx
                  serialize_tuple.test.cxx
                  LIBRARIES LindaRT)
 

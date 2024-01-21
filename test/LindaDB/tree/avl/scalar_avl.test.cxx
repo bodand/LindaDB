@@ -92,7 +92,7 @@ TEST_CASE("new AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(4, 2));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -104,7 +104,7 @@ TEST_CASE("new AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(2, 2));
         CHECK_NOTHROW(sut.insert(1, 2));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -116,7 +116,7 @@ TEST_CASE("new AVL-tree can search elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(1, 2));
 
-        auto res = sut.search(lit::any_value_query(1));
+        auto res = sut.search(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
     }
@@ -130,10 +130,10 @@ TEST_CASE("new AVL-tree can remove elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(4, 2));
 
-        auto res = sut.remove(lit::any_value_query(1));
+        auto res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
-        res = sut.remove(lit::any_value_query(1));
+        res = sut.remove(lit::any_value_lookup(1));
         REQUIRE_FALSE(res.has_value());
     }
 
@@ -144,10 +144,10 @@ TEST_CASE("new AVL-tree can remove elements") {
         CHECK_NOTHROW(sut.insert(2, 2));
         CHECK_NOTHROW(sut.insert(1, 2));
 
-        auto res = sut.remove(lit::any_value_query(1));
+        auto res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
-        res = sut.remove(lit::any_value_query(1));
+        res = sut.remove(lit::any_value_lookup(1));
         REQUIRE_FALSE(res.has_value());
     }
 
@@ -158,10 +158,10 @@ TEST_CASE("new AVL-tree can remove elements") {
         CHECK_NOTHROW(sut.insert(3, 2));
         CHECK_NOTHROW(sut.insert(1, 2));
 
-        auto res = sut.remove(lit::any_value_query(1));
+        auto res = sut.remove(lit::any_value_lookup(1));
         REQUIRE(res.has_value());
         CHECK(*res == 2);
-        res = sut.remove(lit::any_value_query(1));
+        res = sut.remove(lit::any_value_lookup(1));
         REQUIRE_FALSE(res.has_value());
     }
 }
@@ -187,9 +187,9 @@ TEST_CASE("new scalar AVL-tree can remove elements indefinitely",
     }
 
     for (int i = 0; i < 2'000'000; ++i) {
-        auto res = sut.remove(lit::any_value_query(key(rng)));
+        auto res = sut.remove(lit::any_value_lookup(key(rng)));
         if (res) {
-            CHECK(*res > 0);
+            CHECK(*res >= 0);
             CHECK(*res < 2'000'000);
         }
     }

@@ -82,10 +82,12 @@ namespace ldb::lv {
         };
     }
 
-    inline std::ostream&
-    operator<<(std::ostream& os, const linda_value& lv) {
-        std::visit(helper::printer(os), lv);
-        return os;
+    inline namespace io {
+        inline std::ostream&
+        operator<<(std::ostream& os, const linda_value& lv) {
+            std::visit(helper::printer(os), lv);
+            return os;
+        }
     }
 }
 

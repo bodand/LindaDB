@@ -13,6 +13,8 @@ linux_test_template: &LINUX_TEST_TEMPLATE_TASK
   test_script:
     - cd ${BUILD_PATH}
     - ctest --output-on-failure
+    - ./test/LindaDB/LindaDB.Test --allow-running-no-tests -d yes "[long]"
+    - ./test/LindaRT/LindaRT.Test --allow-running-no-tests -d yes "[long]"
 
   coverage_script:
     - cd ${BUILD_PATH}
@@ -43,18 +45,20 @@ linux_builds_task:
         CG_TOOLCHAIN: gcc
         VCPKG_FORCE_SYSTEM_BINARIES: "1"
         VCPKG_MAX_CONCURRENCY: "6"
-    - name: "linux-clang-arm64"
-      arm_container:
-        image: silkeh/clang:17
-      env:
-        BUILD_ARCH: arm
-        CMAKE_ARCH: aarch64
-        CG_TOOLCHAIN: clang
-        VCPKG_FORCE_SYSTEM_BINARIES: "1"
-        VCPKG_MAX_CONCURRENCY: "6"
+        # TODO: fix this? image given has too old clang to build ldb
+#    - name: "linux-clang-arm64"
+#      arm_container:
+#        image: silkeh/clang@sha256:38accb94a4479a8d46750ac2ee830346011450da9e08b32746ce030af35f673a
+#      env:
+#        BUILD_ARCH: arm
+#        CMAKE_ARCH: aarch64
+#        CG_TOOLCHAIN: clang
+#        VCPKG_FORCE_SYSTEM_BINARIES: "1"
+#        VCPKG_MAX_CONCURRENCY: "6"
 
   env:
     CIRRUS_CLONE_SUBMODULES: "true"
+    LLVM_PROFILE_FILE: "%m-%p.profraw"
     VCPKG_DEFAULT_BINARY_CACHE: ${CIRRUS_WORKING_DIR}/vcpkg-bincache
     CMAKE_PRESET: lnx-${CG_TOOLCHAIN}-${BUILD_ARCH}-rel
     CMAKE_BUILD_PRESET: release-linux-${BUILD_ARCH}-${CG_TOOLCHAIN}
@@ -65,11 +69,11 @@ linux_builds_task:
     PROJECT_CXX_EXE: /usr/bin/c++
     OMPI_ALLOW_RUN_AS_ROOT: "1"
     OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: "1"
+    ASAN_OPTIONS: detect_leaks=0
 
   apt_script:
     - apt-get update
-    - apt-get install -y pkg-config curl ninja-build zip unzip git aria2 python3 rpm signify-openbsd jq asciidoctor
-    - gem install coveralls-lcov
+    - apt-get install -y pkg-config curl gpg ninja-build zip unzip git aria2 python3 rpm signify-openbsd jq asciidoctor
 
   cmake_install_script:
     - aria2c ${CMAKE_TAR_URL} -o cmake-install.tar.gz
@@ -123,11 +127,10 @@ windows_test_template: &WINDOWS_TEST_TEMPLATE_TASK
     - ctest
 
 windows_builds_task:
-  timeout_in: 120m
   windows_container:
     image: cirrusci/windowsservercore:2019
-    cpu: 8
-    memory: 32G
+    cpu: 4
+    memory: 10G
 
   dependencies_script:
     - choco install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.Component.VC.Runtime.UCRTSDK --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.ATL"
@@ -138,7 +141,6 @@ windows_builds_task:
     - choco install cmake -y
     - choco install ninja -y
     - gem install asciidoctor
-    - gem install coveralls-lcov
 
   msmpi_script:
     - aria2c https://download.microsoft.com/download/7/2/7/72731ebb-b63c-4170-ade7-836966263a8f/msmpisetup.exe -o msmpisetup.exe
@@ -155,12 +157,13 @@ windows_builds_task:
   env:
     CIRRUS_CLONE_SUBMODULES: "true"
     BUILD_ARCH: x64
+    LLVM_PROFILE_FILE: "^%m-^%p.profraw"
     VCPKG_DEFAULT_BINARY_CACHE: "%CIRRUS_WORKING_DIR%\\vcpkg-bincache"
     CMAKE_PRESET: win-%CG_TOOLCHAIN%-%BUILD_ARCH%-rel
     CMAKE_BUILD_PRESET: release-windows-%BUILD_ARCH%-%CG_TOOLCHAIN%
     BUILD_PATH: _build-release-${BUILD_ARCH}-${CG_TOOLCHAIN}
     MS_VS_PATH: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools
-    PATH: C:\ProgramData\chocolatey\bin;C:\tools\ruby31\bin;C:\Program Files\CMake\bin;%PATH%
+    PATH: C:\ProgramData\chocolatey\bin;C:\tools\ruby33\bin;C:\Program Files\CMake\bin;%PATH%
 
   longpath_script:
     - reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f

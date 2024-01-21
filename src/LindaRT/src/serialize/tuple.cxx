@@ -35,17 +35,33 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <bit>
+#include <cassert>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <execution>
+#include <limits>
+#include <memory>
 #include <numeric>
-#include <ranges>
+#include <span>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
 
+#include <ldb/common.hxx>
+#include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
-#include <ldb/profiler.hxx>
-#include <ldb/support/move_only_function.hxx>
 #include <lrt/serialize/tuple.hxx>
 
 namespace {
+    template<class T>
+    struct fail {
+        constexpr static const auto value = false;
+    };
+
 #ifdef __cpp_lib_byteswap
     using std::byteswap;
 #else
@@ -61,24 +77,25 @@ namespace {
 #endif
 
 #ifdef LINDA_RT_BIG_ENDIAN
-    constexpr const auto comm_endian = std::endian::big;
+    constexpr const auto communicaiton_endian = std::endian::big;
 #else
-    constexpr const auto comm_endian = std::endian::little;
+    constexpr const auto communication_endian = std::endian::little;
 #endif
 
     template<std::integral T>
     constexpr T
     swap_unless_comm_endian(T val) noexcept {
-        if constexpr (std::endian::big == std::endian::native) { // on big endian system
-            if constexpr (comm_endian == std::endian::big) {     // comm order is big
+        using enum std::endian;
+        if constexpr (big == native) {          // on big endian system
+            if constexpr (communication_endian == big) { // comm order is big
                 return val;
             }
             else { // comm order is little
                 return byteswap(val);
             }
         }
-        else if constexpr (std::endian::little == std::endian::native) { // on little endian system
-            if constexpr (comm_endian == std::endian::big) {             // comm order is big
+        else if constexpr (little == native) {  // on little endian system
+            if constexpr (communication_endian == big) { // comm order is big
                 return byteswap(val);
             }
             else { // comm order is little
@@ -86,7 +103,7 @@ namespace {
             }
         }
         else {
-            static_assert(ldb::fail<T>::value, "mixed endian machines are not supported");
+            static_assert(fail<T>::value, "mixed endian machines are not supported");
         }
     }
 
@@ -170,8 +187,7 @@ namespace {
         static_assert(std::numeric_limits<double>::is_iec559,
                       "LindaRT requires IEEE754 doubles");
 
-        explicit
-        value_serializator(std::byte* buf) : buf(buf) { }
+        explicit value_serializator(std::byte* buf) : buf(buf) { }
         std::byte* buf;
 
         template<std::integral T>
@@ -263,7 +279,7 @@ namespace {
     template<std::constructible_from T>
     T
     deserialize_numeric(std::byte*& buf, std::size_t& len) {
-        assert(len >= sizeof(T));
+        assert_that(len >= sizeof(T));
         T i{};
         auto value_representation =
                std::bit_cast<std::byte*>(&i);
@@ -296,7 +312,7 @@ namespace {
         case LRT_DOUBLE: return deserialize_numeric<double>(buf, len);
         case LRT_STRING: {
             const auto str_sz = deserialize_numeric<std::string::size_type>(buf, len);
-            assert(len >= str_sz);
+            assert_that(len >= str_sz);
             std::string str(str_sz, '.');
             std::transform(std::execution::par_unseq,
                            buf,

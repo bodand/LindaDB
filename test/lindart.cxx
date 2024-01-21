@@ -35,6 +35,8 @@
  */
 
 #include <iostream>
+#include <syncstream>
+#include <utility>
 
 #include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
@@ -53,12 +55,18 @@ main(int argc, char** argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     if (rank == 0) {
-        store.in(ldb::query_tuple("rank", static_cast<const int>(size), ldb::ref(&data)));
-        std::cout << "rank0: " << data << "\n";
+        for (int i = 2; i <= size; ++i) {
+            ldb::query_tuple query("rank", std::as_const(i), ldb::ref(&data));
+            auto red = store.in(query);
+            std::osyncstream(std::cout) << "rank0: " << red << " from " << i << "\n"
+                                        << std::flush;
+        }
     }
     else {
         data = "Hello World!";
-        store.out(ldb::lv::linda_tuple{"rank", rank + 1, data});
-        std::cout << "rank" << rank << ": finishing\n";
+        ldb::lv::linda_tuple tuple{"rank", rank + 1, data};
+        store.out(tuple);
+        std::osyncstream(std::cout) << "rank" << rank << ": finishing\n"
+                                    << std::flush;
     }
 }

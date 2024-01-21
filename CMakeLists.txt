@@ -30,7 +30,7 @@
 # CMakeLists.txt --
 #   The main CMake script for building and managing the project.
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.26)
 enable_language(C)
 enable_language(CXX)
 
@@ -55,7 +55,7 @@ cmake_policy(SET CMP0048 NEW)
 # project #########################################################################
 project(LindaDB
         VERSION 0.1.1
-        DESCRIPTION "HPC-centric, distributed IMDB for the linda language's implementation."
+        DESCRIPTION "Distributed IMDB for the linda language's implementation."
         LANGUAGES CXX)
 
 # generate versioninfo.txt file for build
@@ -81,17 +81,8 @@ include(cmake/generate_lto.cmake)
 find_program(ASCIIDOCTOR_EXE asciidoctor
              DOC "The asciidoctor executable used to build documentation")
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND WIN32)
-    set(LDB_DEFAULT_PROFILER NO)
-else ()
-    set(LDB_DEFAULT_PROFILER YES)
-endif ()
-
 test_big_endian(LRT_IS_BIG_ENDIAN)
 
-option(LINDA_DB_USE_PROFILER
-       "While building the LindaDB implementation provide the required orchestration for the Tracy profiler [${LDB_DEFAULT_PROFILER}]"
-       ${LDB_DEFAULT_PROFILER})
 option(LINDA_DB_USE_MIMALLOC
        "Build LindaDB using the mimalloc allocator instead of the system's [YES]"
        YES)
@@ -109,8 +100,13 @@ if (NOT DEFINED ENV{CG_DEPLOYMENT})
         AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH vs_llvmx64_bindir)
         cmake_path(GET vs_llvmx64_bindir PARENT_PATH vs_llvmx64_dir)
-        set(clang_profile_lib "${vs_llvmx64_dir}/lib/clang/16/lib/windows/clang_rt.profile-x86_64.lib")
-        target_link_libraries(internal-coverage INTERFACE "${clang_profile_lib}")
+        if (CMAKE_CXX_COMPILER_VERSION MATCHES [[^([1-9][0-9]*)\.]])
+            set(clang_profile_lib "${vs_llvmx64_dir}/lib/clang/${CMAKE_MATCH_1}/lib/windows/clang_rt.profile-x86_64.lib")
+            target_link_libraries(internal-coverage INTERFACE "${clang_profile_lib}")
+        else ()
+            message(WARNING
+                    "Cannot deduce Clang Runtime location: cannot calculate the major version of the compiler is from: ${CMAKE_CXX_COMPILER_VERSION}")
+        endif ()
     else ()
         target_link_options(internal-coverage INTERFACE
                             $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
@@ -128,6 +124,27 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug"
             $<$<PLATFORM_ID:Linux>:-fsanitize=address,undefined>
     )
 endif ()
+
+try_compile(LDB_HAVE_CXX23
+            SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_cxx23.cxx"
+            LOG_DESCRIPTION "Checking for C++23 support..."
+            CXX_STANDARD 23
+            CXX_EXTENSIONS NO)
+try_compile(LDB_HAVE_STACKTRACE
+            SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_stacktrace.cxx"
+            LOG_DESCRIPTION "Checking for std::stacktrace support..."
+            CXX_STANDARD 23
+            CXX_EXTENSIONS NO)
+add_library(internal-language-level INTERFACE)
+if (LDB_HAVE_CXX23)
+    set(LDB_CXX_FILE_SUFFIX cxx23)
+    target_compile_features(internal-language-level INTERFACE cxx_std_23)
+else ()
+    set(LDB_CXX_FILE_SUFFIX cxx20)
+    target_compile_features(internal-language-level INTERFACE cxx_std_20)
+endif ()
+target_compile_definitions(internal-language-level INTERFACE
+                           LDB_HAVE_STACKTRACE=0$<BOOL:${LDB_HAVE_STACKTRACE}>)
 
 # warnings
 add_library(internal-warnings INTERFACE)
@@ -153,11 +170,9 @@ if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
 endif ()
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
-if (LINDA_DB_USE_PROFILER)
-    find_package(Tracy CONFIG REQUIRED)
-endif ()
 
 # targets
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>)
 set(PROJECT_TARGETS)
 add_subdirectory(src/LindaDB)
 add_subdirectory(src/LindaRT)

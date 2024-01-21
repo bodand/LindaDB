@@ -36,13 +36,18 @@
 #ifndef AVL2_TREE_HXX
 #define AVL2_TREE_HXX
 
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
-#include <execution>
 #include <memory>
+#include <optional>
+#include <shared_mutex>
+#include <mutex>
 
+#include <ldb/common.hxx>
+#include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload_dispatcher.hxx>
-#include <ldb/profiler.hxx>
 
 namespace ldb::index::tree {
     enum avlbf : std::int8_t {
@@ -73,10 +78,10 @@ namespace ldb::index::tree {
                            Args&&... args)
              : data(std::forward<Args>(args)...),
                _parent(par) {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
         }
 
         avl2_node(const avl2_node& other) = delete;
@@ -86,10 +91,10 @@ namespace ldb::index::tree {
                _right(other.release_right()),
                bf(other.bf),
                data(std::move(other.data)) {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
         }
 
         avl2_node&
@@ -111,37 +116,37 @@ namespace ldb::index::tree {
 
         [[nodiscard]] auto
         get_side_of(avl2_node* child) const noexcept {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
             if (child == _left.get()) return std::make_pair<side_pointer, set_side_pointer>(
                    &avl2_node::left_ptr,
                    &avl2_node::set_left);
             if (child == _right.get()) return std::make_pair<side_pointer, set_side_pointer>(
                    &avl2_node::right_ptr,
                    &avl2_node::set_right);
-            assert(false && "non direct child passed to get_side_of");
+            assert_that(false && "non direct child passed to get_side_of");
             LDB_UNREACHABLE;
         }
 
         [[nodiscard]] std::unique_ptr<avl2_node<P>>*
         parent() const {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
             return _parent;
         }
 
         void
         set_parent(std::unique_ptr<avl2_node<P>>* p) {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
             if (p) {
-                assert(*p != nullptr);
-                assert((*p).get() != this);
-                assert((*p).get()->left().get() == this
+                assert_that(*p != nullptr);
+                assert_that((*p).get() != this);
+                assert_that((*p).get()->left().get() == this
                        || (*p).get()->right().get() == this);
             }
             _parent = p;
@@ -149,17 +154,17 @@ namespace ldb::index::tree {
 
         [[nodiscard]] const std::unique_ptr<avl2_node>&
         left() const {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
-            assert(_parent == nullptr || *_parent != nullptr);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
+            assert_that(_parent == nullptr || *_parent != nullptr);
             return _left;
         }
         [[nodiscard]] decltype(auto)
         release_left() {
-            assert(_left.get() != this);
-            assert(_right.get() != this);
-            assert(_parent == nullptr || _parent->get() != this);
+            assert_that(_left.get() != this);
+            assert_that(_right.get() != this);
+            assert_that(_parent == nullptr || _parent->get() != this);
             assert(_parent == nullptr || *_parent != nullptr);
             if (_left) _left->_parent = nullptr;
             return std::move(_left);
@@ -303,7 +308,7 @@ namespace ldb::index::tree {
             return data.force_set_upper(key, value);
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         auto
         find_by_query(const Q& query) const {
             assert(_left.get() != this);
@@ -313,7 +318,7 @@ namespace ldb::index::tree {
             return data.try_get(query);
         }
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         auto
         remove_by_query(const Q& query) {
             assert(_left.get() != this);
@@ -342,8 +347,7 @@ namespace ldb::index::tree {
             if (_right) _right->apply(fn);
         }
 
-        ~
-        avl2_node() {
+        ~avl2_node() {
             assert(_left.get() != this);
             assert(_right.get() != this);
             if (_left) release(&_left);
@@ -357,7 +361,6 @@ namespace ldb::index::tree {
 
         static void
         release(std::unique_ptr<avl2_node>* subtree) noexcept {
-            LDB_PROF_SCOPE("TreeNode_ReleaseSubtree");
             while ((*subtree)->_left && (*subtree)->_right) {
                 subtree = &(*subtree)->_left;
             }
@@ -383,10 +386,10 @@ namespace ldb::index::tree {
         using key_type = payload_type::key_type;
         using value_type = payload_type::value_type;
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         search(const Q& query) const {
-            LDB_SLOCK(lck, _mtx);
+            std::shared_lock lck(_mtx);
             const auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
@@ -396,7 +399,7 @@ namespace ldb::index::tree {
         void
         insert(const key_type& key,
                const value_type& value) {
-            LDB_LOCK(lck, _mtx);
+            std::unique_lock lck(_mtx);
             std::unique_ptr<node_type>* parent = nullptr;
             std::unique_ptr<node_type>* current = &root;
             while (*current) {
@@ -507,10 +510,10 @@ namespace ldb::index::tree {
         }
 
 
-        template<index_query<value_type> Q>
+        template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         remove(const Q& query) {
-            LDB_LOCK(lck, _mtx);
+            std::scoped_lock lck(_mtx);
             auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
@@ -611,6 +614,8 @@ namespace ldb::index::tree {
             }
 
             auto* current = target;
+            assert(current);
+            assert(*current);
             auto* parent = (*current)->parent();
 
             while ((*current)->parent()) {
@@ -942,7 +947,7 @@ namespace ldb::index::tree {
         }
 
         std::unique_ptr<node_type> root{};
-        mutable LDB_SMUTEX(std::shared_mutex, _mtx);
+        mutable std::shared_mutex _mtx;
     };
 }
 

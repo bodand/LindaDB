@@ -1,7 +1,9 @@
 = LindaDB
 :icons: font
 
-HPC-centric, distributed IMDB for the linda language's implementation.
+image::https://codecov.io/github/bodand/LindaDB/graph/badge.svg?token=DVmLsKIJVr[]
+
+Distributed IMDB for the linda language's implementation.
 
 == Description
 

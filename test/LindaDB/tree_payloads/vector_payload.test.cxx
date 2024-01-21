@@ -87,6 +87,48 @@ TEST_CASE("empty vector_payload has priority") {
     CHECK(sut.have_priority());
 }
 
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is copyable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = sut;
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is copy assignable") {
+    const sut_type<> sut;
+
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = sut;
+
+    CHECK(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is movable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = std::move(sut);
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("vector_payload is move assignable") {
+    sut_type<> sut;
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = std::move(sut);
+
+    CHECK(sut2.empty());
+}
+
+
 // ordering of test keys: Test_Key3 < Test_Key < Test_Key2
 // the test suite relies on this ordering, so even if
 // modifying the keys retain this property
@@ -267,20 +309,20 @@ TEST_CASE("full vector_payload as string contains its key and value") {
 // NOLINTNEXTLINE
 TEST_CASE("empty vector_payload returns nullopt in try_get") {
     const sut_type<> sut;
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full vector_payload returns nullopt in try_get with different key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key + 1)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key + 1)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full vector_payload returns Some(value) in try_get with correct key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::optional{Test_Value});
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::optional{Test_Value});
 }
 
 

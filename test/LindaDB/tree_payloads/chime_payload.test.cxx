@@ -41,6 +41,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload/chime_payload.hxx>
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/query_tuple.hxx>
+#include "ldb/index/tree/index_query.hxx"
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
@@ -58,6 +61,47 @@ TEST_CASE("chime_payload default initializes as empty") {
     const sut_type<> sut;
 
     CHECK(sut.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is copyable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = sut;
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is copy assignable") {
+    const sut_type<> sut;
+
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = sut;
+
+    CHECK(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is movable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = std::move(sut);
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("chime_payload is move assignable") {
+    sut_type<> sut;
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = std::move(sut);
+
+    CHECK(sut2.empty());
 }
 
 // NOLINTNEXTLINE
@@ -271,27 +315,27 @@ TEST_CASE("full chime_payload as string contains its key and value") {
 // NOLINTNEXTLINE
 TEST_CASE("empty chime_payload returns nullopt in try_get") {
     const sut_type<> sut;
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("chime_payload returns nullopt in try_get with different key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key + 1)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key + 1)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("chime_payload returns Some(value) in try_get with correct key") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::optional{Test_Value});
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::optional{Test_Value});
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("chime_payload returns Some(value) in try_get with correct key and matcher") {
     const sut_type<> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
-    CHECK(sut.try_get(lit::value_query(Test_Key, Test_Value)) == std::optional{Test_Value});
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::value_lookup(Test_Key, Test_Value)) == std::optional{Test_Value});
 }
 
 TEST_CASE("multi-element chime_payload remains sorted after insert") {
@@ -302,4 +346,23 @@ TEST_CASE("multi-element chime_payload remains sorted after insert") {
     CHECK(sut == Test_Key);
     CHECK(sut > Test_Key3 - 1);
     CHECK(sut < Test_Key2 + 1);
+}
+
+TEST_CASE("chime_payload removes correct element") {
+    lps::chime_payload<ldb::lv::linda_value, ldb::lv::linda_tuple*, 8> sut;
+    std::vector buf{
+           ldb::lv::linda_tuple("asd", 1, "dsa"),
+           ldb::lv::linda_tuple("asd", 2, "dsa"),
+           ldb::lv::linda_tuple("asd", 3, "dsa"),
+           ldb::lv::linda_tuple("asd", 4, "dsa"),
+    };
+    for (unsigned i = 0; i < 4; ++i) {
+        REQUIRE(sut.try_set(ldb::lv::linda_value("asd"), &buf[i]));
+    }
+
+    std::string data;
+    auto res = sut.remove(ldb::index::tree::value_lookup(ldb::lv::linda_value("asd"),
+                                                        ldb::query_tuple("asd", 3, ldb::ref(&data))));
+    REQUIRE(res.has_value());
+    CHECK(*res == &buf[2]);
 }

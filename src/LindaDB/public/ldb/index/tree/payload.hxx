@@ -67,7 +67,7 @@ namespace ldb::index::tree {
                 typename T::key_type key,
                 typename T::value_type value,
                 typename T::bundle_type bundle,
-                any_value_query<typename T::key_type> query) {
+                any_value_lookup<typename T::key_type> query) {
         { payload.try_get(query) } -> std::same_as<std::optional<typename T::value_type>>;
         { payload.try_set(key, value) } -> std::same_as<bool>;
         { payload.try_set(bundle) } -> std::same_as<bool>;

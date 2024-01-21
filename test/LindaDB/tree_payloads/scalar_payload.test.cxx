@@ -76,6 +76,51 @@ TEST_CASE("scalar_payload default initializes as having capacity one") {
     CHECK(sut.capacity() == 1);
 }
 
+template<class = int>
+using sut_type = lps::scalar_payload<int, int>;
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is copyable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = sut;
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is copy assignable") {
+    const sut_type<> sut;
+
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = sut;
+
+    CHECK(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is movable") {
+    sut_type<> sut;
+    std::ignore = sut.try_set(1, 2);
+    const sut_type<> sut2 = std::move(sut);
+
+    CHECK_FALSE(sut2.empty());
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("scalar_payload is move assignable") {
+    sut_type<> sut;
+    sut_type<> sut2;
+    std::ignore = sut2.try_set(1, 2);
+
+    sut2 = std::move(sut);
+
+    CHECK(sut2.empty());
+}
+
+
 constexpr const static auto Test_Key = 42;
 constexpr const static auto Test_Value = 42;
 
@@ -219,18 +264,18 @@ TEST_CASE("full scalar_payload as string contains its key and value") {
 // NOLINTNEXTLINE
 TEST_CASE("empty scalar_payload returns nullopt in try_get") {
     const lps::scalar_payload<int, int> sut;
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full scalar_payload returns nullopt in try_get with different key") {
     const lps::scalar_payload<int, int> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key + 1)) == std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key + 1)) == std::nullopt);
 }
 
 // NOLINTNEXTLINE
 TEST_CASE("full scalar_payload returns Some(value) in try_get with correct key") {
     const lps::scalar_payload<int, int> sut(Test_Key, Test_Value);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) != std::nullopt);
-    CHECK(sut.try_get(lit::any_value_query(Test_Key)) == std::optional{Test_Value});
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) != std::nullopt);
+    CHECK(sut.try_get(lit::any_value_lookup(Test_Key)) == std::optional{Test_Value});
 }

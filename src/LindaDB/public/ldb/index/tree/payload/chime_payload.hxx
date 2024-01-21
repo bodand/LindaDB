@@ -43,16 +43,16 @@
 #include <compare>
 #include <concepts>
 #include <cstdlib>
+#include <execution>
 #include <iterator>
-#include <ranges>
-#include <shared_mutex>
+#include <span>
 #include <tuple>
 #include <utility>
 #include <vector>
 
+#include <ldb/common.hxx>
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
-#include <ldb/profiler.hxx>
 
 namespace ldb::index::tree::payloads {
     template<std::movable K, std::movable V, std::size_t Clustering>
@@ -66,8 +66,7 @@ namespace ldb::index::tree::payloads {
             std::vector<value_type> data;
         };
 
-        constexpr
-        chime_payload() = default;
+        constexpr chime_payload() = default;
 
         template<class K2 = key_type, class V2 = value_type>
         constexpr chime_payload(K2&& key, V2&& value)
@@ -75,25 +74,21 @@ namespace ldb::index::tree::payloads {
                _keys{std::forward<K2>(key)},
                _sets{chime_value_set(std::forward<V2>(value))} { }
 
-        constexpr explicit
-        chime_payload(bundle_type&& bundle)
+        constexpr explicit chime_payload(bundle_type&& bundle)
              : _data_sz(1),
                _keys{std::move(bundle.key)},
                _sets{chime_value_set(std::move(bundle))} { }
 
-        constexpr explicit
-        chime_payload(const bundle_type& bundle)
+        constexpr explicit chime_payload(const bundle_type& bundle)
              : _data_sz(1),
                _keys{bundle.key},
                _sets{chime_value_set(bundle)} { }
 
-        constexpr
-        chime_payload(const chime_payload& cp)
+        constexpr chime_payload(const chime_payload& cp)
             requires(std::copyable<key_type> && std::copyable<value_type>)
         = default;
 
-        constexpr
-        chime_payload(chime_payload&& mv) noexcept = default;
+        constexpr chime_payload(chime_payload&& mv) noexcept = default;
         constexpr chime_payload&
         operator=(const chime_payload& cp)
             requires(std::copyable<key_type> && std::copyable<value_type>)
@@ -102,8 +97,7 @@ namespace ldb::index::tree::payloads {
         constexpr chime_payload&
         operator=(chime_payload&& mv) noexcept = default;
 
-        constexpr ~
-        chime_payload() noexcept = default;
+        constexpr ~chime_payload() noexcept = default;
 
         [[nodiscard]] constexpr size_type
         capacity() const noexcept { return Clustering; }
@@ -121,9 +115,8 @@ namespace ldb::index::tree::payloads {
         have_priority() const noexcept { return _data_sz < 2; }
 
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::weak_ordering
+        [[nodiscard]] constexpr std::weak_ordering
         operator<=>(const auto& key) const noexcept {
-            LDB_PROF_SCOPE("ChimePayload_Ordering");
             if (empty()) return std::weak_ordering::equivalent;
             auto mem_min_key = min_key();
             auto mem_max_key = max_key();
@@ -140,7 +133,7 @@ namespace ldb::index::tree::payloads {
                 auto succ = try_set(bundle_type{
                        .key = other._keys[i],
                        .data = other._sets[i].flush()});
-                assert(succ);
+                assert_that(succ);
                 std::ignore = succ;
             }
             other._data_sz = 0;
@@ -168,19 +161,17 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] bool
         try_set(const key_type& key, const value_type& value) {
-            LDB_PROF_SCOPE_C("ChimePayload_Insert", prof::color_insert);
-            return upsert_kv(key, {&value, 1}) & (INSERTED | UPDATED);
+            std::array<const value_type, 1> pseudo_bundle{value};
+            return upsert_kv(key, pseudo_bundle) & (INSERTED | UPDATED);
         }
 
         [[nodiscard]] bool
         try_set(const bundle_type& bundle) {
-            LDB_PROF_SCOPE_C("ChimePayload_Insert", prof::color_insert);
             return upsert_kv(bundle.key, bundle.data) & (INSERTED | UPDATED);
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(const key_type& key, const value_type& value) {
-            LDB_PROF_SCOPE_C("ChimePayload_InsertAndSquishL", prof::color_insert);
             if (auto res = upsert_kv(key, {&value, 1});
                 res == FULL) {
                 auto squished = bundle_type{.key = _keys[0], .data = _sets[0].flush()};
@@ -197,9 +188,8 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(const key_type& key, const value_type& value) {
-            LDB_PROF_SCOPE_C("ChimePayload_InsertAndSquishU", prof::color_insert);
             if (auto res = upsert_kv(key, {&value, 1});
                 res == FULL) {
                 auto squished = bundle_type{.key = _keys.back(), .data = _sets.back().flush()};
@@ -210,9 +200,8 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(bundle_type&& bundle) {
-            LDB_PROF_SCOPE_C("ChimePayload_InsertAndSquishL", prof::color_insert);
             auto [key, data] = std::move(bundle);
             if (auto res = upsert_kv(key, data);
                 res == FULL) {
@@ -230,9 +219,8 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<bundle_type>
+        [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(bundle_type&& bundle) {
-            LDB_PROF_SCOPE_C("ChimePayload_InsertAndSquishU", prof::color_insert);
             auto [key, data] = std::move(bundle);
             if (auto res = upsert_kv(key, data);
                 res == FULL) {
@@ -244,10 +232,9 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        template<index_query<value_type> Q>
-        [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
+        template<index_lookup<value_type> Q>
+        [[nodiscard]] constexpr std::optional<value_type>
         try_get(const Q& query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
-            LDB_PROF_SCOPE_C("ChimePayload_Search", prof::color_search);
             if (empty()) return std::nullopt;
             auto data_end = std::next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
             if (auto it = std::lower_bound(begin(_keys),
@@ -260,10 +247,9 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
-        template<index_query<value_type> Q>
-        LDB_CONSTEXPR23 std::optional<value_type>
+        template<index_lookup<value_type> Q>
+        constexpr std::optional<value_type>
         remove(const Q& query) {
-            LDB_PROF_SCOPE_C("ChimePayload_Remove", prof::color_remove);
             if (empty()) return std::nullopt;
             auto key_end = std::next(begin(_keys), static_cast<std::ptrdiff_t>(_data_sz));
             auto it = std::lower_bound(begin(_keys), key_end, query.key());
@@ -285,27 +271,24 @@ namespace ldb::index::tree::payloads {
         template<class Fn>
         void
         apply(Fn&& fn) {
-            std::ranges::for_each_n(_sets.begin(), _data_sz, [fn = std::forward<Fn>(fn)](const auto& set) {
-                set.apply(std::forward<Fn>(fn));
+            std::ranges::for_each_n(_sets.begin(), _data_sz, [fun = std::forward<Fn>(fn)](const auto& set) {
+                set.apply(fun);
             });
         }
 
 
     private:
         struct chime_value_set {
-            constexpr
-            chime_value_set() = default;
+            constexpr chime_value_set() = default;
 
-            constexpr explicit
-            chime_value_set(bundle_type&& bundle)
+            constexpr explicit chime_value_set(bundle_type&& bundle)
                  : _values(std::move(bundle).data) {
-                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
+                //                assert_that(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 
-            constexpr explicit
-            chime_value_set(const bundle_type& bundle)
+            constexpr explicit chime_value_set(const bundle_type& bundle)
                  : _values(bundle.data) {
-                assert(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
+                //                assert_that(std::ranges::is_sorted(_values) && "chime_value_set must be sorted when constructed from bundle");
             }
 
             template<class SetV>
@@ -313,22 +296,19 @@ namespace ldb::index::tree::payloads {
                 requires(!std::same_as<SetV, chime_value_set>)
                  : _values{std::forward<SetV>(value)} { }
 
-            LDB_CONSTEXPR23 void
+            constexpr void
             push(std::span<const value_type> val) {
-                LDB_PROF_SCOPE("ChimeValueSet_Push");
                 _values.reserve(_values.size() + val.size());
-                std::ranges::for_each(val, [&](const auto& item) {
-                    auto it = std::ranges::lower_bound(_values, item);
-                    _values.insert(it, item);
-                });
+                _values.insert(_values.end(), val.begin(), val.end());
             }
 
-            template<index_query<value_type> Q>
-            [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
+            template<index_lookup<value_type> Q>
+            [[nodiscard]] constexpr std::optional<value_type>
             pop(Q query) {
-                LDB_PROF_SCOPE("ChimeValueSet_Push");
-                assert(!empty());
-                if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
+                assert_that(!empty());
+                if (auto it = std::ranges::find_if(_values, [&query](const auto& val) {
+                        return val == query;
+                    });
                     it != _values.end()) {
 
                     auto cp = *it;
@@ -338,19 +318,19 @@ namespace ldb::index::tree::payloads {
                 return std::nullopt;
             }
 
-            template<index_query<value_type> Q>
-            [[nodiscard]] LDB_CONSTEXPR23 std::optional<value_type>
+            template<index_lookup<value_type> Q>
+            [[nodiscard]] constexpr std::optional<value_type>
             get(const Q& query) const {
-                LDB_PROF_SCOPE("ChimeValueSet_Get");
-                assert(!empty());
-                if (auto it = std::lower_bound(_values.begin(), _values.end(), query);
+                assert_that(!empty());
+                if (auto it = std::ranges::find_if(_values, [&query](const auto& val) {
+                        return val == query;
+                    });
                     it != _values.end()) return *it;
                 return std::nullopt;
             }
 
-            [[nodiscard]] LDB_CONSTEXPR23 bool
+            [[nodiscard]] constexpr bool
             check(const value_type& val) const {
-                LDB_PROF_SCOPE("ChimeValueSet_Check");
                 return std::ranges::binary_search(_values, val);
             }
 
@@ -359,17 +339,15 @@ namespace ldb::index::tree::payloads {
                 return _values.empty();
             }
 
-            LDB_CONSTEXPR23 std::vector<value_type>
+            constexpr std::vector<value_type>
             flush() {
-                LDB_PROF_SCOPE("ChimeValueSet_Flush");
                 auto res = std::move(_values);
                 _values = std::vector<value_type>();
                 return res;
             }
 
-            LDB_CONSTEXPR23 void
+            constexpr void
             reset(std::span<value_type> values) {
-                LDB_PROF_SCOPE("ChimeValueSet_Reset");
                 _values.assign(values.begin(), values.end());
             }
 
@@ -402,27 +380,23 @@ namespace ldb::index::tree::payloads {
             return os << ")";
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator==(const chime_payload<key_type, value_type, Clustering>& self, const key_type& other) noexcept(noexcept(self <=> other)) {
-            LDB_PROF_SCOPE("ChimePayload_LeftEq");
             return (self <=> other) == 0;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator==(const key_type& other, const chime_payload<key_type, value_type, Clustering>& self) noexcept(noexcept(other <=> self)) {
-            LDB_PROF_SCOPE("ChimePayload_RightEq");
             return (other <=> self) == 0;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator!=(const chime_payload<key_type, value_type, Clustering>& self, const key_type& other) noexcept(noexcept(other <=> self)) {
-            LDB_PROF_SCOPE("ChimePayload_LeftNe");
             return (self <=> other) != 0;
         }
 
-        [[nodiscard]] friend LDB_CONSTEXPR23 bool
+        [[nodiscard]] friend constexpr bool
         operator!=(const key_type& other, const chime_payload<key_type, value_type, Clustering>& self) noexcept(noexcept(other <=> self)) {
-            LDB_PROF_SCOPE("ChimePayload_RightNe");
             return (other <=> self) != 0;
         }
 
@@ -444,9 +418,8 @@ namespace ldb::index::tree::payloads {
             FULL = 1U << 2U
         };
 
-        LDB_CONSTEXPR23 std::optional<value_type>
+        constexpr std::optional<value_type>
         drop(const key_type& key) {
-            LDB_PROF_SCOPE_C("ChimePayload_Drop", prof::color_remove);
             const auto data_end = next(begin(_keys), _data_sz);
             const auto it = std::ranges::lower_bound(begin(_keys),
                                                      data_end,
@@ -465,9 +438,8 @@ namespace ldb::index::tree::payloads {
             return res;
         }
 
-        LDB_CONSTEXPR23 upsert_status
+        constexpr upsert_status
         upsert_kv(const key_type& key, std::span<const value_type> value) {
-            LDB_PROF_SCOPE_C("ChimePayload_Upsert", prof::color_insert);
             using std::swap;
             if (_data_sz < 2) { // with 0 or 1 elems insertion is trivial
                 if (_data_sz > 0 && _keys[0] == key) {
@@ -491,7 +463,7 @@ namespace ldb::index::tree::payloads {
             if (it == end(_keys)) return FULL;
 
             auto col_idx = static_cast<std::size_t>(std::distance(begin(_keys), it));
-            if (*it == key) {
+            if (col_idx < _data_sz && *it == key) {
                 _sets[col_idx].push(value);
                 return UPDATED;
             }
