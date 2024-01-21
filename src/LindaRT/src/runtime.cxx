@@ -216,12 +216,14 @@ lrt::runtime::recv_thread_worker() {
         switch (command) {
         case LINDA_RT_DB_SYNC_INSERT_TAG: {
             const auto rx_inserted = deserialize(payload);
+            std::osyncstream(std::cout) << "INSERT (" << stat.MPI_SOURCE << " -> " << _rank << "): " << rx_inserted << "\n";
             _store.out_nosignal(rx_inserted);
             break;
         }
 
         case LINDA_RT_DB_SYNC_DELETE_TAG: {
             const auto rx_deleted = deserialize(payload);
+            std::osyncstream(std::cout) << "REMOVE (" << stat.MPI_SOURCE << " -> " << _rank << "): " << rx_deleted << "\n";
             _store.remove_nosignal(rx_deleted);
             break;
         }
