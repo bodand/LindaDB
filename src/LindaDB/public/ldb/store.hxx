@@ -46,6 +46,7 @@
 #include <optional>
 #include <shared_mutex>
 #include <tuple>
+#include <type_traits>
 #include <unordered_set>
 #include <variant>
 
@@ -74,7 +75,7 @@ namespace ldb {
             {
                 std::scoped_lock lck(_header_mtx);
                 if (const auto it = _removed_later.find(tuple);
-                       it != _removed_later.end()) {
+                    it != _removed_later.end()) {
                     _removed_later.erase(it);
                     return;
                 }
@@ -152,6 +153,18 @@ namespace ldb {
                                    std::mem_fn(&store::read_and_remove));
         }
 
+        template<class... Args>
+        lv::linda_tuple
+        in(Args&&... args)
+            requires((
+                   (lv::is_linda_value_v<std::remove_cvref_t<Args>>
+                    || meta::is_matcher_type_v<Args>)
+                   && ...))
+        {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return in(manual_fields_query<index_type, std::remove_cvref_t<Args>...>(std::forward<Args>(args)...));
+        }
 
         template<broadcaster Bcast>
         void

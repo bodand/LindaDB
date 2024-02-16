@@ -35,11 +35,11 @@
  */
 
 #include <iostream>
+#include <string>
 #include <syncstream>
-#include <utility>
 
-#include <ldb/query_tuple.hxx>
-#include <ldb/store.hxx>
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/query/match_type.hxx>
 #include <lrt/runtime.hxx>
 
 #include <mpi.h>
@@ -56,8 +56,7 @@ main(int argc, char** argv) {
 
     if (rank == 0) {
         for (int i = 2; i <= size; ++i) {
-            ldb::query_tuple query("rank", std::as_const(i), ldb::ref(&data));
-            auto red = store.in(query);
+            auto red = store.in("rank", i, ldb::ref(&data));
             std::osyncstream(std::cout) << "rank0: " << red << " from " << i << "\n"
                                         << std::flush;
         }

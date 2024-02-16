@@ -41,6 +41,7 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <variant>
 
 namespace ldb::lv {
@@ -54,6 +55,7 @@ namespace ldb::lv {
            std::string,
            float,
            double>;
+
 
     namespace helper {
         struct printer {
@@ -80,7 +82,24 @@ namespace ldb::lv {
         private:
             std::ostream& _os;
         };
+
+        template<class T, class L>
+        struct is_member_of : std::false_type {};
+
+        template<class T, template<class...> class L, class... Args>
+        struct is_member_of<T, L<Args...>> : std::bool_constant<(std::same_as<T, Args> || ...)> {};
     }
+
+    template<class T>
+    struct is_linda_value : std::bool_constant<helper::is_member_of<T, linda_value>::value> {};
+
+    template<std::size_t N>
+    struct is_linda_value<const char[N]> : std::true_type {};
+    template<std::size_t N>
+    struct is_linda_value<char[N]> : std::true_type {};
+
+    template<class T>
+    constexpr const static auto is_linda_value_v = is_linda_value<T>::value;
 
     inline namespace io {
         inline std::ostream&

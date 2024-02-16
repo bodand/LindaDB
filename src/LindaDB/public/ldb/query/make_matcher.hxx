@@ -38,6 +38,7 @@
 
 #include <cstddef>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include <ldb/query/match_type.hxx>
@@ -77,6 +78,17 @@ namespace ldb::meta {
         }
     };
 
+    template<class CharT, std::size_t N>
+    struct make_matcher_impl<CharT[N]> {
+        using type = match_value<std::basic_string<CharT>>;
+
+        template<class U = const CharT*>
+        constexpr auto
+        operator()(U&& val) const noexcept {
+            return match_value<std::basic_string<CharT>>(std::forward<U>(val));
+        }
+    };
+
     template<class P>
     struct make_matcher_impl<const match_type<P>&> {
         using type = match_type<P>;
@@ -104,6 +116,16 @@ namespace ldb::meta {
 
     template<class T>
     using matcher_type = make_matcher_impl<T>::type;
+
+    template<class T>
+    struct is_matcher_type : std::false_type {};
+    template<class T>
+    struct is_matcher_type<match_type<T>> : std::true_type {};
+    template<class T>
+    struct is_matcher_type<match_value<T>> : std::true_type {};
+
+    template<class T>
+    constexpr const static auto is_matcher_type_v = is_matcher_type<T>::value;
 }
 
 #endif

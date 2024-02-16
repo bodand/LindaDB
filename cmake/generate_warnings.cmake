@@ -63,7 +63,7 @@ function(generate_warnings _Interface)
         suggest-attribute=pure suggest-attribute=const suggest-attribute=cold
         suggest-final-methods duplicated-branches placement-new=2 error=trampolines
         logical-op reorder no-c++98-compat no-c++98-compat-pedantic no-shadow no-c++20-compat
-        no-disabled-macro-expansion
+        no-disabled-macro-expansion no-c++20-extensions
         no-ctad-maybe-unsupported # TODO(fix these, mostly locks)
         # MSVC
         /w14062 /w14165 /w14191 /w14242 /we4263 /w14265 /w14287 /w14296 /we4350 /we4355
