@@ -88,7 +88,7 @@ namespace ldb {
                           const auto& matcher_impl) {
                        if (matcher_idx != field_index) return CONTINUE_LOOP;
 
-                       result = perform_search(matcher_impl, db_index);
+                       result = this->perform_search(matcher_impl, db_index);
                        return TERMINATE_LOOP;
                    };
             return iterate_matchers_via(do_check_if_index_matches);

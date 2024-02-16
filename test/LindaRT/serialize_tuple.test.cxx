@@ -140,8 +140,8 @@ TEMPLATE_LIST_TEST_CASE("tuple with all fields can round trip serialization",
                         "[serialize][deserialize]",
                         lv::linda_value) {
     TestType payload{};
-    if constexpr (std::integral<TestType>) payload = 42;
-    if constexpr (std::floating_point<TestType>) payload = 4.2;
+    if constexpr (std::integral<TestType>) payload = TestType(42);
+    if constexpr (std::floating_point<TestType>) payload = TestType(4.2);
     if constexpr (std::same_as<TestType, std::string>) payload = "42xx";
 
     const lv::linda_tuple t(payload);

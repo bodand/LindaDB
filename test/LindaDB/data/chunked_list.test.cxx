@@ -35,8 +35,6 @@
  */
 
 #include <tuple>
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "bugprone-inc-dec-in-conditions"
 
 #include <compare>
 #include <concepts>
@@ -251,5 +249,3 @@ TEST_CASE("chunked_list iterators are comparable") {
         CHECK(data.end() > --data.end());
     }
 }
-
-#pragma clang diagnostic pop

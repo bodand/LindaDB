@@ -45,7 +45,7 @@
 #include <mpi.h>
 
 int
-main(int argc, char** argv) {
+main(int argc, char** argv) try {
     lrt::runtime rt(&argc, &argv);
     auto& store = rt.store();
 
@@ -63,9 +63,11 @@ main(int argc, char** argv) {
     }
     else {
         data = "Hello World!";
-        ldb::lv::linda_tuple tuple{"rank", rank + 1, data};
+        ldb::lv::linda_tuple const tuple{"rank", rank + 1, data};
         store.out(tuple);
         std::osyncstream(std::cout) << "rank" << rank << ": finishing\n"
                                     << std::flush;
     }
+} catch (std::exception ex) {
+    std::cerr << "fatal: uncaught exception: " << ex.what() << "\n\n";
 }

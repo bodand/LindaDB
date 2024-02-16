@@ -16,6 +16,7 @@ terms of the MIT license. A copy of the license can be found in the file
 -----------------------------------------------------------------------------*/
 #ifndef MIMALLOC_NEW_DELETE_H
 #define MIMALLOC_NEW_DELETE_H
+MIMALLOC_NEW_DELETE_H
 
 #include <ldb/common.hxx>
 

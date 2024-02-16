@@ -389,7 +389,7 @@ namespace ldb::index::tree {
         template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         search(const Q& query) const {
-            std::shared_lock lck(_mtx);
+            std::shared_lock<std::shared_mutex> lck(_mtx);
             const auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
@@ -399,7 +399,7 @@ namespace ldb::index::tree {
         void
         insert(const key_type& key,
                const value_type& value) {
-            std::unique_lock lck(_mtx);
+            std::unique_lock<std::shared_mutex> lck(_mtx);
             std::unique_ptr<node_type>* parent = nullptr;
             std::unique_ptr<node_type>* current = &root;
             while (*current) {
@@ -513,7 +513,7 @@ namespace ldb::index::tree {
         template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         remove(const Q& query) {
-            std::scoped_lock lck(_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_mtx);
             auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
