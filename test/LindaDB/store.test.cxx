@@ -36,7 +36,6 @@
 
 
 #include <concepts>
-#include <fstream>
 #include <latch>
 #include <mutex>
 #include <random>
@@ -46,9 +45,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query_tuple.hxx>
 #include <ldb/store.hxx>
-
 
 namespace lv = ldb::lv;
 using namespace std::literals;

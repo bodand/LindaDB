@@ -42,10 +42,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/linda_value.hxx>
 
-#include "ldb/lv/linda_tuple.hxx"
-#include "ldb/lv/linda_value.hxx"
-#include "ldb/query_tuple.hxx"
+#include "ldb/query/manual_fields_query.hxx"
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
@@ -248,7 +248,6 @@ TEST_CASE("new chime AVL-tree can remove elements in edge cases") {
         REQUIRE(twenty.has_value());
         CHECK(*ten == 0);
         CHECK(*twenty == 0);
-
     }
 
     SECTION("remove root") {
@@ -287,8 +286,12 @@ TEST_CASE("new chime AVL-tree removes correct element") {
     }
 
     std::string data;
-    auto res = sut.remove(ldb::index::tree::value_lookup(ldb::lv::linda_value("asd"),
-                                                        ldb::query_tuple("asd", 3, ldb::ref(&data))));
+    auto res = sut.remove(ldb::index::tree::value_lookup(
+           ldb::lv::linda_value("asd"),
+           ldb::make_query(ldb::over_index<decltype(sut)>,
+                           "asd",
+                           3,
+                           ldb::ref(&data))));
     REQUIRE(res.has_value());
     CHECK(*res == &buf[2]);
 }

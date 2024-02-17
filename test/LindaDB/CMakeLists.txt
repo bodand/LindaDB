@@ -45,6 +45,9 @@ add_covered_test(NAME LindaDB.Test CATCH
                  tree_payloads/chime_payload.test.cxx
                  tree_payloads/scalar_payload.test.cxx
                  tree_payloads/vector_payload.test.cxx
-                 query_tuple.test.cxx
                  store.test.cxx
                  LIBRARIES LindaDB)
+
+add_covered_test(NAME LindaDB.AssertTest CATCH
+                 SOURCES assert_test.cxx
+                 LIBRARIES LindaDB-NoAbort)
