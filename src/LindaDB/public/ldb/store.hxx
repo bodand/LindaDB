@@ -59,7 +59,6 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 #include <ldb/query/concrete_tuple_query.hxx>
-#include <ldb/query/manual_fields_query.hxx>
 #include <ldb/query/tuple_query.hxx>
 
 namespace ldb {

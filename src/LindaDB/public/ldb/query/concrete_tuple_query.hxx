@@ -83,6 +83,18 @@ namespace ldb {
     private:
         lv::linda_tuple _tuple;
 
+        friend constexpr bool
+        operator==(const concrete_tuple_query& lhs,
+                   const concrete_tuple_query& rhs) {
+            return lhs._tuple == rhs._tuple;
+        }
+
+        friend constexpr bool
+        operator!=(const concrete_tuple_query& lhs,
+                   const concrete_tuple_query& rhs) {
+            return !(lhs == rhs);
+        }
+
         friend constexpr std::partial_ordering
         operator<=>(const lv::linda_tuple& lhs, const concrete_tuple_query& query) {
             const lv::linda_tuple& rhs = query._tuple;
