@@ -44,8 +44,10 @@ set(LDB_COMMON_SOURCES
     public/ldb/index/tree/index_query.hxx
     public/ldb/index/tree/payload.hxx
     public/ldb/index/tree/payload_dispatcher.hxx
+    public/ldb/lv/fn_call_holder.hxx
     public/ldb/lv/linda_tuple.hxx
     public/ldb/lv/linda_value.hxx
+    public/ldb/lv/tuple_builder.hxx
     public/ldb/query/concrete_tuple_query.hxx
     public/ldb/query/make_matcher.hxx
     public/ldb/query/manual_fields_query.hxx
@@ -61,7 +63,9 @@ set(LDB_COMMON_SOURCES
     src/index/tree/index_query.cxx
     src/index/tree/payload.cxx
     src/index/tree/payload_dispatcher.cxx
+    src/lv/fn_call_holder.cxx
     src/lv/linda_tuple.cxx
+    src/lv/tuple_builder.cxx
     src/query/concrete_tuple_query.cxx
     src/query/manual_fields_query.cxx
     src/query/tuple_query.cxx

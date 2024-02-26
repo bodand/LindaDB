@@ -1,6 +1,6 @@
 /* LindaDB project
  *
- * Copyright (c) 2023 András Bodor <bodand@pm.me>
+ * Copyright (c) 2024 András Bodor <bodand@pm.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,47 +28,51 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-11-08.
+ * Originally created: 2024-02-22.
  *
- * test/lindart --
- *   
+ * test/LindaDB/lv/tuple_builder --
+ *   Tests for the tuple builder class.
  */
 
-#include <exception>
-#include <iostream>
-#include <string>
-#include <syncstream>
 
+#include <sstream>
+#include <variant>
+
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query/match_type.hxx>
-#include <lrt/runtime.hxx>
+#include <ldb/lv/tuple_builder.hxx>
+#include "ldb/lv/fn_call_holder.hxx"
 
-#include <mpi.h>
+using namespace ldb;
 
-int
-main(int argc, char** argv) try {
-    lrt::runtime rt(&argc, &argv);
-    auto& store = rt.store();
+#if defined(_WIN32) || defined(_WIN64)
+#  define LINDA_CALLABLE extern "C" __declspec(dllexport)
+#else
+#  define LINDA_CALLABLE extern "C"
+#endif
 
-    int rank, size;
-    std::string data;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+LINDA_CALLABLE int zero() { return 0; }
 
-    if (rank == 0) {
-        for (int i = 2; i <= size; ++i) {
-            auto red = store.in("rank", i, ldb::ref(&data));
-            std::osyncstream(std::cout) << "rank0: " << red << " from " << i << "\n"
-                                        << std::flush;
-        }
-    }
-    else {
-        data = "Hello World!";
-        ldb::lv::linda_tuple const tuple{"rank", rank + 1, data};
-        store.out(tuple);
-        std::osyncstream(std::cout) << "rank" << rank << ": finishing\n"
-                                    << std::flush;
-    }
-} catch (const std::exception& ex) {
-    std::cerr << "fatal: uncaught exception: " << ex.what() << "\n\n";
+TEST_CASE("empty tuple builder builds empty tuple") {
+    auto res = lv::tuple_builder().build();
+    CHECK(res == lv::linda_tuple());
+}
+
+TEST_CASE("tuple builder builds single value") {
+    auto res = lv::tuple_builder("ignored", 1).build();
+    CHECK(res == lv::linda_tuple(1));
+}
+
+TEST_CASE("tuple builder builds chained values") {
+    auto res = lv::tuple_builder("1", 1)("2", 2)("\"asd\"", "asd").build();
+    CHECK(res == lv::linda_tuple(1, 2, "asd"));
+}
+
+TEST_CASE("tuple builder builds with function calls") {
+    auto res = lv::tuple_builder("zero", &zero)("2, \"yeet\"", 2, "yeet").build();
+    auto *sut = std::get_if<lv::fn_call_holder>(&res[0]);
+    REQUIRE_FALSE(sut == nullptr);
+    CHECK(sut->fn_name() == "zero");
+    CHECK(sut->args() == lv::linda_tuple(2, "yeet"));
 }

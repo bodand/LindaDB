@@ -40,6 +40,11 @@
 #include <thread>
 
 #include <ldb/store.hxx>
+#if defined(_WIN32) || defined(_WIN64)
+#  define LINDA_CALLABLE extern "C" __declspec(dllexport)
+#else
+#  define LINDA_CALLABLE extern "C"
+#endif
 
 namespace lrt {
     struct runtime {
@@ -64,9 +69,6 @@ namespace lrt {
         inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
 
         void
-        initialize_types();
-
-        void
         recv_thread_worker();
 
         int _rank;
@@ -75,5 +77,7 @@ namespace lrt {
         ldb::store _store{};
     };
 }
+
+#include <lrt/pp.hxx>
 
 #endif

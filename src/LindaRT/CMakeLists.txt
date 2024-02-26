@@ -38,8 +38,11 @@ find_package(MPI REQUIRED)
 
 add_library(LindaRT STATIC
             public/lrt/serialize/tuple.hxx
+            public/lrt/pp.hxx
             public/lrt/runtime.hxx
+            include/lrt/loader.hxx
             src/serialize/tuple.cxx
+            src/loader.${BUILD_SYS_ARCHETYPE}.cxx
             src/runtime.cxx)
 
 add_library(LindaRT-malloc STATIC

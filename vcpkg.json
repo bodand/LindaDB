@@ -6,6 +6,7 @@
     "bodand (bodand@proton.me)"
   ],
   "dependencies": [
+    "boost-preprocessor",
     "mimalloc",
     "catch2",
     "fakeit",

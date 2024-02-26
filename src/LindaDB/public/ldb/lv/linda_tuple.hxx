@@ -138,6 +138,9 @@ namespace ldb::lv {
             return _size;
         }
 
+        [[nodiscard]] std::unique_ptr<linda_tuple>
+        clone() const { return std::make_unique<linda_tuple>(*this); }
+
         auto
         operator<=>(const linda_tuple& rhs) const noexcept {
             return _size <=> rhs._size;

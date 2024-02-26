@@ -1,6 +1,9 @@
+
+#include "ldb/lv/fn_call_holder.hxx"
+
 /* LindaDB project
  *
- * Copyright (c) 2023 András Bodor <bodand@pm.me>
+ * Copyright (c) 2024 András Bodor <bodand@pm.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,47 +31,39 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-11-08.
+ * Originally created: 2024-02-26.
  *
- * test/lindart --
+ * src/LindaDB/src/lv/fn_call_holder --
  *   
  */
 
-#include <exception>
-#include <iostream>
+#include <memory>
 #include <string>
-#include <syncstream>
+#include <utility>
 
+#include <ldb/lv/fn_call_holder.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query/match_type.hxx>
-#include <lrt/runtime.hxx>
 
-#include <mpi.h>
-
-int
-main(int argc, char** argv) try {
-    lrt::runtime rt(&argc, &argv);
-    auto& store = rt.store();
-
-    int rank, size;
-    std::string data;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    if (rank == 0) {
-        for (int i = 2; i <= size; ++i) {
-            auto red = store.in("rank", i, ldb::ref(&data));
-            std::osyncstream(std::cout) << "rank0: " << red << " from " << i << "\n"
-                                        << std::flush;
-        }
-    }
-    else {
-        data = "Hello World!";
-        ldb::lv::linda_tuple const tuple{"rank", rank + 1, data};
-        store.out(tuple);
-        std::osyncstream(std::cout) << "rank" << rank << ": finishing\n"
-                                    << std::flush;
-    }
-} catch (const std::exception& ex) {
-    std::cerr << "fatal: uncaught exception: " << ex.what() << "\n\n";
+ldb::lv::fn_call_holder::fn_call_holder(std::string fn_name, std::unique_ptr<linda_tuple>&& tuple)
+     : _fn_name(std::move(fn_name)), _args(std::move(tuple)) {
+    assert_that(_args);
 }
+
+ldb::lv::fn_call_holder::~fn_call_holder() = default;
+
+ldb::lv::fn_call_holder::fn_call_holder(const fn_call_holder& cp)
+     : _fn_name(cp._fn_name),
+       _args(cp._args->clone()) { }
+
+ldb::lv::fn_call_holder&
+ldb::lv::fn_call_holder::operator=(const ldb::lv::fn_call_holder& cp) {
+    if (&cp == this) return *this;
+    _fn_name = cp._fn_name;
+    _args = cp._args->clone();
+    return *this;
+}
+
+ldb::lv::fn_call_holder::fn_call_holder(ldb::lv::fn_call_holder&& mv) noexcept = default;
+
+ldb::lv::fn_call_holder&
+ldb::lv::fn_call_holder::operator=(ldb::lv::fn_call_holder&& mv) noexcept = default;

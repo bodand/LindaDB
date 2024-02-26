@@ -61,6 +61,9 @@
 #include <ldb/query/concrete_tuple_query.hxx>
 #include <ldb/query/tuple_query.hxx>
 
+#include "ldb/query/make_matcher.hxx"
+#include "ldb/query/manual_fields_query.hxx"
+
 namespace ldb {
     struct store {
         using storage_type = data::chunked_list<lv::linda_tuple>;
