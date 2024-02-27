@@ -36,6 +36,7 @@
 #ifndef LINDADB_BROADCASTER_HXX
 #define LINDADB_BROADCASTER_HXX
 
+#include <concepts>
 #include <ldb/lv/linda_tuple.hxx>
 
 namespace ldb {
