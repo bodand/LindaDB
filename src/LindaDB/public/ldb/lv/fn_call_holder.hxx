@@ -92,6 +92,21 @@ namespace ldb::lv {
         [[nodiscard]] const linda_tuple&
         args() const { return *_args; }
 
+        /**
+         * \brief Executes the stored function call and injects its result into a tuple.
+         *
+         * \remarks
+         * Executes the function from the current executable by its name (as stored), by
+         * using the parameters in the stored tuple. To get around having to allocate new
+         * tuple objects, a return parameter is used. The return tuple is created by taking
+         * \c after_prefix elements from the \c elements tuple, then the result of the
+         * function call, then the remaining elements.
+         */
+        void
+        execute_into(linda_tuple* result,
+                     int after_prefix,
+                     linda_tuple& elements);
+
     private:
         friend struct ::std::hash<ldb::lv::fn_call_holder>;
 
@@ -115,7 +130,7 @@ namespace ldb::lv {
 namespace std {
     template<>
     struct hash<ldb::lv::fn_call_holder> {
-        constexpr std::size_t
+        std::size_t
         operator()(const ldb::lv::fn_call_holder& holder) const noexcept {
             return hash<std::string_view>{}(holder._fn_name);
         }

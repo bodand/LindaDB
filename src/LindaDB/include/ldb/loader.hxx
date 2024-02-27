@@ -28,56 +28,32 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-22.
+ * Originally created: 2024-02-21.
  *
- * test/LindaDB/lv/tuple_builder --
- *   Tests for the tuple builder class.
+ * src/LindaRT/include/lrt/loader --
+ *   Loads symbols from the current executable.
  */
+#ifndef LINDADB_LOADER_HXX
+#define LINDADB_LOADER_HXX
 
+#include <bit>
+#include <string>
+#include <string_view>
+#include <type_traits>
 
-#include <variant>
+namespace ldb {
+    void*
+    load_symbol_untyped(const std::string& name);
 
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/tuple_builder.hxx>
-#include "ldb/lv/fn_call_holder.hxx"
+    template<class Fn>
+    Fn
+    load_symbol(std::string_view name)
+        requires(std::is_pointer_v<Fn> && std::is_function_v<std::remove_pointer_t<Fn>>)
+    {
+        // can't pass string_view because it may be non nul-terminated
+        auto* sym = load_symbol_untyped({name.data(), name.size()});
+        return std::bit_cast<Fn>(sym);
+    }
+}
 
-using namespace ldb;
-
-#if defined(_WIN32) || defined(_WIN64)
-#  define LINDA_CALLABLE extern "C" __declspec(dllexport)
-#else
-#  define LINDA_CALLABLE extern "C"
 #endif
-
-LINDA_CALLABLE int
-zero_tuple_builder(int, const char*) { return 0; }
-
-TEST_CASE("empty tuple builder builds empty tuple") {
-    auto res = lv::tuple_builder().build();
-    CHECK(res == lv::linda_tuple());
-}
-
-TEST_CASE("tuple builder with skipped initial build step builds correct tuple") {
-    auto res = lv::tuple_builder()("", 1)("", 2).build();
-    CHECK(res == lv::linda_tuple(1, 2));
-}
-
-TEST_CASE("tuple builder builds single value") {
-    auto res = lv::tuple_builder("ignored", 1).build();
-    CHECK(res == lv::linda_tuple(1));
-}
-
-TEST_CASE("tuple builder builds chained values") {
-    auto res = lv::tuple_builder("1", 1)("2", 2)("\"asd\"", "asd").build();
-    CHECK(res == lv::linda_tuple(1, 2, "asd"));
-}
-
-TEST_CASE("tuple builder builds with function calls") {
-    auto res = lv::tuple_builder("zero", &zero_tuple_builder)("2, \"yeet\"", 2, "yeet").build();
-    auto *sut = std::get_if<lv::fn_call_holder>(&res[0]);
-    REQUIRE_FALSE(sut == nullptr);
-    CHECK(sut->fn_name() == "zero");
-    CHECK(sut->args() == lv::linda_tuple(2, "yeet"));
-}

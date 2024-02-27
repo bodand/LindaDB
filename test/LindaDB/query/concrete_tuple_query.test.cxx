@@ -53,7 +53,7 @@ TEST_CASE("concrete_tuple_query is copiable") {
 
     ldb::lv::linda_tuple tuple(1, 2);
     ldb::concrete_tuple_query<index_type> orig(tuple);
-    auto copy = auto(orig);
+    auto copy = orig;
     CHECK(orig == copy);
     CHECK_FALSE(orig != copy);
 }
@@ -63,7 +63,7 @@ TEST_CASE("concrete_tuple_query is movable") {
 
     ldb::lv::linda_tuple tuple(1, 2);
     ldb::concrete_tuple_query<index_type> orig(tuple);
-    auto copy = auto(orig);
+    auto copy = orig;
     auto moved = std::move(orig);
     CHECK(moved == copy);
     CHECK_FALSE(moved != copy);

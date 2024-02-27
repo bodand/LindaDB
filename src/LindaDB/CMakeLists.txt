@@ -35,6 +35,8 @@
 #   components.
 
 set(LDB_COMMON_SOURCES
+    include/ldb/lv/fn_call_builder.hxx
+    include/ldb/loader.hxx
     public/ldb/bcast/null_broadcast.hxx
     public/ldb/data/chunked_list.hxx
     public/ldb/index/tree/payload/chime_payload.hxx
@@ -63,12 +65,14 @@ set(LDB_COMMON_SOURCES
     src/index/tree/index_query.cxx
     src/index/tree/payload.cxx
     src/index/tree/payload_dispatcher.cxx
+    src/lv/fn_call_builder.cxx
     src/lv/fn_call_holder.cxx
     src/lv/linda_tuple.cxx
     src/lv/tuple_builder.cxx
     src/query/concrete_tuple_query.cxx
     src/query/manual_fields_query.cxx
     src/query/tuple_query.cxx
+    src/loader.${BUILD_SYS_ARCHETYPE}.cxx
     src/common.cxx
     src/store.cxx)
 

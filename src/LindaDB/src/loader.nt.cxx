@@ -30,25 +30,25 @@
  *
  * Originally created: 2024-02-21.
  *
- * src/LindaRT/include/lrt/loader --
- *   Loads symbols from the current executable.
+ * src/LindaRT/src/loader --
+ *   Implements the loader function on the NT kernel based operating system.
  */
-#ifndef LINDADB_LOADER_HXX
-#define LINDADB_LOADER_HXX
 
-#include <bit>
 #include <string>
+#include <bit>
 
-namespace lrt {
-    void*
-    load_symbol_untyped(const std::string& name);
+#include <ldb/loader.hxx>
 
-    template<class Fn>
-    Fn
-    load_symbol(const std::string& name) {
-        auto* sym = load_symbol_untyped(name);
-        return std::bit_cast<Fn>(sym);
-    }
-}
-
+#ifndef WIN32_LEAN_AND_MEAN
+#  define WIN32_LEAN_AND_MEAN
 #endif
+#ifndef NOMINMAX
+#  define NOMINMAX
+#endif
+#include <Windows.h>
+
+void*
+ldb::load_symbol_untyped(const std::string& name) {
+    auto my_handle = GetModuleHandleA(nullptr);
+    return std::bit_cast<void*>(GetProcAddress(my_handle, name.c_str()));
+}

@@ -28,27 +28,43 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-21.
+ * Originally created: 2024-02-27.
  *
- * src/LindaRT/src/loader --
- *   Implements the loader function on the NT kernel based operating system.
+ * src/LindaDB/public/ldb/lv/fn_call_builder --
+ *   An type used to build a function call object from a given linda tuple.
  */
+#ifndef LINDADB_FN_CALL_BUILDER_HXX
+#define LINDADB_FN_CALL_BUILDER_HXX
 
-#include <string>
-#include <bit>
+#include <memory>
+#include <string_view>
 
-#include <lrt/loader.hxx>
+#include <ldb/lv/linda_value.hxx>
 
-#ifndef WIN32_LEAN_AND_MEAN
-#  define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#  define NOMINMAX
-#endif
-#include <Windows.h>
+namespace ldb::lv {
+    struct fn_call_builder {
+        fn_call_builder(const fn_call_builder& cp) = delete;
+        fn_call_builder&
+        operator=(const fn_call_builder& cp) = delete;
 
-void*
-lrt::load_symbol_untyped(const std::string& name) {
-    auto my_handle = GetModuleHandleA(nullptr);
-    return std::bit_cast<void*>(GetProcAddress(my_handle, name.c_str()));
+        fn_call_builder(fn_call_builder&& mv) noexcept = delete;
+        fn_call_builder&
+        operator=(fn_call_builder&& mv) noexcept = delete;
+
+        [[nodiscard]] virtual std::unique_ptr<fn_call_builder>
+        add_arg(const linda_value&) = 0;
+
+        [[nodiscard]] virtual linda_value
+        finalize(std::string_view function_name) const = 0;
+
+        virtual ~fn_call_builder() = default;
+
+    protected:
+        fn_call_builder() noexcept = default;
+    };
+
+    std::unique_ptr<fn_call_builder>
+    get_call_builder();
 }
+
+#endif

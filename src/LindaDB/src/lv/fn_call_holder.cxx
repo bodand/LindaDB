@@ -37,13 +37,17 @@
  *   
  */
 
+#include <algorithm>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include <ldb/common.hxx>
+#include <ldb/lv/fn_call_builder.hxx>
 #include <ldb/lv/fn_call_holder.hxx>
 #include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/tuple_builder.hxx>
 
 ldb::lv::fn_call_holder::fn_call_holder(std::string fn_name, std::unique_ptr<linda_tuple>&& tuple)
      : _fn_name(std::move(fn_name)), _args(std::move(tuple)) {
@@ -63,6 +67,28 @@ ldb::lv::fn_call_holder::operator=(const ldb::lv::fn_call_holder& cp) {
     _fn_name = cp._fn_name;
     _args = cp._args->clone();
     return *this;
+}
+
+void
+ldb::lv::fn_call_holder::execute_into(ldb::lv::linda_tuple* result,
+                                      int after_prefix,
+                                      ldb::lv::linda_tuple& elements) {
+    auto call_builder = lv::get_call_builder();
+    std::ranges::for_each(*_args, [&call_builder](auto&& arg) {
+        call_builder = call_builder->add_arg(std::forward<decltype(arg)>(arg));
+    });
+    auto call_result = call_builder->finalize(_fn_name);
+
+    auto tuple_b = tuple_builder();
+    auto tuple_appender = [&tuple_b](auto&& arg) {
+        tuple_b("<ignored>", std::forward<decltype(arg)>(arg));
+    };
+
+    std::ranges::for_each_n(elements.begin(), after_prefix, tuple_appender);
+    tuple_b("<ignored>", call_result);
+    std::ranges::for_each(std::next(elements.begin(), after_prefix), elements.end(), tuple_appender);
+
+    *result = tuple_b.build();
 }
 
 ldb::lv::fn_call_holder::fn_call_holder(ldb::lv::fn_call_holder&& mv) noexcept = default;
