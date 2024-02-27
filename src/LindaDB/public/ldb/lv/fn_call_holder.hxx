@@ -48,7 +48,33 @@ namespace ldb::lv {
     struct linda_tuple;
 
     struct fn_call_holder final {
-        fn_call_holder(std::string fn_name, std::unique_ptr<linda_tuple>&& tuple);
+        /** \brief Constructor that creates a function call holder entity.
+         *
+         * \remarks
+         * This is constructor has a semi-weird interface, as the tuple
+         * needs to pack two different pieces of information: the first
+         * element in the tuple must be a value of the return type of the
+         * function called, while the remaining values are the values with
+         * which the function was invoked.
+         *
+         * \remarks
+         * The first element's value is unused, only required to allow the
+         * reconstruction of the function's type on the other process when
+         * the call is actually performed.
+         *
+         * \remarks
+         * The rationale is with the fight against the circular dependency
+         * between the linda_tuple and fn_call_holder. This is fixed by the
+         * unique_ptr, and a forward declaration above this class, but this
+         * does not allow the separation of the first linda_value entity into
+         * a new parameter, unless we take another pointer to a linda_value,
+         * which does waste resources. Considering this is an internal
+         * interface, this is deemed a bigger problem than a slightly irritating
+         * interface design. (Also the large documentation block should make
+         * it obvious that something is up.)
+         **/
+        fn_call_holder(std::string fn_name,
+                       std::unique_ptr<linda_tuple>&& tuple);
 
         fn_call_holder(const fn_call_holder& cp);
         fn_call_holder&

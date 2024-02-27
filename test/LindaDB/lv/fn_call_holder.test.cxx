@@ -28,20 +28,17 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-22.
+ * Originally created: 2024-02-27.
  *
- * test/LindaDB/lv/tuple_builder --
- *   Tests for the tuple builder class.
+ * test/LindaDB/lv/fn_call_holder --
+ *   
  */
 
+#include <memory>
 
-#include <variant>
-
-#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <ldb/lv/fn_call_holder.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/tuple_builder.hxx>
-#include "ldb/lv/fn_call_holder.hxx"
 
 using namespace ldb;
 
@@ -52,27 +49,16 @@ using namespace ldb;
 #endif
 
 LINDA_CALLABLE int
-zero_tuple_builder(int, const char*) { return 0; }
+zero_fn_call_holder(int, const char*) { return 0; }
 
-TEST_CASE("empty tuple builder builds empty tuple") {
-    auto res = lv::tuple_builder().build();
-    CHECK(res == lv::linda_tuple());
+TEST_CASE("fn_call_holder retains function's name") {
+    const auto* fn_name = "zero_fn_call_holder";
+    const lv::fn_call_holder fn(fn_name, std::make_unique<lv::linda_tuple>(0, 42, "asd"));
+    CHECK(fn.fn_name() == fn_name);
 }
 
-TEST_CASE("tuple builder builds single value") {
-    auto res = lv::tuple_builder("ignored", 1).build();
-    CHECK(res == lv::linda_tuple(1));
-}
-
-TEST_CASE("tuple builder builds chained values") {
-    auto res = lv::tuple_builder("1", 1)("2", 2)("\"asd\"", "asd").build();
-    CHECK(res == lv::linda_tuple(1, 2, "asd"));
-}
-
-TEST_CASE("tuple builder builds with function calls") {
-    auto res = lv::tuple_builder("zero", &zero_tuple_builder)("2, \"yeet\"", 2, "yeet").build();
-    auto *sut = std::get_if<lv::fn_call_holder>(&res[0]);
-    REQUIRE_FALSE(sut == nullptr);
-    CHECK(sut->fn_name() == "zero");
-    CHECK(sut->args() == lv::linda_tuple(2, "yeet"));
+TEST_CASE("fn_call_holder retains call arguments") {
+    auto tuple_ptr = std::make_unique<lv::linda_tuple>(0, 42, "asd");
+    const lv::fn_call_holder fn("zero_fn_call_holder", tuple_ptr->clone());
+    CHECK(fn.args() == *tuple_ptr);
 }

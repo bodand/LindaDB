@@ -35,15 +35,15 @@
  */
 
 #include <memory>
-#include <utility>
 #include <string_view>
+#include <utility>
 
 #include <ldb/lv/fn_call_holder.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/tuple_builder.hxx>
 
 void
-ldb::lv::tuple_builder::add_fn_call(std::string_view name, ldb::lv::linda_tuple&& tuple) {
-    _values.emplace_back(fn_call_holder({name.data(), name.size()},
+ldb::lv::tuple_builder::add_fn_call(ldb::lv::linda_tuple&& tuple) {
+    _values.emplace_back(fn_call_holder(_last_fn->function_name,
                                         std::make_unique<linda_tuple>(std::move(tuple))));
 }

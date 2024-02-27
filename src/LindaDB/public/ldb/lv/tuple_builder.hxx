@@ -80,11 +80,16 @@ namespace ldb::lv {
 
         auto
         build() {
-            if (_last_fn) throw bad_tuple_build(*_last_fn);
+            if (_last_fn) throw bad_tuple_build(_last_fn->function_name);
             return linda_tuple(_values);
         }
 
     private:
+        struct last_fun_type {
+            std::string function_name;
+            linda_value typeinfo;
+        };
+
         template<class T>
         struct adder_impl {
             template<class U = T>
@@ -101,15 +106,17 @@ namespace ldb::lv {
             static void
             add(tuple_builder& builder, std::string_view fn_name, Fn fn) {
                 std::ignore = fn;
-                builder.add_function(fn_name);
+                builder.add_function<R>(fn_name);
             }
         };
 
         template<class... Args>
         void
-        add_arguments(Args&&... args) requires((std::same_as<Args, linda_value> && ...)) {
+        add_arguments(Args&&... args)
+            requires((std::same_as<Args, linda_value> && ...))
+        {
             if (!_last_fn) throw bad_tuple_build("<missing>");
-            add_fn_call(*_last_fn, linda_tuple(std::forward<Args>(args)...));
+            add_fn_call(linda_tuple(std::forward<Args>(args)...));
             _last_fn.reset();
         }
 
@@ -117,7 +124,7 @@ namespace ldb::lv {
         void
         add_value(T&& arg) {
             if (_last_fn) {
-                add_fn_call(*_last_fn, linda_tuple(std::forward<T>(arg)));
+                add_fn_call(linda_tuple(std::forward<T>(arg)));
                 _last_fn.reset();
                 return;
             }
@@ -126,15 +133,17 @@ namespace ldb::lv {
         }
 
         void
-        add_fn_call(std::string_view name, linda_tuple&& tuple);
+        add_fn_call(linda_tuple&& tuple);
 
+        template<class R>
         void
         add_function(std::string_view fn) {
             if (_last_fn) throw bad_tuple_build(fn);
-            _last_fn = fn;
+            _last_fn = last_fun_type{.function_name = {fn.data(), fn.size()},
+                                     .typeinfo = R{}};
         }
 
-        std::optional<std::string> _last_fn = std::nullopt;
+        std::optional<last_fun_type> _last_fn = std::nullopt;
         std::vector<linda_value> _values{};
     };
 }

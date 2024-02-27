@@ -41,12 +41,14 @@
 #include <string>
 #include <utility>
 
+#include <ldb/common.hxx>
 #include <ldb/lv/fn_call_holder.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 
 ldb::lv::fn_call_holder::fn_call_holder(std::string fn_name, std::unique_ptr<linda_tuple>&& tuple)
      : _fn_name(std::move(fn_name)), _args(std::move(tuple)) {
-    assert_that(_args);
+    assert_that(_args, "fn_call_holder: null may not be passed as the args tuple");
+    assert_that(_args->size() >= 1, "fn_call_holder: at least one element must always be in the args tuple: an object of the type of the function's return");
 }
 
 ldb::lv::fn_call_holder::~fn_call_holder() = default;
