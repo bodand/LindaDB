@@ -39,13 +39,6 @@
 #include <atomic>
 #include <thread>
 
-#include <ldb/store.hxx>
-#if defined(_WIN32) || defined(_WIN64)
-#  define LINDA_CALLABLE extern "C" __declspec(dllexport)
-#else
-#  define LINDA_CALLABLE extern "C"
-#endif
-
 namespace lrt {
     struct runtime {
         runtime(int* argc, char*** argv);
@@ -78,6 +71,6 @@ namespace lrt {
     };
 }
 
-#include <lrt/pp.hxx>
+#include <lrt/eval.hxx>
 
 #endif

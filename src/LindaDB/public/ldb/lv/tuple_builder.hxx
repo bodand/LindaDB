@@ -101,11 +101,11 @@ namespace ldb::lv {
         };
 
         template<class R, class... Args>
-        struct adder_impl<R (*)(Args...)> {
-            template<class Fn = R (*)(Args...)>
+        struct adder_impl<R(&)(Args...)> {
+            template<class Fn>
             static void
-            add(tuple_builder& builder, std::string_view fn_name, Fn fn) {
-                std::ignore = fn;
+            add(tuple_builder& builder, std::string_view fn_name, Fn&& fn) {
+                std::ignore = std::forward<Fn>(fn);
                 builder.add_function<R>(fn_name);
             }
         };

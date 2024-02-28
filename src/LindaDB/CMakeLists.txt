@@ -65,7 +65,7 @@ set(LDB_COMMON_SOURCES
     src/index/tree/index_query.cxx
     src/index/tree/payload.cxx
     src/index/tree/payload_dispatcher.cxx
-    src/lv/fn_call_builder.cxx
+#    src/lv/fn_call_builder.cxx
     src/lv/fn_call_holder.cxx
     src/lv/linda_tuple.cxx
     src/lv/tuple_builder.cxx

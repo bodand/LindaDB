@@ -28,36 +28,16 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-19.
+ * Originally created: 2024-02-28.
  *
- * test/test --
+ * src/LindaRT/src/eval --
  *   
  */
 
-int
-foo(int x) {
-    return x + 1;
-}
+#include <memory>
 
-int
-asdasd(int x) {
-    return x + x;
-}
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/lv/linda_value.hxx>
+#include <lrt/global_function_map.hxx>
 
-#include <iostream>
-
-#include <lrt/eval.hxx>
-
-int
-main() {
-    for (const auto& [fn_name, callable] : (*lrt::gLdb_Dynamic_Function_Map)) {
-        using namespace ldb::lv::io;
-        std::cout << "dynamic(" << fn_name << "(2)) => " << callable(ldb::lv::linda_tuple{2}) << "\n";
-    }
-
-    int a = 12;
-    std::cout << "static(foo(2)) => " << (foo) (2) << "\n\n";
-    eval(1, (foo) (1), "ayy", (asdasd) (a)); // does not happen
-    std::cout << "-------\n";
-    eval((foo) (2)); // does not happen
-}
+[[maybe_unused]] std::unique_ptr<lrt::global_function_map_type> lrt::gLdb_Dynamic_Function_Map{nullptr};

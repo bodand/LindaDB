@@ -50,26 +50,14 @@ namespace {
     template<class... Args>
     struct typed_call_builder;
 
-    template<class... Args>
-    struct typed_builder_building_visitor {
-        explicit typed_builder_building_visitor(typed_call_builder<Args...>& builder)
-             : builder(builder) { }
-
-        template<class T>
-        std::unique_ptr<lv::fn_call_builder>
-        operator()(T&& obj) const {
-            return builder.add_typed_arg(std::forward<T>(obj));
-        }
-
-        typed_call_builder<Args...>& builder;
-    };
-
     template<class NewArg, class... LastArgs>
     auto
-    append(std::tuple<LastArgs...>&& old_tuple, NewArg&& new_arg) {
-        return std::apply([&arg = new_arg]<class... InnerArgs>(InnerArgs&&... args) {
-            return std::make_tuple(std::forward<InnerArgs>(args)..., arg);
-        }, old_tuple);
+    append(std::tuple<LastArgs...>&& old_tuple,
+           NewArg&& new_arg) {
+        return std::apply([&arg = new_arg](auto&&... args) {
+            return std::make_tuple(std::forward<decltype(args)>(args)..., arg);
+        },
+                          old_tuple);
     }
 
     template<class R, class... Args>
@@ -78,14 +66,8 @@ namespace {
             requires(sizeof...(Args) == 0)
              : args{} { }
 
-        explicit typed_call_builder(const std::tuple<std::decay_t<Args>...>& args)
-               : args(args) { }
-
-        template<class T>
-        [[nodiscard]] std::unique_ptr<lv::fn_call_builder>
-        add_typed_arg(T&& obj) {
-            return std::make_unique<typed_call_builder<R, Args..., T>>(append(std::move(args), std::forward<T>(obj)));
-        }
+        explicit typed_call_builder(const std::tuple<Args...>& args)
+             : args(args) { }
 
         [[nodiscard]] std::unique_ptr<fn_call_builder>
         add_arg(const lv::linda_value& value) override;
@@ -118,6 +100,22 @@ namespace {
             std::ignore = function_name;
             throw std::runtime_error("finalize called on incomplete function call object: at least the result type must be specified");
         }
+
+        std::tuple<> args ;
+    };
+
+    template<class... Args>
+    struct typed_builder_building_visitor {
+        explicit typed_builder_building_visitor(typed_call_builder<Args...>& builder)
+               : builder(builder) { }
+
+        template<class T>
+        std::unique_ptr<lv::fn_call_builder>
+        operator()(T&& obj) const {
+            return std::make_unique<typed_call_builder<Args..., T>>(append(std::move(builder.args), std::forward<T>(obj)));
+        }
+
+        typed_call_builder<Args...>& builder;
     };
 
     std::unique_ptr<lv::fn_call_builder>
