@@ -28,43 +28,16 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-27.
+ * Originally created: 2024-02-28.
  *
- * src/LindaDB/public/ldb/lv/fn_call_builder --
- *   An type used to build a function call object from a given linda tuple.
+ * src/LindaRT/src/eval --
+ *   
  */
-#ifndef LINDADB_FN_CALL_BUILDER_HXX
-#define LINDADB_FN_CALL_BUILDER_HXX
 
 #include <memory>
-#include <string_view>
 
+#include <ldb/lv/global_function_map.hxx>
+#include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 
-namespace ldb::lv {
-    struct fn_call_builder {
-        fn_call_builder(const fn_call_builder& cp) = delete;
-        fn_call_builder&
-        operator=(const fn_call_builder& cp) = delete;
-
-        fn_call_builder(fn_call_builder&& mv) noexcept = delete;
-        fn_call_builder&
-        operator=(fn_call_builder&& mv) noexcept = delete;
-
-        [[nodiscard]] virtual std::unique_ptr<fn_call_builder>
-        add_arg(const linda_value&) = 0;
-
-        [[nodiscard]] virtual linda_value
-        finalize(std::string_view function_name) const = 0;
-
-        virtual ~fn_call_builder() = default;
-
-    protected:
-        fn_call_builder() noexcept = default;
-    };
-
-    std::unique_ptr<fn_call_builder>
-    get_call_builder();
-}
-
-#endif
+[[maybe_unused]] std::unique_ptr<ldb::lv::global_function_map_type> ldb::lv::gLdb_Dynamic_Function_Map{nullptr};

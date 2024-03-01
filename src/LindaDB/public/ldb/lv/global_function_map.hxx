@@ -46,7 +46,7 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 
-namespace lrt {
+namespace ldb::lv {
     struct string_hash {
         using is_transparent = std::true_type;
         [[nodiscard]] std::size_t

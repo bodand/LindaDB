@@ -38,11 +38,9 @@ find_package(MPI REQUIRED)
 
 add_library(LindaRT STATIC
             public/lrt/serialize/tuple.hxx
-            public/lrt/dyn_function_adapter.hxx
             public/lrt/eval.hxx
             public/lrt/runtime.hxx
             src/serialize/tuple.cxx
-            src/global_function_map.cxx
             src/runtime.cxx)
 
 add_library(LindaRT-malloc STATIC

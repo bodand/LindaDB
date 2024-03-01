@@ -44,8 +44,8 @@
 #include <utility>
 
 #include <ldb/common.hxx>
-#include <ldb/lv/fn_call_builder.hxx>
 #include <ldb/lv/fn_call_holder.hxx>
+#include <ldb/lv/global_function_map.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/tuple_builder.hxx>
 
@@ -73,11 +73,13 @@ void
 ldb::lv::fn_call_holder::execute_into(ldb::lv::linda_tuple* result,
                                       int after_prefix,
                                       ldb::lv::linda_tuple& elements) {
-    auto call_builder = lv::get_call_builder();
-    std::ranges::for_each(*_args, [&call_builder](auto&& arg) {
-        call_builder = call_builder->add_arg(std::forward<decltype(arg)>(arg));
-    });
-    auto call_result = call_builder->finalize(_fn_name);
+    assert_that(gLdb_Dynamic_Function_Map != nullptr,
+                "dynamic execution was not initialized: maybe no functions are dynamically invocable?");
+    auto it = gLdb_Dynamic_Function_Map->find(_fn_name);
+    assert_that(it != gLdb_Dynamic_Function_Map->end(),
+                "dynamic function was not registered in dynamic execution subsystem");
+
+    auto call_result = it->second(*_args);
 
     auto tuple_b = tuple_builder();
     auto tuple_appender = [&tuple_b](auto&& arg) {

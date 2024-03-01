@@ -50,7 +50,7 @@ asdasd(int x) {
 
 int
 main() {
-    for (const auto& [fn_name, callable] : (*lrt::gLdb_Dynamic_Function_Map)) {
+    for (const auto& [fn_name, callable] : (*ldb::lv::gLdb_Dynamic_Function_Map)) {
         using namespace ldb::lv::io;
         std::cout << "dynamic(" << fn_name << "(2)) => " << callable(ldb::lv::linda_tuple{2}) << "\n";
     }

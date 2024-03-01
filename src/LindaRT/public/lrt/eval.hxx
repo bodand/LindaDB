@@ -58,11 +58,11 @@
 #include <boost/preprocessor/seq/size.hpp>
 #include <boost/preprocessor/seq/variadic_seq_to_seq.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
+#include <ldb/lv/dyn_function_adapter.hxx>
+#include <ldb/lv/global_function_map.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 #include <ldb/lv/tuple_builder.hxx>
-#include <lrt/dyn_function_adapter.hxx>
-#include <lrt/global_function_map.hxx>
 
 #define LDB_PARENS_INSTEAD(...) ()
 
@@ -78,7 +78,7 @@
 #define LDB_EVAL_REG_FN_I(arg) std::ignore = lrt::fn_mapper<LDB_STR_I(arg)>::value<decltype(arg),                                                              \
                                                                                    decltype([](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {     \
                                                                                        if constexpr (std::is_function_v<std::remove_cvref_t<decltype(arg)>>) { \
-                                                                                           lrt::dyn_function_adapter adapter(arg);                             \
+                                                                                           ldb::lv::dyn_function_adapter adapter(arg);                         \
                                                                                            return adapter.call(args);                                          \
                                                                                        }                                                                       \
                                                                                        assert_that(false, "called a non-function type");                       \
@@ -137,9 +137,9 @@ namespace lrt {
         requires(std::is_invocable_r_v<ldb::lv::linda_value, T, const ldb::lv::linda_tuple&>)
     struct function_loader<Name, R(Args...), T> {
         function_loader() {
-            if (!gLdb_Dynamic_Function_Map) gLdb_Dynamic_Function_Map = std::make_unique<lrt::global_function_map_type>();
+            if (!ldb::lv::gLdb_Dynamic_Function_Map) ldb::lv::gLdb_Dynamic_Function_Map = std::make_unique<ldb::lv::global_function_map_type>();
             auto fn_name = std::string{Name.data(), Name.size() - 1};
-            (*gLdb_Dynamic_Function_Map).emplace(fn_name, T{});
+            (*ldb::lv::gLdb_Dynamic_Function_Map).emplace(fn_name, T{});
         }
     };
 

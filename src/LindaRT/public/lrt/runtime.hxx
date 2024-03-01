@@ -39,6 +39,8 @@
 #include <atomic>
 #include <thread>
 
+#include <ldb/store.hxx>
+
 namespace lrt {
     struct runtime {
         runtime(int* argc, char*** argv);

@@ -45,9 +45,9 @@
 #include <ldb/common.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
-#include <lrt/global_function_map.hxx>
+#include <ldb/lv/global_function_map.hxx>
 
-namespace lrt {
+namespace ldb::lv {
     template<class T>
     struct expecting_visitor {
         using call_type = std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>;
