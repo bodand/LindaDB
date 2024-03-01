@@ -28,56 +28,42 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-22.
+ * Originally created: 2024-03-01.
  *
- * test/LindaDB/lv/tuple_builder --
- *   Tests for the tuple builder class.
+ * test/LindaDB/lv/dyn_function_call --
+ *   
  */
 
-
-#include <variant>
-
-#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <ldb/lv/dyn_function_adapter.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/tuple_builder.hxx>
-#include "ldb/lv/fn_call_holder.hxx"
+#include <ldb/lv/linda_value.hxx>
 
 using namespace ldb;
 
-#if defined(_WIN32) || defined(_WIN64)
-#  define LINDA_CALLABLE extern "C" __declspec(dllexport)
-#else
-#  define LINDA_CALLABLE extern "C"
-#endif
+int
+return_1_no_params() { return 1; }
 
-LINDA_CALLABLE int
-zero_tuple_builder(int, const char*) { return 0; }
+int
+return_int_input_params(int x) { return x; }
 
-TEST_CASE("empty tuple builder builds empty tuple") {
-    auto res = lv::tuple_builder().build();
-    CHECK(res == lv::linda_tuple());
+const char*
+return_str_input_params(const char* x) { return x; }
+
+TEST_CASE("dyn_function can call parameterless functions") {
+    lv::dyn_function_adapter adapter(return_1_no_params);
+    auto res = adapter(lv::linda_tuple());
+    CHECK(res == lv::linda_value(1));
 }
 
-TEST_CASE("tuple builder with skipped initial build step builds correct tuple") {
-    auto res = lv::tuple_builder()("", 1)("", 2).build();
-    CHECK(res == lv::linda_tuple(1, 2));
+TEST_CASE("dyn_function can call numeric functions") {
+    lv::dyn_function_adapter adapter(return_int_input_params);
+    auto res = adapter(lv::linda_tuple(3));
+    CHECK(res == lv::linda_value(3));
 }
 
-TEST_CASE("tuple builder builds single value") {
-    auto res = lv::tuple_builder("ignored", 1).build();
-    CHECK(res == lv::linda_tuple(1));
-}
-
-TEST_CASE("tuple builder builds chained values") {
-    auto res = lv::tuple_builder("1", 1)("2", 2)("\"asd\"", "asd").build();
-    CHECK(res == lv::linda_tuple(1, 2, "asd"));
-}
-
-TEST_CASE("tuple builder builds with function calls") {
-    auto res = lv::tuple_builder("zero", zero_tuple_builder)("2, \"yeet\"", 2, "yeet").build();
-    auto *sut = std::get_if<lv::fn_call_holder>(&res[0]);
-    REQUIRE_FALSE(sut == nullptr);
-    CHECK(sut->fn_name() == "zero");
-    CHECK(sut->args() == lv::linda_tuple(2, "yeet"));
+TEST_CASE("dyn_function can call string functions") {
+    lv::dyn_function_adapter adapter(return_str_input_params);
+    auto res = adapter(lv::linda_tuple("asdasd"));
+    CHECK(res == lv::linda_value("asdasd"));
 }

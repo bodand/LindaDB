@@ -147,7 +147,7 @@ namespace ldb::lv {
                _fn() { assert_that(false, "non-function object passed to dyn_function_adapter"); }
 
         ldb::lv::linda_value
-        call(const ldb::lv::linda_tuple& args) {
+        operator()(const ldb::lv::linda_tuple& args) {
             return _exeuctor->execute(_fn, args);
         }
 

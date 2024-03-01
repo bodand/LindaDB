@@ -38,6 +38,7 @@ add_covered_test(NAME LindaDB.Test CATCH
                  bcast/broadcast.test.cxx
                  data/chunked_list.test.cxx
                  lv/fn_call_holder.test.cxx
+                 lv/dyn_function_adapter.test.cxx
                  lv/linda_tuple.test.cxx
                  lv/linda_value.test.cxx
                  lv/tuple_builder.test.cxx

@@ -79,7 +79,7 @@
                                                                                    decltype([](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {     \
                                                                                        if constexpr (std::is_function_v<std::remove_cvref_t<decltype(arg)>>) { \
                                                                                            ldb::lv::dyn_function_adapter adapter(arg);                         \
-                                                                                           return adapter.call(args);                                          \
+                                                                                           return adapter(args);                                               \
                                                                                        }                                                                       \
                                                                                        assert_that(false, "called a non-function type");                       \
                                                                                        return {};                                                              \

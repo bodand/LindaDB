@@ -1,6 +1,8 @@
 
 #include "ldb/lv/fn_call_holder.hxx"
 
+#include "ldb/lv/linda_tuple.hxx"
+
 /* LindaDB project
  *
  * Copyright (c) 2024 András Bodor <bodand@pm.me>
@@ -52,7 +54,6 @@
 ldb::lv::fn_call_holder::fn_call_holder(std::string fn_name, std::unique_ptr<linda_tuple>&& tuple)
      : _fn_name(std::move(fn_name)), _args(std::move(tuple)) {
     assert_that(_args, "fn_call_holder: null may not be passed as the args tuple");
-    assert_that(_args->size() >= 1, "fn_call_holder: at least one element must always be in the args tuple: an object of the type of the function's return");
 }
 
 ldb::lv::fn_call_holder::~fn_call_holder() = default;
@@ -69,10 +70,8 @@ ldb::lv::fn_call_holder::operator=(const ldb::lv::fn_call_holder& cp) {
     return *this;
 }
 
-void
-ldb::lv::fn_call_holder::execute_into(ldb::lv::linda_tuple* result,
-                                      int after_prefix,
-                                      ldb::lv::linda_tuple& elements) {
+ldb::lv::linda_tuple
+ldb::lv::fn_call_holder::execute(int after_prefix, const linda_tuple& elements) {
     assert_that(gLdb_Dynamic_Function_Map != nullptr,
                 "dynamic execution was not initialized: maybe no functions are dynamically invocable?");
     auto it = gLdb_Dynamic_Function_Map->find(_fn_name);
@@ -90,7 +89,7 @@ ldb::lv::fn_call_holder::execute_into(ldb::lv::linda_tuple* result,
     tuple_b("<ignored>", call_result);
     std::ranges::for_each(std::next(elements.begin(), after_prefix), elements.end(), tuple_appender);
 
-    *result = tuple_b.build();
+    return tuple_b.build();
 }
 
 ldb::lv::fn_call_holder::fn_call_holder(ldb::lv::fn_call_holder&& mv) noexcept = default;

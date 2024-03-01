@@ -48,31 +48,6 @@ namespace ldb::lv {
     struct linda_tuple;
 
     struct fn_call_holder final {
-        /** \brief Constructor that creates a function call holder entity.
-         *
-         * \remarks
-         * This is constructor has a semi-weird interface, as the tuple
-         * needs to pack two different pieces of information: the first
-         * element in the tuple must be a value of the return type of the
-         * function called, while the remaining values are the values with
-         * which the function was invoked.
-         *
-         * \remarks
-         * The first element's value is unused, only required to allow the
-         * reconstruction of the function's type on the other process when
-         * the call is actually performed.
-         *
-         * \remarks
-         * The rationale is with the fight against the circular dependency
-         * between the linda_tuple and fn_call_holder. This is fixed by the
-         * unique_ptr, and a forward declaration above this class, but this
-         * does not allow the separation of the first linda_value entity into
-         * a new parameter, unless we take another pointer to a linda_value,
-         * which does waste resources. Considering this is an internal
-         * interface, this is deemed a bigger problem than a slightly irritating
-         * interface design. (Also the large documentation block should make
-         * it obvious that something is up.)
-         **/
         fn_call_holder(std::string fn_name,
                        std::unique_ptr<linda_tuple>&& tuple);
 
@@ -97,15 +72,12 @@ namespace ldb::lv {
          *
          * \remarks
          * Executes the function from the current executable by its name (as stored), by
-         * using the parameters in the stored tuple. To get around having to allocate new
-         * tuple objects, a return parameter is used. The return tuple is created by taking
+         * using the parameters in the stored tuple. The return tuple is created by taking
          * \c after_prefix elements from the \c elements tuple, then the result of the
          * function call, then the remaining elements.
          */
-        void
-        execute_into(linda_tuple* result,
-                     int after_prefix,
-                     linda_tuple& elements);
+        lv::linda_tuple
+        execute(int after_prefix, const linda_tuple& elements);
 
     private:
         friend struct ::std::hash<ldb::lv::fn_call_holder>;

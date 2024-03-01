@@ -34,31 +34,102 @@
  *   
  */
 
+#include <cstring>
 #include <memory>
+#include <utility>
 
 #include <catch2/catch_test_macros.hpp>
+#include <ldb/lv/dyn_function_adapter.hxx>
 #include <ldb/lv/fn_call_holder.hxx>
+#include <ldb/lv/global_function_map.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 
 using namespace ldb;
 
-#if defined(_WIN32) || defined(_WIN64)
-#  define LINDA_CALLABLE extern "C" __declspec(dllexport)
-#else
-#  define LINDA_CALLABLE extern "C"
-#endif
-
-LINDA_CALLABLE int
-zero_fn_call_holder(int, const char*) { return 0; }
+namespace {
+    int
+    zero_fn_call_holder(int x, const char* str) { return static_cast<int>(std::strlen(str)) + x; }
+}
 
 TEST_CASE("fn_call_holder retains function's name") {
     const auto* fn_name = "zero_fn_call_holder";
-    const lv::fn_call_holder fn(fn_name, std::make_unique<lv::linda_tuple>(0, 42, "asd"));
+    const lv::fn_call_holder fn(fn_name, std::make_unique<lv::linda_tuple>(42, "asd"));
     CHECK(fn.fn_name() == fn_name);
 }
 
 TEST_CASE("fn_call_holder retains call arguments") {
-    auto tuple_ptr = std::make_unique<lv::linda_tuple>(0, 42, "asd");
+    auto tuple_ptr = std::make_unique<lv::linda_tuple>(42, "asd");
     const lv::fn_call_holder fn("zero_fn_call_holder", tuple_ptr->clone());
     CHECK(fn.args() == *tuple_ptr);
+}
+
+TEST_CASE("fn_call_holder is copy constructible") {
+    auto tuple_ptr = std::make_unique<lv::linda_tuple>(42, "asd");
+    const lv::fn_call_holder fn("zero_fn_call_holder", tuple_ptr->clone());
+    const auto copy = fn;
+    CHECK(copy == fn);
+    CHECK(copy.args() == fn.args());
+}
+
+TEST_CASE("fn_call_holder is copy assignable") {
+    auto tuple_ptr = std::make_unique<lv::linda_tuple>(42, "asd");
+    const lv::fn_call_holder fn("zero_fn_call_holder", tuple_ptr->clone());
+    lv::fn_call_holder fn2("bad", std::make_unique<lv::linda_tuple>());
+    fn2 = fn;
+    CHECK(fn2 == fn);
+    CHECK(fn2.args() == fn.args());
+}
+
+TEST_CASE("fn_call_holder is move constructible") {
+    auto tuple_ptr = std::make_unique<lv::linda_tuple>(42, "asd");
+    lv::fn_call_holder fn("zero_fn_call_holder", tuple_ptr->clone());
+    const auto copy = fn;
+    const auto sut = std::move(fn);
+    CHECK(copy == sut);
+    CHECK(copy.args() == sut.args());
+}
+
+TEST_CASE("fn_call_holder is move assignable") {
+    auto tuple_ptr = std::make_unique<lv::linda_tuple>(42, "asd");
+    lv::fn_call_holder fn("zero_fn_call_holder", tuple_ptr->clone());
+    lv::fn_call_holder copy = fn;
+    lv::fn_call_holder sut("bad", std::make_unique<lv::linda_tuple>());
+    sut = std::move(fn);
+    CHECK(copy == sut);
+    CHECK(copy.args() == sut.args());
+}
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+TEST_CASE("fn_call_holder handles self-assignment") {
+    auto tuple_ptr = std::make_unique<lv::linda_tuple>(42, "asd");
+    lv::fn_call_holder fn("zero_fn_call_holder", tuple_ptr->clone());
+    fn = fn;
+    CHECK(fn == fn);
+    CHECK(fn.args() == fn.args());
+}
+#pragma clang diagnostic pop
+
+TEST_CASE("fn_call_holder's function can be called") {
+    ldb::lv::gLdb_Dynamic_Function_Map = std::make_unique<ldb::lv::global_function_map_type>();
+    lv::gLdb_Dynamic_Function_Map->try_emplace("zero_fn_call_holder", [](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {
+        ldb::lv::dyn_function_adapter adapter(zero_fn_call_holder);
+        return adapter(args);
+    });
+
+    lv::fn_call_holder fn("zero_fn_call_holder", std::make_unique<lv::linda_tuple>(42, "asd"));
+    auto res = fn.execute(0, lv::linda_tuple());
+    CHECK(res == lv::linda_tuple(45));
+}
+
+TEST_CASE("fn_call_holder's function can be called with wrapping tuple") {
+    ldb::lv::gLdb_Dynamic_Function_Map = std::make_unique<ldb::lv::global_function_map_type>();
+    lv::gLdb_Dynamic_Function_Map->try_emplace("zero_fn_call_holder", [](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {
+        ldb::lv::dyn_function_adapter adapter(zero_fn_call_holder);
+        return adapter(args);
+    });
+
+    lv::fn_call_holder fn("zero_fn_call_holder", std::make_unique<lv::linda_tuple>(42, "asd"));
+    auto res = fn.execute(1, lv::linda_tuple("before", "after", 2));
+    CHECK(res == lv::linda_tuple("before", 45, "after", 2));
 }

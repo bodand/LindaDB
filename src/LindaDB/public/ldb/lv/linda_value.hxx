@@ -57,7 +57,7 @@ namespace ldb::lv {
            std::string,
            float,
            double
-//           ,fn_call_holder
+           ,fn_call_holder
            >;
 
     template<class T>
