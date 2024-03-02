@@ -44,8 +44,8 @@
 #include <type_traits>
 #include <variant>
 
-#include <ldb/lv/fn_call_tag.hxx>
 #include <ldb/lv/fn_call_holder.hxx>
+#include <ldb/lv/fn_call_tag.hxx>
 
 namespace ldb::lv {
     using linda_value = std::variant<
@@ -63,13 +63,13 @@ namespace ldb::lv {
 
     template<class T>
     inline linda_value
-    make_linda_value(T val)
-        requires(std::is_trivially_copyable_v<T>)
-    { return linda_value(std::forward<T>(val)); }
+    make_linda_value(T&& val) { return linda_value(std::forward<T>(val)); }
 
-    template<>
     inline linda_value
-    make_linda_value<std::string_view>(std::string_view val) { return linda_value(std::string(val)); }
+    make_linda_value(std::string_view val) { return linda_value(std::string(val)); }
+
+    inline linda_value
+    make_linda_value(const std::string& val) { return linda_value(val); }
 
     namespace helper {
         struct printer {
