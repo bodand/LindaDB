@@ -38,6 +38,7 @@ find_package(MPI REQUIRED)
 
 add_library(LindaRT STATIC
             public/lrt/serialize/tuple.hxx
+            public/lrt/eval.hxx
             public/lrt/runtime.hxx
             src/serialize/tuple.cxx
             src/runtime.cxx)

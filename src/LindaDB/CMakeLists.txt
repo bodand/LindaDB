@@ -34,40 +34,51 @@
 #   The CMakeLists file for managing the LindaDB project's main source
 #   components.
 
-add_library(LindaDB STATIC
-            public/ldb/bcast/null_broadcast.hxx
-            public/ldb/data/chunked_list.hxx
-            public/ldb/index/tree/payload/chime_payload.hxx
-            public/ldb/index/tree/payload/scalar_payload.hxx
-            public/ldb/index/tree/payload/vector_payload.hxx
-            public/ldb/index/tree/impl/avl2/avl2_tree.hxx
-            public/ldb/index/tree/index_query.hxx
-            public/ldb/index/tree/payload.hxx
-            public/ldb/index/tree/payload_dispatcher.hxx
-            public/ldb/lv/linda_tuple.hxx
-            public/ldb/lv/linda_value.hxx
-            public/ldb/query/concrete_tuple_query.hxx
-            public/ldb/query/make_matcher.hxx
-            public/ldb/query/manual_fields_query.hxx
-            public/ldb/query/match_type.hxx
-            public/ldb/query/match_value.hxx
-            public/ldb/query/meta_finder.hxx
-            public/ldb/query/tuple_query.hxx
-            public/ldb/query_tuple.hxx
-            public/ldb/store.hxx
-            src/data/chunked_list.cxx
-            src/index/tree/payload/chime_payload.cxx
-            src/index/tree/payload/scalar_payload.cxx
-            src/index/tree/payload/vector_payload.cxx
-            src/index/tree/index_query.cxx
-            src/index/tree/payload.cxx
-            src/index/tree/payload_dispatcher.cxx
-            src/lv/linda_tuple.cxx
-            src/query/concrete_tuple_query.cxx
-            src/query/manual_fields_query.cxx
-            src/query/tuple_query.cxx
-            src/common.cxx
-            src/store.cxx)
+set(LDB_COMMON_SOURCES
+    public/ldb/bcast/null_broadcast.hxx
+    public/ldb/data/chunked_list.hxx
+    public/ldb/index/tree/payload/chime_payload.hxx
+    public/ldb/index/tree/payload/scalar_payload.hxx
+    public/ldb/index/tree/payload/vector_payload.hxx
+    public/ldb/index/tree/impl/avl2/avl2_tree.hxx
+    public/ldb/index/tree/index_query.hxx
+    public/ldb/index/tree/payload.hxx
+    public/ldb/index/tree/payload_dispatcher.hxx
+    public/ldb/lv/dyn_function_adapter.hxx
+    public/ldb/lv/fn_call_holder.hxx
+    public/ldb/lv/global_function_map.hxx
+    public/ldb/lv/linda_tuple.hxx
+    public/ldb/lv/linda_value.hxx
+    public/ldb/lv/tuple_builder.hxx
+    public/ldb/query/concrete_tuple_query.hxx
+    public/ldb/query/make_matcher.hxx
+    public/ldb/query/manual_fields_query.hxx
+    public/ldb/query/match_type.hxx
+    public/ldb/query/match_value.hxx
+    public/ldb/query/meta_finder.hxx
+    public/ldb/query/tuple_query.hxx
+    public/ldb/store.hxx
+    src/data/chunked_list.cxx
+    src/index/tree/payload/chime_payload.cxx
+    src/index/tree/payload/scalar_payload.cxx
+    src/index/tree/payload/vector_payload.cxx
+    src/index/tree/index_query.cxx
+    src/index/tree/payload.cxx
+    src/index/tree/payload_dispatcher.cxx
+    src/lv/fn_call_holder.cxx
+    src/lv/global_function_map.cxx
+    src/lv/linda_tuple.cxx
+    src/lv/tuple_builder.cxx
+    src/query/concrete_tuple_query.cxx
+    src/query/manual_fields_query.cxx
+    src/query/tuple_query.cxx
+    src/common.cxx
+    src/store.cxx)
+
+add_library(LindaDB STATIC ${LDB_COMMON_SOURCES})
+add_library(LindaDB-NoAbort STATIC ${LDB_COMMON_SOURCES})
+
+target_compile_definitions(LindaDB-NoAbort PUBLIC LDB_ASSERT_NOABORT)
 
 add_library(LindaDB-malloc STATIC
             src/malloc_overrider.cxx)
@@ -82,11 +93,17 @@ target_compile_definitions(LindaDB-malloc
 
 list(APPEND PROJECT_TARGETS LindaDB-malloc)
 target_link_libraries(LindaDB PUBLIC LindaDB-malloc)
+target_link_libraries(LindaDB-NoAbort PUBLIC LindaDB-malloc)
 
 target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaDB
+                      PRIVATE internal-coverage internal-warnings internal-lto internal-language-level)
+target_include_directories(LindaDB-NoAbort
+                           PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
+                           PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(LindaDB-NoAbort
                       PRIVATE internal-coverage internal-warnings internal-lto internal-language-level)
 
 if (TARGET Tracy::TracyClient)

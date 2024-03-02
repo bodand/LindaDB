@@ -39,6 +39,7 @@
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 
 namespace lv = ldb::lv;
@@ -79,4 +80,35 @@ TEST_CASE("linda_value prints as string value",
     std::ostringstream oss;
     oss << val;
     CHECK(oss.str() == string_value);
+}
+
+TEST_CASE("make_linda_value constructs non-string value",
+          "[linda_value]") {
+    using namespace std::literals;
+
+    CHECK(lv::linda_value(1) == lv::make_linda_value(1));
+    CHECK(lv::linda_value(1.f) == lv::make_linda_value(1.f));
+    CHECK(lv::linda_value(1.) == lv::make_linda_value(1.));
+    CHECK(lv::linda_value(lv::fn_call_tag{}) == lv::make_linda_value(lv::fn_call_tag{}));
+    CHECK(lv::linda_value(lv::fn_call_holder{"a", std::make_unique<lv::linda_tuple>()}) == lv::make_linda_value(lv::fn_call_holder{"a", std::make_unique<lv::linda_tuple>()}));
+}
+
+TEST_CASE("make_linda_value constructs string value",
+          "[linda_value]") {
+    using namespace std::literals;
+    const auto cstring_value = "some string";
+    const auto string_value = "some string"s;
+    const auto string_view_value = "some string"sv;
+
+    SECTION("c-string") {
+        CHECK(lv::linda_value(string_value) == lv::make_linda_value(cstring_value));
+    }
+
+    SECTION("std::string") {
+        CHECK(lv::linda_value(string_value) == lv::make_linda_value(string_value));
+    }
+
+    SECTION("std::string_view") {
+        CHECK(lv::linda_value(string_value) == lv::make_linda_value(string_view_value));
+    }
 }

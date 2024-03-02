@@ -35,7 +35,6 @@
  */
 
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <execution>
 #include <ios>
@@ -43,6 +42,7 @@
 #include <memory>
 #include <span>
 #include <stdexcept>
+#include <syncstream>
 #include <utility>
 #include <vector>
 

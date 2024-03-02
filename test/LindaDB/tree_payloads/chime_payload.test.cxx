@@ -39,11 +39,13 @@
 #include <tuple>
 
 #include <catch2/catch_test_macros.hpp>
+#include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload/chime_payload.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query_tuple.hxx>
-#include "ldb/index/tree/index_query.hxx"
+
+#include "ldb/query/manual_fields_query.hxx"
+#include "ldb/query/match_type.hxx"
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
@@ -350,6 +352,10 @@ TEST_CASE("multi-element chime_payload remains sorted after insert") {
 
 TEST_CASE("chime_payload removes correct element") {
     lps::chime_payload<ldb::lv::linda_value, ldb::lv::linda_tuple*, 8> sut;
+    using index_type = ldb::index::tree::avl2_tree<ldb::lv::linda_value,
+                                                   ldb::lv::linda_tuple*,
+                                                   0,
+                                                   decltype(sut)>;
     std::vector buf{
            ldb::lv::linda_tuple("asd", 1, "dsa"),
            ldb::lv::linda_tuple("asd", 2, "dsa"),
@@ -361,8 +367,12 @@ TEST_CASE("chime_payload removes correct element") {
     }
 
     std::string data;
-    auto res = sut.remove(ldb::index::tree::value_lookup(ldb::lv::linda_value("asd"),
-                                                        ldb::query_tuple("asd", 3, ldb::ref(&data))));
+    auto res = sut.remove(ldb::index::tree::value_lookup(
+           ldb::lv::linda_value("asd"),
+           ldb::make_query(ldb::over_index<index_type>,
+                           "asd",
+                           3,
+                           ldb::ref(&data))));
     REQUIRE(res.has_value());
     CHECK(*res == &buf[2]);
 }

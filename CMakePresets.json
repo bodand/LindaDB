@@ -49,6 +49,7 @@
         "rhs": "Windows"
       },
       "cacheVariables": {
+        "BUILD_SYS_ARCHETYPE": "nt",
         "BUILD_SYS_NAME": "windows"
       }
     },
@@ -60,6 +61,9 @@
         "type": "notEquals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "BUILD_SYS_ARCHETYPE": "unix"
       }
     },
     {

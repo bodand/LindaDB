@@ -41,7 +41,11 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <variant>
+
+#include <ldb/lv/fn_call_holder.hxx>
+#include <ldb/lv/fn_call_tag.hxx>
 
 namespace ldb::lv {
     using linda_value = std::variant<
@@ -53,34 +57,56 @@ namespace ldb::lv {
            std::uint64_t,
            std::string,
            float,
-           double>;
+           double,
+           fn_call_holder,
+           fn_call_tag>;
+
+    template<class T>
+    inline linda_value
+    make_linda_value(T&& val) { return linda_value(std::forward<T>(val)); }
+
+    inline linda_value
+    make_linda_value(std::string_view val) { return linda_value(std::string(val)); }
+
+    inline linda_value
+    make_linda_value(const std::string& val) { return linda_value(val); }
 
     namespace helper {
         struct printer {
-            explicit
-            printer(std::ostream& os) : _os(os) { }
+            explicit printer(std::ostream& os) : _os(os) { }
 
-            template<std::integral T>
+            template<class T>
             void
-            operator()(T i) {
-                _os << i;
-            }
-
-            template<std::floating_point T>
+            operator()(T val)
+                requires(std::is_trivially_copyable_v<T>)
+            { _os << val; }
+            template<class T>
             void
-            operator()(T f) {
-                _os << f;
-            }
-
-            void
-            operator()(std::string_view str) {
-                _os << str;
-            }
+            operator()(const T& val)
+                requires(!std::is_trivially_copyable_v<T>)
+            { _os << val; }
 
         private:
             std::ostream& _os;
         };
+
+        template<class T, class L>
+        struct is_member_of : std::false_type { };
+
+        template<class T, template<class...> class L, class... Args>
+        struct is_member_of<T, L<Args...>> : std::bool_constant<(std::same_as<T, Args> || ...)> { };
     }
+
+    template<class T>
+    struct is_linda_value : std::bool_constant<helper::is_member_of<T, linda_value>::value> { };
+
+    template<std::size_t N>
+    struct is_linda_value<const char[N]> : std::true_type { };
+    template<std::size_t N>
+    struct is_linda_value<char[N]> : std::true_type { };
+
+    template<class T>
+    constexpr const static auto is_linda_value_v = is_linda_value<T>::value;
 
     inline namespace io {
         inline std::ostream&

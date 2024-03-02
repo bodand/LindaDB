@@ -1,6 +1,6 @@
 /* LindaDB project
  *
- * Copyright (c) 2023 András Bodor <bodand@pm.me>
+ * Copyright (c) 2024 András Bodor <bodand@pm.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,47 +28,53 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-11-08.
+ * Originally created: 2024-03-02.
  *
- * test/lindart --
+ * src/LindaDB/public/ldb/lv/fn_call_tag --
  *   
  */
+#ifndef LINDADB_FN_CALL_TAG_HXX
+#define LINDADB_FN_CALL_TAG_HXX
 
-#include <exception>
-#include <iostream>
-#include <string>
-#include <syncstream>
+#include <compare>
 
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query/match_type.hxx>
-#include <lrt/runtime.hxx>
+namespace ldb::lv {
+    struct fn_call_tag {
+    private:
+        friend constexpr auto
+        operator<=>(fn_call_tag, fn_call_tag) { return std::strong_ordering::equal; }
 
-#include <mpi.h>
+        template<class T>
+        friend constexpr auto
+        operator<=>(fn_call_tag, const T&) { return std::strong_ordering::less; }
 
-int
-main(int argc, char** argv) try {
-    lrt::runtime rt(&argc, &argv);
-    auto& store = rt.store();
+        template<class T>
+        friend auto
+        operator<=>(const T&, fn_call_tag) { return std::strong_ordering::greater; }
 
-    int rank, size;
-    std::string data;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+        friend auto
+        operator==(fn_call_tag, fn_call_tag) { return true; }
 
-    if (rank == 0) {
-        for (int i = 2; i <= size; ++i) {
-            auto red = store.in("rank", i, ldb::ref(&data));
-            std::osyncstream(std::cout) << "rank0: " << red << " from " << i << "\n"
-                                        << std::flush;
-        }
-    }
-    else {
-        data = "Hello World!";
-        ldb::lv::linda_tuple const tuple{"rank", rank + 1, data};
-        store.out(tuple);
-        std::osyncstream(std::cout) << "rank" << rank << ": finishing\n"
-                                    << std::flush;
-    }
-} catch (const std::exception& ex) {
-    std::cerr << "fatal: uncaught exception: " << ex.what() << "\n\n";
+        template<class T>
+        friend auto
+        operator==(fn_call_tag, const T&) { return false; }
+
+        template<class T>
+        friend auto
+        operator==(const T&, fn_call_tag) { return false; }
+    };
 }
+
+
+namespace std {
+    template<>
+    struct hash<ldb::lv::fn_call_tag> {
+        std::size_t
+        operator()(const ldb::lv::fn_call_tag& /*ignored*/) const noexcept {
+            return static_cast<std::size_t>(0xC0FFEE'0F'DEADBEEF);
+        }
+    };
+}
+
+
+#endif

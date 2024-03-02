@@ -37,14 +37,23 @@ add_covered_test(NAME LindaDB.Test CATCH
                  SOURCES
                  bcast/broadcast.test.cxx
                  data/chunked_list.test.cxx
+                 lv/dyn_function_adapter.test.cxx
+                 lv/fn_call_holder.test.cxx
+                 lv/fn_call_tag.test.cxx
+                 lv/global_function_map.cxx
                  lv/linda_tuple.test.cxx
                  lv/linda_value.test.cxx
+                 lv/tuple_builder.test.cxx
+                 query/concrete_tuple_query.test.cxx
                  tree/avl/scalar_avl.test.cxx
                  tree/avl/vector_avl.test.cxx
                  tree/avl/chime_avl.test.cxx
                  tree_payloads/chime_payload.test.cxx
                  tree_payloads/scalar_payload.test.cxx
                  tree_payloads/vector_payload.test.cxx
-                 query_tuple.test.cxx
                  store.test.cxx
                  LIBRARIES LindaDB)
+
+add_covered_test(NAME LindaDB.AssertTest CATCH
+                 SOURCES assert_test.cxx
+                 LIBRARIES LindaDB-NoAbort)

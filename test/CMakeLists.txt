@@ -57,3 +57,7 @@ add_test(NAME "LindaRT-MPI"
          COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lindart-test>)
 set_tests_properties("LindaRT-MPI" PROPERTIES
                      ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
+
+find_package(Boost)
+add_executable(test-asd test.cxx)
+target_link_libraries(test-asd PRIVATE LindaRT)

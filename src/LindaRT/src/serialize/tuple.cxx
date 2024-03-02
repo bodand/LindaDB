@@ -47,6 +47,7 @@
 #include <numeric>
 #include <span>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -55,6 +56,8 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 #include <lrt/serialize/tuple.hxx>
+
+#include "ldb/lv/fn_call_holder.hxx"
 
 namespace {
     template<class T>
@@ -86,7 +89,7 @@ namespace {
     constexpr T
     swap_unless_comm_endian(T val) noexcept {
         using enum std::endian;
-        if constexpr (big == native) {          // on big endian system
+        if constexpr (big == native) {                   // on big endian system
             if constexpr (communication_endian == big) { // comm order is big
                 return val;
             }
@@ -94,7 +97,7 @@ namespace {
                 return byteswap(val);
             }
         }
-        else if constexpr (little == native) {  // on little endian system
+        else if constexpr (little == native) {           // on little endian system
             if constexpr (communication_endian == big) { // comm order is big
                 return byteswap(val);
             }
@@ -106,6 +109,9 @@ namespace {
             static_assert(fail<T>::value, "mixed endian machines are not supported");
         }
     }
+
+    std::size_t
+    calculate_tuple_serial_size(const ldb::lv::linda_tuple& tuple);
 
     struct value_size_calculator {
         std::size_t buf = 0;
@@ -128,6 +134,15 @@ namespace {
         operator()(float /*ignore*/) { buf = sizeof(float); }
         void
         operator()(double /*ignore*/) { buf = sizeof(double); }
+        void
+        operator()(const ldb::lv::fn_call_holder& fn_call_holder) {
+            const auto tuple_with_length_sz = calculate_tuple_serial_size(fn_call_holder.args());
+            const auto fn_name_sz = fn_call_holder.fn_name().size();
+            const auto fn_name_length_sz = sizeof(std::string::size_type);
+            buf = tuple_with_length_sz + fn_name_length_sz + fn_name_sz;
+        }
+        void
+        operator()(ldb::lv::fn_call_tag /*ignore*/) { buf = 0; }
     };
 
     enum class typemap : std::uint8_t {
@@ -140,6 +155,8 @@ namespace {
         LRT_STRING = 6,
         LRT_FLOAT = 7,
         LRT_DOUBLE = 8,
+        LRT_FNCALL = 9,
+        LRT_CALLTAG = 10,
     };
 
     template<class>
@@ -180,6 +197,18 @@ namespace {
     struct to_typemap<double> {
         constexpr const static auto value = static_cast<std::byte>(typemap::LRT_DOUBLE);
     };
+    template<>
+    struct to_typemap<ldb::lv::fn_call_holder> {
+        constexpr const static auto value = static_cast<std::byte>(typemap::LRT_FNCALL);
+    };
+    template<>
+    struct to_typemap<ldb::lv::fn_call_tag> {
+        constexpr const static auto value = static_cast<std::byte>(typemap::LRT_CALLTAG);
+    };
+
+    std::size_t
+    tuple_serialize_into(std::byte* buf,
+                         const ldb::lv::linda_tuple& tuple);
 
     struct value_serializator {
         static_assert(std::numeric_limits<float>::is_iec559,
@@ -194,35 +223,37 @@ namespace {
         std::size_t
         operator()(T val) const {
             buf[0] = to_typemap<T>::value;
-            write_int_raw(val, buf + 1);
-            return 1 + sizeof(T);
-        }
-
-        std::size_t
-        operator()(const std::string& str) const {
-            buf[0] = to_typemap<std::string>::value;
-            write_int_raw(str.size(), buf + 1);
-            std::transform(std::execution::par_unseq,
-                           str.data(),
-                           str.data() + str.size(),
-                           buf + 1 + sizeof(std::string::size_type),
-                           [](const char c) {
-                               return static_cast<std::byte>(c);
-                           });
-            return 1 + sizeof(std::string::size_type) + str.size();
+            return 1 + write_int_raw(val, buf + 1);
         }
 
         template<std::floating_point T>
         std::size_t
         operator()(T val) const {
-            auto value_representation =
-                   std::bit_cast<std::array<std::byte, sizeof(std::remove_cvref_t<T>)>>(val);
             buf[0] = to_typemap<T>::value;
-            std::copy(std::execution::par_unseq,
-                      value_representation.begin(),
-                      value_representation.end(),
-                      buf + 1);
-            return 1 + sizeof(T);
+            return 1 + write_float_raw(val, buf + 1);
+        }
+
+        std::size_t
+        operator()(const std::string& str) const {
+            buf[0] = to_typemap<std::string>::value;
+            return 1 + write_string_raw(str, buf + 1);
+        }
+
+        std::size_t
+        operator()(const ldb::lv::fn_call_holder& fn_call_holder) const {
+            auto my_buf = buf;
+            *(my_buf++) = to_typemap<ldb::lv::fn_call_holder>::value;
+
+            my_buf += tuple_serialize_into(my_buf, fn_call_holder.args());
+            my_buf += write_string_raw(fn_call_holder.fn_name(), my_buf);
+
+            return static_cast<std::size_t>(my_buf - buf);
+        }
+
+        std::size_t
+        operator()(ldb::lv::fn_call_tag /*ignore*/) const {
+            buf[0] = to_typemap<ldb::lv::fn_call_tag>::value;
+            return 1;
         }
 
         template<std::integral T>
@@ -230,11 +261,39 @@ namespace {
         write_int_raw(T val, std::byte* buf) {
             auto value_representation =
                    std::bit_cast<std::array<std::byte, sizeof(std::remove_cvref_t<T>)>>(swap_unless_comm_endian(val));
-            std::copy(std::execution::par_unseq,
-                      value_representation.begin(),
-                      value_representation.end(),
-                      buf);
-            return sizeof(T);
+            return write_bytes_raw(value_representation.begin(), value_representation.end(), buf);
+        }
+
+    private:
+        template<std::floating_point T>
+        static std::size_t
+        write_float_raw(T val, std::byte* buf) {
+            auto value_representation =
+                   std::bit_cast<std::array<std::byte, sizeof(std::remove_cvref_t<T>)>>(val);
+            return write_bytes_raw(value_representation.begin(), value_representation.end(), buf);
+        }
+
+        template<std::input_iterator It, std::sentinel_for<It> S>
+        static std::size_t
+        write_bytes_raw(It begin, S end, std::byte* buf) {
+            const auto copied_end = std::copy(std::execution::par_unseq,
+                                              begin,
+                                              end,
+                                              buf);
+            return static_cast<std::size_t>(copied_end - buf);
+        }
+
+        static std::size_t
+        write_string_raw(std::string_view str, std::byte* buf) {
+            const auto length_sz = write_int_raw(str.size(), buf);
+            std::transform(std::execution::par_unseq,
+                           str.data(),
+                           str.data() + str.size(),
+                           buf + sizeof(std::string::size_type),
+                           [](const char c) {
+                               return static_cast<std::byte>(c);
+                           });
+            return length_sz + str.size();
         }
     };
 
@@ -259,8 +318,16 @@ namespace {
     std::size_t
     value_serialize(std::byte* buf,
                     const ldb::lv::linda_value& val) {
-        const value_serializator ser{buf};
-        return std::visit(ser, val);
+        return std::visit(value_serializator{buf}, val);
+    }
+
+    std::size_t
+    tuple_serialize_into(std::byte* buf,
+                         const ldb::lv::linda_tuple& tuple) {
+        const std::size_t i = value_serializator::write_int_raw(tuple.size(), buf);
+        return std::accumulate(tuple.begin(), tuple.end(), i, [buf](auto acc, const auto& val) {
+            return acc + value_serialize(buf + acc, val);
+        });
     }
 
     std::pair<std::unique_ptr<std::byte[]>, std::size_t>
@@ -268,11 +335,9 @@ namespace {
         const auto serial_size = calculate_tuple_serial_size(val) + 1;
         auto buf = std::make_unique<std::byte[]>(serial_size);
         buf[0] = std::byte{1};
-        std::size_t i = 1;
-        i += value_serializator::write_int_raw(val.size(), buf.get() + i);
-        for (std::size_t j = 0; j < val.size(); ++j) {
-            i += value_serialize(buf.get() + i, val[j]);
-        }
+
+        tuple_serialize_into(buf.get() + 1, val);
+
         return std::make_pair(std::move(buf), serial_size);
     }
 
@@ -297,6 +362,26 @@ namespace {
         }
     }
 
+    std::string
+    deserialize_string(std::byte*& buf, std::size_t& len) {
+        const auto str_sz = deserialize_numeric<std::string::size_type>(buf, len);
+        assert_that(len >= str_sz);
+        std::string str(str_sz, '.');
+        std::transform(std::execution::par_unseq,
+                       buf,
+                       buf + str_sz,
+                       str.data(),
+                       [](std::byte b) {
+                           return static_cast<char>(b);
+                       });
+        len -= str_sz;
+        buf += str_sz;
+        return str;
+    }
+
+    ldb::lv::linda_tuple
+    tuple_deserialize(std::byte*& buf, std::size_t& len);
+
     ldb::lv::linda_value
     value_deserialize(std::byte*& buf, std::size_t& len) {
         --len;
@@ -310,27 +395,21 @@ namespace {
         case LRT_UINT64: return deserialize_numeric<std::uint64_t>(buf, len);
         case LRT_FLOAT: return deserialize_numeric<float>(buf, len);
         case LRT_DOUBLE: return deserialize_numeric<double>(buf, len);
-        case LRT_STRING: {
-            const auto str_sz = deserialize_numeric<std::string::size_type>(buf, len);
-            assert_that(len >= str_sz);
-            std::string str(str_sz, '.');
-            std::transform(std::execution::par_unseq,
-                           buf,
-                           buf + str_sz,
-                           str.data(),
-                           [](std::byte b) {
-                               return static_cast<char>(b);
-                           });
-            len -= str_sz;
-            buf += str_sz;
-            return str;
+        case LRT_STRING: return deserialize_string(buf, len);
+        case LRT_FNCALL: {
+            const auto tuple = tuple_deserialize(buf, len);
+            const auto fn_name = deserialize_string(buf, len);
+            return ldb::lv::fn_call_holder(fn_name, tuple.clone());
+        }
+        case LRT_CALLTAG: {
+            return ldb::lv::fn_call_tag{};
         }
         }
         LDB_UNREACHABLE;
     }
 
     ldb::lv::linda_tuple
-    tuple_deserialize(std::byte* buf, std::size_t len) {
+    tuple_deserialize(std::byte*& buf, std::size_t& len) {
         using namespace ldb::lv;
         std::vector<ldb::lv::linda_value> vals;
         const auto tuple_sz = deserialize_numeric<std::size_t>(buf, len);
@@ -350,5 +429,7 @@ lrt::serialize(const ldb::lv::linda_tuple& tuple) {
 
 ldb::lv::linda_tuple
 lrt::deserialize(std::span<std::byte> buf) {
-    return tuple_deserialize(buf.data() + 1, buf.size() - 1);
+    auto tuple_sz = buf.size() - 1;
+    auto tuple_payload_start = buf.data() + 1;
+    return tuple_deserialize(tuple_payload_start, tuple_sz);
 }

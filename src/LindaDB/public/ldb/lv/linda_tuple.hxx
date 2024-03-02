@@ -138,6 +138,9 @@ namespace ldb::lv {
             return _size;
         }
 
+        [[nodiscard]] std::unique_ptr<linda_tuple>
+        clone() const { return std::make_unique<linda_tuple>(*this); }
+
         auto
         operator<=>(const linda_tuple& rhs) const noexcept {
             return _size <=> rhs._size;
@@ -305,12 +308,12 @@ namespace ldb::lv {
                 if (a._position > b._position) {
                     const auto diff = a._position - b._position;
                     // ...or fail screaming
-                    assert_that(diff < std::numeric_limits<difference_type>::max());
+                    assert_that(diff < static_cast<std::size_t>(std::numeric_limits<difference_type>::max()));
                     return static_cast<difference_type>(diff);
                 }
                 const auto diff = b._position - a._position;
                 // ...or fail screaming
-                assert(diff < std::numeric_limits<difference_type>::max());
+                assert(diff < static_cast<std::size_t>(std::numeric_limits<difference_type>::max()));
 
                 return -static_cast<difference_type>(diff);
             }
@@ -331,8 +334,8 @@ namespace ldb::lv {
             [[nodiscard]] constexpr bool
             valid_step(difference_type by) const noexcept {
                 if (!_owner) return false;
-                if (by < 0) return _position >= -by;
-                if (by > 0) return _owner->_size - _position >= by;
+                if (by < 0) return _position >= static_cast<std::size_t>(-by);
+                if (by > 0) return _owner->_size - _position >= static_cast<std::size_t>(by);
                 return true;
             }
 

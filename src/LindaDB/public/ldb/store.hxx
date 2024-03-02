@@ -46,6 +46,7 @@
 #include <optional>
 #include <shared_mutex>
 #include <tuple>
+#include <type_traits>
 #include <unordered_set>
 #include <variant>
 
@@ -58,9 +59,10 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 #include <ldb/query/concrete_tuple_query.hxx>
-#include <ldb/query/manual_fields_query.hxx>
 #include <ldb/query/tuple_query.hxx>
-#include <ldb/query_tuple.hxx>
+
+#include "ldb/query/make_matcher.hxx"
+#include "ldb/query/manual_fields_query.hxx"
 
 namespace ldb {
     struct store {
@@ -72,9 +74,9 @@ namespace ldb {
         void
         out(const lv::linda_tuple& tuple) {
             {
-                std::scoped_lock lck(_header_mtx);
+                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 if (const auto it = _removed_later.find(tuple);
-                       it != _removed_later.end()) {
+                    it != _removed_later.end()) {
                     _removed_later.erase(it);
                     return;
                 }
@@ -83,7 +85,7 @@ namespace ldb {
             auto new_it = _data.push_back(tuple);
 
             {
-                std::scoped_lock lck(_header_mtx);
+                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -94,39 +96,6 @@ namespace ldb {
             await(await_handle);
             notify_readers();
         }
-
-        template<class... Args>
-        [[deprecated("Old query API")]] std::optional<lv::linda_tuple>
-        rdp(const query_tuple<Args...>& query) const {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
-            return rdp(manual_fields_query<index_type>::from_query_tuple(query));
-        }
-
-        template<class... Args>
-        [[deprecated("Old query API")]] lv::linda_tuple
-        rd(const query_tuple<Args...>& query) const {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
-            return rd(manual_fields_query<index_type>::from_query_tuple(query));
-        }
-
-        template<class... Args>
-        [[deprecated("Old query API")]] std::optional<lv::linda_tuple>
-        inp(const query_tuple<Args...>& query) {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
-            return inp(manual_fields_query<index_type>::from_query_tuple(query));
-        }
-
-        template<class... Args>
-        [[deprecated("Old query API")]] lv::linda_tuple
-        in(const query_tuple<Args...>& query) {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
-            return in(manual_fields_query<index_type>::from_query_tuple(query));
-        }
-
 
         std::optional<lv::linda_tuple>
         rdp(const query_type& query) const {
@@ -152,6 +121,57 @@ namespace ldb {
                                    std::mem_fn(&store::read_and_remove));
         }
 
+        template<class... Args>
+        std::optional<lv::linda_tuple>
+        inp(Args&&... args)
+            requires((
+                   (lv::is_linda_value_v<std::remove_cvref_t<Args>>
+                    || meta::is_matcher_type_v<Args>)
+                   && ...))
+        {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return inp(make_query(over_index<index_type>, std::forward<Args>(args)...));
+        }
+
+        template<class... Args>
+        lv::linda_tuple
+        in(Args&&... args)
+            requires((
+                   (lv::is_linda_value_v<std::remove_cvref_t<Args>>
+                    || meta::is_matcher_type_v<Args>)
+                   && ...))
+        {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return in(make_query(over_index<index_type>, std::forward<Args>(args)...));
+        }
+
+        template<class... Args>
+        std::optional<lv::linda_tuple>
+        rdp(Args&&... args)
+            requires((
+                   (lv::is_linda_value_v<std::remove_cvref_t<Args>>
+                    || meta::is_matcher_type_v<Args>)
+                   && ...))
+        {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return rdp(make_query(over_index<index_type>, std::forward<Args>(args)...));
+        }
+
+        template<class... Args>
+        lv::linda_tuple
+        rd(Args&&... args)
+            requires((
+                   (lv::is_linda_value_v<std::remove_cvref_t<Args>>
+                    || meta::is_matcher_type_v<Args>)
+                   && ...))
+        {
+            using index_type = index::tree::avl2_tree<lv::linda_value,
+                                                      pointer_type>;
+            return rd(make_query(over_index<index_type>, std::forward<Args>(args)...));
+        }
 
         template<broadcaster Bcast>
         void
@@ -162,7 +182,7 @@ namespace ldb {
         void
         out_nosignal(const lv::linda_tuple& tuple) {
             {
-                std::scoped_lock lck(_header_mtx);
+                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 if (const auto it = _removed_later.find(tuple);
                     it != _removed_later.end()) {
                     _removed_later.erase(it);
@@ -172,7 +192,7 @@ namespace ldb {
             auto new_it = _data.push_back(tuple);
 
             {
-                std::scoped_lock lck(_header_mtx);
+                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -243,7 +263,7 @@ namespace ldb {
 
         void
         wait_for_sync() const {
-            std::unique_lock lck(_read_mtx);
+            std::unique_lock<std::mutex> lck(_read_mtx);
             auto sync_check_over_this = [this]() noexcept {
                 return check_sync_need();
             };
@@ -274,7 +294,7 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         read(const query_type& query) const {
-            std::shared_lock lck(_header_mtx);
+            std::shared_lock<std::shared_mutex> lck(_header_mtx);
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.search_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);
@@ -285,7 +305,7 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         read_and_remove(const query_type& query) {
-            std::scoped_lock lck(_header_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_header_mtx);
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.remove_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);
@@ -309,7 +329,7 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         read_and_remove_nosignal(const query_type& query) {
-            std::scoped_lock lck(_header_mtx);
+            const std::scoped_lock<std::shared_mutex> lck(_header_mtx);
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.remove_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);

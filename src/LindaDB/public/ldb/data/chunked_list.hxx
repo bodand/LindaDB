@@ -190,13 +190,13 @@ namespace ldb::data {
 
         [[nodiscard]] LDB_CONSTEXPR23 bool
         empty() const noexcept {
-            std::shared_lock lck(_mtx);
+            std::shared_lock<std::shared_mutex> lck(_mtx);
             return _chunks.empty() || (_chunks.size() == 1 && _chunks[0]->empty());
         }
 
         [[nodiscard]] LDB_CONSTEXPR23 auto
         size() const noexcept {
-            std::shared_lock lck(_mtx);
+            std::shared_lock<std::shared_mutex> lck(_mtx);
             return std::reduce(
                    _chunks.begin(),
                    _chunks.end(),
@@ -222,13 +222,13 @@ namespace ldb::data {
 
         [[nodiscard]] LDB_CONSTEXPR23 bool
         capacity() const noexcept {
-            std::shared_lock lck(_mtx);
+            std::shared_lock<std::shared_mutex> lck(_mtx);
             return _chunks.size() * ChunkSize;
         }
 
         LDB_CONSTEXPR23 void
         clear() {
-            std::scoped_lock lck(_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_mtx);
             _chunks.clear();
         }
 
@@ -276,7 +276,7 @@ namespace ldb::data {
             [[nodiscard]] constexpr reference
             operator[](size_type idx) noexcept {
                 assert_that(idx < ChunkSize, "Index is within chunk bounds");
-                std::shared_lock lck(_data_mtx);
+                std::shared_lock<std::shared_mutex> lck(_data_mtx);
                 assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<pointer>(&_data[idx * sizeof(T)]);
             }
@@ -284,7 +284,7 @@ namespace ldb::data {
             [[nodiscard]] constexpr const_reference
             operator[](size_type idx) const noexcept {
                 assert_that(idx < ChunkSize, "Index is within chunk bounds");
-                std::shared_lock lck(_data_mtx);
+                std::shared_lock<std::shared_mutex> lck(_data_mtx);
                 assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<const_pointer>(&_data[idx * sizeof(T)]);
             }
@@ -298,9 +298,9 @@ namespace ldb::data {
                     assert_that(next_idx != ChunkSize);
                     assert_that(!valid_at_index(next_idx));
 
-                    const auto new_valids = local_valids | (1U << next_idx);
+                    const auto new_valids = static_cast<chunk_size_t>(local_valids | (1U << next_idx));
 
-                    std::scoped_lock lck(_data_mtx);
+                    std::scoped_lock<std::shared_mutex> lck(_data_mtx);
                     if (_valids.compare_exchange_strong(local_valids, new_valids, //
                                                         std::memory_order::acq_rel,
                                                         std::memory_order::acquire)) {
@@ -319,9 +319,9 @@ namespace ldb::data {
                     assert_that(next_idx != ChunkSize);
                     assert_that(!valid_at_index(next_idx));
 
-                    const auto new_valids = local_valids | (1U << next_idx);
+                    const auto new_valids = static_cast<chunk_size_t>(local_valids | (1U << next_idx));
 
-                    std::scoped_lock lck(_data_mtx);
+                    std::scoped_lock<std::shared_mutex> lck(_data_mtx);
                     if (_valids.compare_exchange_strong(local_valids, new_valids, //
                                                         std::memory_order::acq_rel,
                                                         std::memory_order::acquire)) {
@@ -339,7 +339,7 @@ namespace ldb::data {
                 for (;;) {
                     const auto new_valids = static_cast<chunk_size_t>(local_valids & ~(1U << idx));
 
-                    std::scoped_lock lck(_data_mtx);
+                    std::scoped_lock<std::shared_mutex> lck(_data_mtx);
                     if (_valids.compare_exchange_strong(local_valids, new_valids, //
                                                         std::memory_order::acq_rel,
                                                         std::memory_order::acquire)) {
@@ -383,7 +383,7 @@ namespace ldb::data {
             ~data_chunk() noexcept {
                 if (empty()) return;
 
-                std::scoped_lock lck(_data_mtx);
+                std::scoped_lock<std::shared_mutex> lck(_data_mtx);
                 for (std::size_t i = 0; i < ChunkSize; ++i) {
                     if (!valid_at_index(i)) continue;
                     std::destroy_at(std::bit_cast<pointer>(&_data[i * sizeof(T)]));
@@ -552,19 +552,19 @@ namespace ldb::data {
 
         [[nodiscard]] LDB_CONSTEXPR23 iterator
         begin() const noexcept {
-            std::shared_lock lck(_mtx);
+            std::shared_lock<std::shared_mutex> lck(_mtx);
             return begin_unguarded();
         }
 
         [[nodiscard]] LDB_CONSTEXPR23 iterator
         end() const noexcept {
-            std::shared_lock lck(_mtx);
+            std::shared_lock<std::shared_mutex> lck(_mtx);
             return end_unguarded();
         }
 
         iterator
         push_back(const T& obj) {
-            std::scoped_lock lck(_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_mtx);
             auto& back = [this]() -> decltype(auto) {
                 if (_chunks.empty() || _chunks.back()->full()) {
                     _chunks.emplace_back(std::make_unique<data_chunk>(this, _chunks.size()));
@@ -578,7 +578,7 @@ namespace ldb::data {
         template<class... Args>
         iterator
         emplace_back(Args&&... args) {
-            std::scoped_lock lck(_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_mtx);
             auto& back = [this]() -> decltype(auto) {
                 if (_chunks.empty() || _chunks.back()->full()) {
                     _chunks.emplace_back(std::make_unique<data_chunk>(this, _chunks.size()));
@@ -591,7 +591,7 @@ namespace ldb::data {
 
         LDB_CONSTEXPR23 void
         erase(iterator it) noexcept {
-            std::scoped_lock lck(_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_mtx);
             erase_unguarded(it);
         }
 
@@ -600,7 +600,7 @@ namespace ldb::data {
         locked_destructive_find(Q&& query)
             requires(std::copyable<T>)
         {
-            std::scoped_lock lck(_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_mtx);
             auto last = end_unguarded();
             auto found = std::ranges::find_if(begin_unguarded(), last, [query = std::forward<Q>(query)](const auto& stored) {
                 return stored == query;
@@ -617,7 +617,7 @@ namespace ldb::data {
         locked_find(Q&& query) const
             requires(std::copyable<T>)
         {
-            std::scoped_lock lck(_mtx);
+            std::scoped_lock<std::shared_mutex> lck(_mtx);
             auto last = end_unguarded();
             auto found = std::ranges::find_if(begin_unguarded(), last, [query = std::forward<Q>(query)](const auto& stored) {
                 return stored == query;

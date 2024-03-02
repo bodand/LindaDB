@@ -47,9 +47,6 @@
 #include <ldb/query/make_matcher.hxx>
 #include <ldb/query/tuple_query_if.hxx>
 
-// temporary include, until query_tuple has been replaced in caller code
-#include <ldb/query_tuple.hxx>
-
 namespace ldb {
     template<class IndexType, class... Matchers>
     struct manual_fields_query final {
@@ -64,12 +61,6 @@ namespace ldb {
         operator=(manual_fields_query&& mv) noexcept = default;
 
         ~manual_fields_query() noexcept = default;
-
-        template<class... Args>
-        static manual_fields_query<IndexType, Args...>
-        from_query_tuple(const query_tuple<Args...>& query) {
-            return manual_fields_query<IndexType, Args...>(query._payload);
-        }
 
         template<class... Args>
         explicit constexpr manual_fields_query(Args&&... args) noexcept((
@@ -88,7 +79,7 @@ namespace ldb {
                           const auto& matcher_impl) {
                        if (matcher_idx != field_index) return CONTINUE_LOOP;
 
-                       result = perform_search(matcher_impl, db_index);
+                       result = this->perform_search(matcher_impl, db_index);
                        return TERMINATE_LOOP;
                    };
             return iterate_matchers_via(do_check_if_index_matches);
@@ -105,14 +96,11 @@ namespace ldb {
                           const auto& matcher_impl) {
                        if (matcher_idx != field_index) return CONTINUE_LOOP;
 
-                       result = perform_remove(matcher_impl, db_index);
+                       result = this->perform_remove(matcher_impl, db_index);
                        return TERMINATE_LOOP;
                    };
             return iterate_matchers_via(remove_if_index_matches);
         }
-
-        [[deprecated]] explicit manual_fields_query(const std::tuple<meta::matcher_type<Matchers>...>& payload)
-             : _payload(payload) { }
 
     private:
         constexpr const static auto CONTINUE_LOOP = true;
@@ -199,6 +187,22 @@ namespace ldb {
 
         std::tuple<meta::matcher_type<Matchers>...> _payload;
     };
+
+    namespace helper {
+        template<class T>
+        struct over_index_impl { };
+    }
+
+    template<class T>
+    constexpr const static auto over_index = helper::over_index_impl<T>{};
+
+    template<class Index, class... Args>
+    auto
+    make_query(helper::over_index_impl<Index> /* type-deduction */,
+               Args&&... args) {
+        return manual_fields_query<Index, std::remove_cvref_t<Args>...>(
+               std::forward<Args>(args)...);
+    }
 }
 
 #endif

@@ -38,6 +38,7 @@
 #include <iostream>
 #include <source_location>
 #include <string_view>
+#include <syncstream>
 
 #include <ldb/common.hxx>
 
@@ -47,11 +48,14 @@ ldb::assert_that_impl(const bool cond,
                       const std::string_view message,
                       const std::source_location src) {
     if (cond) return;
-    std::cerr << "FATAL: assertion failed '" << cond_stringified << "' "
-              << (message.empty() ? "without message" : "with message: ") << message << "\n"
-              << " at " << src.file_name() << ":" << src.line() << ":" << src.column() << "\n"
-              << " with stacktrace: " << std_stacktrace::current()
-              << "\n"
-              << std::flush;
+    std::osyncstream(std::cerr)
+           << "FATAL: assertion failed '" << cond_stringified << "' "
+           << (message.empty() ? "without message" : "with message: ") << message << "\n"
+           << " at " << src.file_name() << ":" << src.line() << ":" << src.column() << "\n"
+           << " with stacktrace: " << std_stacktrace::current()
+           << "\n"
+           << std::flush;
+#ifndef LDB_ASSERT_NOABORT
     std::abort();
+#endif
 }

@@ -1,6 +1,6 @@
 /* LindaDB project
  *
- * Copyright (c) 2023 András Bodor <bodand@pm.me>
+ * Copyright (c) 2024 András Bodor <bodand@pm.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,47 +28,44 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2023-11-08.
+ * Originally created: 2024-03-01.
  *
- * test/lindart --
+ * test/LindaDB/lv/dyn_function_call --
  *   
  */
 
-#include <exception>
-#include <iostream>
-#include <string>
-#include <syncstream>
-
+#include <catch2/catch_test_macros.hpp>
+#include <ldb/lv/dyn_function_adapter.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query/match_type.hxx>
-#include <lrt/runtime.hxx>
+#include <ldb/lv/linda_value.hxx>
 
-#include <mpi.h>
+using namespace ldb;
 
-int
-main(int argc, char** argv) try {
-    lrt::runtime rt(&argc, &argv);
-    auto& store = rt.store();
+namespace {
+    int
+    return_1_no_params() { return 1; }
 
-    int rank, size;
-    std::string data;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    int
+    return_int_input_params(int x) { return x; }
 
-    if (rank == 0) {
-        for (int i = 2; i <= size; ++i) {
-            auto red = store.in("rank", i, ldb::ref(&data));
-            std::osyncstream(std::cout) << "rank0: " << red << " from " << i << "\n"
-                                        << std::flush;
-        }
-    }
-    else {
-        data = "Hello World!";
-        ldb::lv::linda_tuple const tuple{"rank", rank + 1, data};
-        store.out(tuple);
-        std::osyncstream(std::cout) << "rank" << rank << ": finishing\n"
-                                    << std::flush;
-    }
-} catch (const std::exception& ex) {
-    std::cerr << "fatal: uncaught exception: " << ex.what() << "\n\n";
+    const char*
+    return_str_input_params(const char* x) { return x; }
+}
+
+TEST_CASE("dyn_function can call parameterless functions") {
+    lv::dyn_function_adapter adapter(return_1_no_params);
+    auto res = adapter(lv::linda_tuple());
+    CHECK(res == lv::linda_value(1));
+}
+
+TEST_CASE("dyn_function can call numeric functions") {
+    lv::dyn_function_adapter adapter(return_int_input_params);
+    auto res = adapter(lv::linda_tuple(3));
+    CHECK(res == lv::linda_value(3));
+}
+
+TEST_CASE("dyn_function can call string functions") {
+    lv::dyn_function_adapter adapter(return_str_input_params);
+    auto res = adapter(lv::linda_tuple("asdasd"));
+    CHECK(res == lv::linda_value("asdasd"));
 }

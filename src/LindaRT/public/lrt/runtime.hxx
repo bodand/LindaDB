@@ -64,9 +64,6 @@ namespace lrt {
         inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
 
         void
-        initialize_types();
-
-        void
         recv_thread_worker();
 
         int _rank;
@@ -75,5 +72,7 @@ namespace lrt {
         ldb::store _store{};
     };
 }
+
+#include <lrt/eval.hxx>
 
 #endif
