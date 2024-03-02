@@ -136,13 +136,35 @@ TEST_CASE("tuple with string deserializes") {
     CHECK(t == got);
 }
 
+template<class T>
+struct instantiate {
+    constexpr static auto value = T{};
+};
+
+template<std::integral T>
+struct instantiate<T> {
+    constexpr static auto value = T{42};
+};
+
+template<std::floating_point T>
+struct instantiate<T> {
+    constexpr static auto value = T{4.2};
+};
+
+template<>
+struct instantiate<std::string> {
+    inline static auto value = std::string{"42xx"};
+};
+
+template<>
+struct instantiate<lv::fn_call_holder> {
+    inline static auto value = lv::fn_call_holder{"fn_name", std::make_unique<lv::linda_tuple>(1)};
+};
+
 TEMPLATE_LIST_TEST_CASE("tuple with all fields can round trip serialization",
                         "[serialize][deserialize]",
                         lv::linda_value) {
-    TestType payload{};
-    if constexpr (std::integral<TestType>) payload = TestType(42);
-    if constexpr (std::floating_point<TestType>) payload = TestType(4.2);
-    if constexpr (std::same_as<TestType, std::string>) payload = "42xx";
+    const auto payload = instantiate<TestType>::value;
 
     const lv::linda_tuple t(payload);
     const auto [serial, serial_sz] = lrt::serialize(t);
