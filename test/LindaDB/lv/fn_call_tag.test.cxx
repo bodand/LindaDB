@@ -67,3 +67,8 @@ TEST_CASE("fn_call_tags compare less to anything") {
 TEST_CASE("fn_call_tags don't compare greater to anything") {
     CHECK_FALSE(lv::fn_call_tag{} > 0);
 }
+
+TEST_CASE("fn_call_tags hash to the same thing") {
+    std::hash<lv::fn_call_tag> hasher;
+    CHECK(hasher(lv::fn_call_tag{}) == hasher(lv::fn_call_tag{}));
+}
