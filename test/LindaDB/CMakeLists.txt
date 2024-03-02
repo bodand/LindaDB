@@ -40,6 +40,7 @@ add_covered_test(NAME LindaDB.Test CATCH
                  lv/dyn_function_adapter.test.cxx
                  lv/fn_call_holder.test.cxx
                  lv/fn_call_tag.test.cxx
+                 lv/global_function_map.cxx
                  lv/linda_tuple.test.cxx
                  lv/linda_value.test.cxx
                  lv/tuple_builder.test.cxx

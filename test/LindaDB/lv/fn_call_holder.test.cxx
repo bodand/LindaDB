@@ -45,6 +45,7 @@
 #include <ldb/lv/linda_tuple.hxx>
 
 using namespace ldb;
+using namespace std::literals;
 
 namespace {
     int
@@ -132,4 +133,61 @@ TEST_CASE("fn_call_holder's function can be called with wrapping tuple") {
     lv::fn_call_holder fn("zero_fn_call_holder", std::make_unique<lv::linda_tuple>(42, "asd"));
     auto res = fn.execute(1, lv::linda_tuple("before", "after", 2));
     CHECK(res == lv::linda_tuple("before", 45, "after", 2));
+}
+
+TEST_CASE("fn_call_holder hashes to the same value as its name") {
+    std::hash<lv::fn_call_holder> fn_holder_hasher;
+    std::hash<std::string> str_hasher;
+
+    const auto fn_name_str = "zero_fn_call_holder"s;
+    lv::fn_call_holder fn(fn_name_str, std::make_unique<lv::linda_tuple>(42, "asd"));
+
+    CHECK(fn_holder_hasher(fn) == str_hasher(fn_name_str));
+}
+
+TEST_CASE("fn_call_holder prints its held function name") {
+    const auto fn_name_str = "zero_fn_call_holder"s;
+    lv::fn_call_holder fn(fn_name_str, std::make_unique<lv::linda_tuple>(42, "asd"));
+    std::ostringstream oss;
+    oss << fn;
+    CHECK(oss.str().contains(fn_name_str));
+}
+
+TEST_CASE("fn_call_holder equals based on fn_name") {
+    SECTION("equal names, equal parameters") {
+        const auto fn_name_str = "zero_fn_call_holder"s;
+        lv::fn_call_holder fn1(fn_name_str, std::make_unique<lv::linda_tuple>(42, "asd"));
+        lv::fn_call_holder fn2(fn_name_str, std::make_unique<lv::linda_tuple>(42, "asd"));
+        CHECK(fn1 == fn2);
+    }
+
+    SECTION("equal names, diff parameters") {
+        const auto fn_name_str = "zero_fn_call_holder"s;
+        lv::fn_call_holder fn1(fn_name_str, std::make_unique<lv::linda_tuple>(42));
+        lv::fn_call_holder fn2(fn_name_str, std::make_unique<lv::linda_tuple>("asd"));
+        CHECK(fn1 == fn2);
+    }
+
+    SECTION("diff names, diff parameters") {
+        lv::fn_call_holder fn1("zero_fn_call_holder"s, std::make_unique<lv::linda_tuple>(42, "asd"));
+        lv::fn_call_holder fn2("one_fn_call_holder"s, std::make_unique<lv::linda_tuple>(421, "asd"));
+        CHECK_FALSE(fn1 == fn2);
+    }
+
+    SECTION("diff names, diff parameters") {
+        lv::fn_call_holder fn1("zero_fn_call_holder"s, std::make_unique<lv::linda_tuple>(42));
+        lv::fn_call_holder fn2("one_fn_call_holder"s, std::make_unique<lv::linda_tuple>("asd"));
+        CHECK_FALSE(fn1 == fn2);
+    }
+}
+
+TEST_CASE("fn_call_holder compare based on fn_name") {
+    lv::fn_call_holder fn0("0", std::make_unique<lv::linda_tuple>());
+    lv::fn_call_holder fn1("1", std::make_unique<lv::linda_tuple>());
+    lv::fn_call_holder fn2("2", std::make_unique<lv::linda_tuple>());
+
+    CHECK(fn0 < fn1);
+    CHECK_FALSE(fn1 < fn0);
+    CHECK(fn2 > fn1);
+    CHECK_FALSE(fn1 > fn2);
 }
