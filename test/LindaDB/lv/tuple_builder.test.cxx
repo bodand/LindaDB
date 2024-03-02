@@ -72,9 +72,19 @@ TEST_CASE("tuple builder builds chained values") {
 }
 
 TEST_CASE("tuple builder builds with function calls") {
-    auto res = lv::tuple_builder("zero", zero_tuple_builder)("2, \"yeet\"", 2, "yeet").build();
+    auto res = lv::tuple_builder("zero_tuple_builder", zero_tuple_builder)("2, \"yeet\"", 2, "yeet").build();
     auto* sut = std::get_if<lv::fn_call_holder>(&res[0]);
     REQUIRE_FALSE(sut == nullptr);
-    CHECK(sut->fn_name() == "zero");
+    CHECK(sut->fn_name() == "zero_tuple_builder");
     CHECK(sut->args() == lv::linda_tuple(2, "yeet"));
+}
+
+TEST_CASE("tuple builder throws on invalid build sequence: missing function parameters") {
+    auto sut = lv::tuple_builder("zero_tuple_builder", zero_tuple_builder);
+    CHECK_THROWS_AS(sut.build(), lv::bad_tuple_build);
+}
+
+TEST_CASE("tuple builder throws on invalid build sequence: arguments not after function") {
+    auto sut = lv::tuple_builder();
+    CHECK_THROWS_AS(sut("args", 1, 2, 3), lv::bad_tuple_build);
 }
