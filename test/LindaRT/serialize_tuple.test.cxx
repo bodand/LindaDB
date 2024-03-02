@@ -148,7 +148,7 @@ struct instantiate<T> {
 
 template<std::floating_point T>
 struct instantiate<T> {
-    constexpr static auto value = T{4.2};
+    constexpr static auto value = T{static_cast<T>(4.2)};
 };
 
 template<>

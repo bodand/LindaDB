@@ -64,6 +64,7 @@ function(generate_warnings _Interface)
         suggest-final-methods duplicated-branches placement-new=2 error=trampolines
         logical-op reorder no-c++98-compat no-c++98-compat-pedantic no-shadow no-c++20-compat
         no-disabled-macro-expansion no-c++20-extensions no-unknown-pragmas
+        no-global-constructors no-exit-time-destructors
         no-unsafe-buffer-usage # TODO(fix, mostly from CATCH)
         # MSVC
         /w14062 /w14165 /w14191 /w14242 /we4263 /w14265 /w14287 /w14296 /we4350 /we4355

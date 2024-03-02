@@ -58,7 +58,8 @@ namespace ldb::lv {
            std::string,
            float,
            double,
-           fn_call_holder>;
+           fn_call_holder,
+           fn_call_tag>;
 
     template<class T>
     inline linda_value

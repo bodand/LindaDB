@@ -141,6 +141,8 @@ namespace {
             const auto fn_name_length_sz = sizeof(std::string::size_type);
             buf = tuple_with_length_sz + fn_name_length_sz + fn_name_sz;
         }
+        void
+        operator()(ldb::lv::fn_call_tag /*ignore*/) { buf = 0; }
     };
 
     enum class typemap : std::uint8_t {
@@ -154,6 +156,7 @@ namespace {
         LRT_FLOAT = 7,
         LRT_DOUBLE = 8,
         LRT_FNCALL = 9,
+        LRT_CALLTAG = 10,
     };
 
     template<class>
@@ -198,6 +201,10 @@ namespace {
     struct to_typemap<ldb::lv::fn_call_holder> {
         constexpr const static auto value = static_cast<std::byte>(typemap::LRT_FNCALL);
     };
+    template<>
+    struct to_typemap<ldb::lv::fn_call_tag> {
+        constexpr const static auto value = static_cast<std::byte>(typemap::LRT_CALLTAG);
+    };
 
     std::size_t
     tuple_serialize_into(std::byte* buf,
@@ -241,6 +248,12 @@ namespace {
             my_buf += write_string_raw(fn_call_holder.fn_name(), my_buf);
 
             return static_cast<std::size_t>(my_buf - buf);
+        }
+
+        std::size_t
+        operator()(ldb::lv::fn_call_tag /*ignore*/) const {
+            buf[0] = to_typemap<ldb::lv::fn_call_tag>::value;
+            return 1;
         }
 
         template<std::integral T>
@@ -387,6 +400,9 @@ namespace {
             const auto tuple = tuple_deserialize(buf, len);
             const auto fn_name = deserialize_string(buf, len);
             return ldb::lv::fn_call_holder(fn_name, tuple.clone());
+        }
+        case LRT_CALLTAG: {
+            return ldb::lv::fn_call_tag{};
         }
         }
         LDB_UNREACHABLE;

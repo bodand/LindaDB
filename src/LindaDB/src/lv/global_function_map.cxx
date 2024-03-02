@@ -40,10 +40,4 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wglobal-constructors"
-#pragma GCC diagnostic ignored "-Wexit-time-destructors"
-
 [[maybe_unused]] std::unique_ptr<ldb::lv::global_function_map_type> ldb::lv::gLdb_Dynamic_Function_Map{nullptr};
-
-#pragma GCC diagnostic pop

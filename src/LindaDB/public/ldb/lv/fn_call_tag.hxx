@@ -65,4 +65,16 @@ namespace ldb::lv {
     };
 }
 
+
+namespace std {
+    template<>
+    struct hash<ldb::lv::fn_call_tag> {
+        std::size_t
+        operator()(const ldb::lv::fn_call_tag& /*ignored*/) const noexcept {
+            return static_cast<std::size_t>(0xC0FFEE'0F'DEADBEEF);
+        }
+    };
+}
+
+
 #endif
