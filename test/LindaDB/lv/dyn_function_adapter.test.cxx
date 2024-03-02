@@ -41,14 +41,16 @@
 
 using namespace ldb;
 
-int
-return_1_no_params() { return 1; }
+namespace {
+    int
+    return_1_no_params() { return 1; }
 
-int
-return_int_input_params(int x) { return x; }
+    int
+    return_int_input_params(int x) { return x; }
 
-const char*
-return_str_input_params(const char* x) { return x; }
+    const char*
+    return_str_input_params(const char* x) { return x; }
+}
 
 TEST_CASE("dyn_function can call parameterless functions") {
     lv::dyn_function_adapter adapter(return_1_no_params);

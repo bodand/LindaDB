@@ -44,6 +44,7 @@
 #include <type_traits>
 #include <variant>
 
+#include <ldb/lv/fn_call_tag.hxx>
 #include <ldb/lv/fn_call_holder.hxx>
 
 namespace ldb::lv {

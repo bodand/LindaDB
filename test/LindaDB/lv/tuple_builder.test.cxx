@@ -41,18 +41,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/tuple_builder.hxx>
+
 #include "ldb/lv/fn_call_holder.hxx"
 
 using namespace ldb;
 
-#if defined(_WIN32) || defined(_WIN64)
-#  define LINDA_CALLABLE extern "C" __declspec(dllexport)
-#else
-#  define LINDA_CALLABLE extern "C"
-#endif
-
-LINDA_CALLABLE int
-zero_tuple_builder(int, const char*) { return 0; }
+namespace {
+    int
+    zero_tuple_builder(int, const char*) { return 0; }
+}
 
 TEST_CASE("empty tuple builder builds empty tuple") {
     auto res = lv::tuple_builder().build();
@@ -76,7 +73,7 @@ TEST_CASE("tuple builder builds chained values") {
 
 TEST_CASE("tuple builder builds with function calls") {
     auto res = lv::tuple_builder("zero", zero_tuple_builder)("2, \"yeet\"", 2, "yeet").build();
-    auto *sut = std::get_if<lv::fn_call_holder>(&res[0]);
+    auto* sut = std::get_if<lv::fn_call_holder>(&res[0]);
     REQUIRE_FALSE(sut == nullptr);
     CHECK(sut->fn_name() == "zero");
     CHECK(sut->args() == lv::linda_tuple(2, "yeet"));

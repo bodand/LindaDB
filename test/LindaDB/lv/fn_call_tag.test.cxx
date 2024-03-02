@@ -28,22 +28,42 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-28.
+ * Originally created: 2024-03-02.
  *
- * src/LindaRT/src/eval --
+ * test/LindaDB/lv/fn_call_tag --
  *   
  */
 
+
+#include <cstring>
 #include <memory>
+#include <utility>
 
-#include <ldb/lv/global_function_map.hxx>
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/linda_value.hxx>
+#include <catch2/catch_test_macros.hpp>
+#include <ldb/lv/fn_call_tag.hxx>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wglobal-constructors"
-#pragma GCC diagnostic ignored "-Wexit-time-destructors"
+using namespace ldb;
 
-[[maybe_unused]] std::unique_ptr<ldb::lv::global_function_map_type> ldb::lv::gLdb_Dynamic_Function_Map{nullptr};
+TEST_CASE("fn_call_tags compare equal") {
+    CHECK(lv::fn_call_tag{} == lv::fn_call_tag{});
+}
 
-#pragma GCC diagnostic pop
+TEST_CASE("fn_call_tags don't compare less") {
+    CHECK_FALSE(lv::fn_call_tag{} < lv::fn_call_tag{});
+}
+
+TEST_CASE("fn_call_tags don't compare greater") {
+    CHECK_FALSE(lv::fn_call_tag{} > lv::fn_call_tag{});
+}
+
+TEST_CASE("fn_call_tags don't compare equal to anything") {
+    CHECK_FALSE(lv::fn_call_tag{} == 0);
+}
+
+TEST_CASE("fn_call_tags compare less to anything") {
+    CHECK(lv::fn_call_tag{} < 0);
+}
+
+TEST_CASE("fn_call_tags don't compare greater to anything") {
+    CHECK_FALSE(lv::fn_call_tag{} > 0);
+}

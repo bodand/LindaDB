@@ -28,22 +28,41 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-28.
+ * Originally created: 2024-03-02.
  *
- * src/LindaRT/src/eval --
+ * src/LindaDB/public/ldb/lv/fn_call_tag --
  *   
  */
+#ifndef LINDADB_FN_CALL_TAG_HXX
+#define LINDADB_FN_CALL_TAG_HXX
 
-#include <memory>
+#include <compare>
 
-#include <ldb/lv/global_function_map.hxx>
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/linda_value.hxx>
+namespace ldb::lv {
+    struct fn_call_tag {
+    private:
+        friend constexpr auto
+        operator<=>(fn_call_tag, fn_call_tag) { return std::strong_ordering::equal; }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wglobal-constructors"
-#pragma GCC diagnostic ignored "-Wexit-time-destructors"
+        template<class T>
+        friend constexpr auto
+        operator<=>(fn_call_tag, const T&) { return std::strong_ordering::less; }
 
-[[maybe_unused]] std::unique_ptr<ldb::lv::global_function_map_type> ldb::lv::gLdb_Dynamic_Function_Map{nullptr};
+        template<class T>
+        friend auto
+        operator<=>(const T&, fn_call_tag) { return std::strong_ordering::greater; }
 
-#pragma GCC diagnostic pop
+        friend auto
+        operator==(fn_call_tag, fn_call_tag) { return true; }
+
+        template<class T>
+        friend auto
+        operator==(fn_call_tag, const T&) { return false; }
+
+        template<class T>
+        friend auto
+        operator==(const T&, fn_call_tag) { return false; }
+    };
+}
+
+#endif
