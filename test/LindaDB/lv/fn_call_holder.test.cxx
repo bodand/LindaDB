@@ -119,20 +119,8 @@ TEST_CASE("fn_call_holder's function can be called") {
     });
 
     lv::fn_call_holder fn("zero_fn_call_holder", std::make_unique<lv::linda_tuple>(42, "asd"));
-    auto res = fn.execute(0, lv::linda_tuple());
+    auto res = fn.execute();
     CHECK(res == lv::linda_tuple(45));
-}
-
-TEST_CASE("fn_call_holder's function can be called with wrapping tuple") {
-    ldb::lv::gLdb_Dynamic_Function_Map = std::make_unique<ldb::lv::global_function_map_type>();
-    lv::gLdb_Dynamic_Function_Map->try_emplace("zero_fn_call_holder", [](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {
-        ldb::lv::dyn_function_adapter adapter(zero_fn_call_holder);
-        return adapter(args);
-    });
-
-    lv::fn_call_holder fn("zero_fn_call_holder", std::make_unique<lv::linda_tuple>(42, "asd"));
-    auto res = fn.execute(1, lv::linda_tuple("before", "after", 2));
-    CHECK(res == lv::linda_tuple("before", 45, "after", 2));
 }
 
 TEST_CASE("fn_call_holder hashes to the same value as its name") {

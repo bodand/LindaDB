@@ -28,36 +28,34 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-19.
+ * Originally created: 2024-03-02.
  *
- * test/test --
+ * src/LindaRT/src/work_pool/work_factory --
  *   
  */
 
-int
-foo(int x) {
-    return x + 1;
-}
+#include <ldb/common.hxx>
+#include <lrt/communication_tags.hxx>
+#include <lrt/runtime.hxx>
+#include <lrt/work_pool/work/eval_work.hxx>
+#include <lrt/work_pool/work/insert_work.hxx>
+#include <lrt/work_pool/work/nop_work.hxx>
+#include <lrt/work_pool/work/remove_work.hxx>
+#include <lrt/work_pool/work_factory.hxx>
 
-int
-asdasd(int x) {
-    return x + x;
-}
-
-#include <iostream>
-
-#include <lrt/eval.hxx>
-
-int
-main() {
-    for (const auto& [fn_name, callable] : (*ldb::lv::gLdb_Dynamic_Function_Map)) {
-        using namespace ldb::lv::io;
-        std::cout << "dynamic(" << fn_name << "(2)) => " << callable(ldb::lv::linda_tuple{2}) << "\n";
+lrt::work
+lrt::work_factory::create(lrt::communication_tag tag,
+                          std::span<std::byte> payload,
+                          lrt::runtime& runtime) {
+    switch (tag) {
+    case communication_tag::SyncInsert: return insert_work(payload, runtime);
+    case communication_tag::SyncDelete: return remove_work(payload, runtime);
+    case communication_tag::Eval: return eval_work(payload, runtime);
+    case communication_tag::Terminate:
+        // termination does not happen through this message system
+        [[fallthrough]];
+    default:
+        return nop_work{};
     }
-
-    int a = 12;
-    std::cout << "static(foo(2)) => " << (foo) (2) << "\n\n";
-    eval(1, (foo) (1), "ayy", (asdasd) (a)); // does not happen
-    std::cout << "-------\n";
-    eval((foo) (2)); // does not happen
+    LDB_UNREACHABLE;
 }

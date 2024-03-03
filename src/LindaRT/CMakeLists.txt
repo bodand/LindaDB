@@ -37,10 +37,21 @@
 find_package(MPI REQUIRED)
 
 add_library(LindaRT STATIC
+            include/lrt/work_pool/work_factory.hxx
+            include/lrt/communication_tags.hxx
+            public/lrt/balancer/balancer.hxx
+            public/lrt/balancer/balancer_if.hxx
+            public/lrt/balancer/uniform_random_balancer.hxx
             public/lrt/serialize/tuple.hxx
+            public/lrt/work_pool/work_if.hxx
+            public/lrt/work_pool/work.hxx
+            public/lrt/work_pool/work_pool.hxx
+            public/lrt/work_pool/work_queue.hxx
             public/lrt/eval.hxx
             public/lrt/runtime.hxx
             src/serialize/tuple.cxx
+            src/work_pool/work/eval_work.cxx
+            src/work_pool/work_factory.cxx
             src/runtime.cxx)
 
 add_library(LindaRT-malloc STATIC

@@ -40,10 +40,17 @@
 #include <thread>
 
 #include <ldb/store.hxx>
+#include <lrt/balancer/balancer.hxx>
+#include <lrt/balancer/uniform_random_balancer.hxx>
+#include <lrt/work_pool/work.hxx>
+
+#include "lrt/work_pool/work_pool.hxx"
 
 namespace lrt {
     struct runtime {
-        runtime(int* argc, char*** argv);
+        runtime(int* argc, char*** argv,
+                std::function<balancer(const runtime&)> load_balancer //
+                = [](const lrt::runtime& rt) -> lrt::balancer { return lrt::uniform_random_balancer(rt.world_size()); });
 
         runtime(const runtime& cp) = delete;
         runtime(runtime&& mv) noexcept = delete;
@@ -54,11 +61,23 @@ namespace lrt {
 
         ~runtime() noexcept;
 
+        void
+        eval(const ldb::lv::linda_tuple& call_tuple);
+
         ldb::store&
         store() noexcept { return _store; }
 
         const ldb::store&
         store() const noexcept { return _store; }
+
+        [[nodiscard]] int
+        rank() const noexcept { return _rank; }
+
+        [[nodiscard]] int
+        world_size() const noexcept { return _world_size; }
+
+        void
+        loop();
 
     private:
         inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
@@ -67,12 +86,17 @@ namespace lrt {
         recv_thread_worker();
 
         int _rank;
+        int _world_size;
         std::atomic_flag _recv_start = ATOMIC_FLAG_INIT;
         std::thread _recv_thr;
+        std::optional<balancer> _balancer{std::nullopt};
+        lrt::work_pool<> _work_pool;
         ldb::store _store{};
     };
 }
 
-#include <lrt/eval.hxx>
+#ifndef LRT_NOINCLUDE_EVAL
+#  include <lrt/eval.hxx>
+#endif
 
 #endif

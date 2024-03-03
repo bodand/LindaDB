@@ -91,9 +91,10 @@ target_link_libraries(LindaDB-malloc
 target_compile_definitions(LindaDB-malloc
                            PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
 
+find_package(MPI REQUIRED)
 list(APPEND PROJECT_TARGETS LindaDB-malloc)
-target_link_libraries(LindaDB PUBLIC LindaDB-malloc)
-target_link_libraries(LindaDB-NoAbort PUBLIC LindaDB-malloc)
+target_link_libraries(LindaDB PUBLIC MPI::MPI_CXX LindaDB-malloc)
+target_link_libraries(LindaDB-NoAbort PUBLIC MPI::MPI_CXX LindaDB-malloc)
 
 target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>

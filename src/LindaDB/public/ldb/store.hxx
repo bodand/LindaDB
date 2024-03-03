@@ -37,6 +37,7 @@
 #define LREMOVEDADB_STORE_HXX
 
 #include <array>
+#include <fstream>
 #include <atomic>
 #include <concepts>
 #include <condition_variable>
@@ -64,6 +65,8 @@
 #include "ldb/query/make_matcher.hxx"
 #include "ldb/query/manual_fields_query.hxx"
 
+#include <mpi.h>
+
 namespace ldb {
     struct store {
         using storage_type = data::chunked_list<lv::linda_tuple>;
@@ -73,6 +76,9 @@ namespace ldb {
 
         void
         out(const lv::linda_tuple& tuple) {
+            int rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            std::ofstream("_log.txt", std::ios::app) << "(" << rank<< ")" << "out(" << tuple << ")" << std::endl;
             {
                 std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 if (const auto it = _removed_later.find(tuple);

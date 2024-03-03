@@ -1,8 +1,3 @@
-
-#include "ldb/lv/fn_call_holder.hxx"
-
-#include "ldb/lv/linda_tuple.hxx"
-
 /* LindaDB project
  *
  * Copyright (c) 2024 András Bodor <bodand@pm.me>
@@ -33,55 +28,49 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-02-26.
+ * Originally created: 2024-03-03.
  *
- * src/LindaDB/src/lv/fn_call_holder --
+ * src/LindaRT/src/work_pool/work/eval_work --
  *   
  */
 
-#include <algorithm>
-#include <iterator>
-#include <memory>
-#include <string>
-#include <utility>
-
-#include <ldb/common.hxx>
 #include <ldb/lv/fn_call_holder.hxx>
-#include <ldb/lv/global_function_map.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/tuple_builder.hxx>
+#include <ldb/lv/linda_value.hxx>
+#include <lrt/work_pool/work/eval_work.hxx>
 
-ldb::lv::fn_call_holder::fn_call_holder(std::string fn_name, std::unique_ptr<linda_tuple>&& tuple)
-     : _fn_name(std::move(fn_name)), _args(std::move(tuple)) {
-    assert_that(_args, "fn_call_holder: null may not be passed as the args tuple");
+namespace {
+    struct executing_transform {
+        template<class T>
+        ldb::lv::linda_value
+        operator()(T&& val) const {
+            return val;
+        }
+
+        ldb::lv::linda_value
+        operator()(const ldb::lv::fn_call_holder& fn_call_holder) const {
+            return fn_call_holder.execute()[0];
+        }
+    };
 }
 
-ldb::lv::fn_call_holder::~fn_call_holder() = default;
+void
+lrt::eval_work::perform() {
+    const auto tuple = deserialize(_bytes);
+    std::ofstream("_log.txt", std::ios::app) << "EVAL " << tuple << std::endl;
+    std::vector<ldb::lv::linda_value> result_values;
+    result_values.reserve(tuple.size());
 
-ldb::lv::fn_call_holder::fn_call_holder(const fn_call_holder& cp)
-     : _fn_name(cp._fn_name),
-       _args(cp._args->clone()) { }
+    std::transform(tuple.begin(), tuple.end(), std::back_inserter(result_values), [](const ldb::lv::linda_value& lv) {
+        return std::visit(executing_transform{}, lv);
+    });
 
-ldb::lv::fn_call_holder&
-ldb::lv::fn_call_holder::operator=(const ldb::lv::fn_call_holder& cp) {
-    if (&cp == this) return *this;
-    _fn_name = cp._fn_name;
-    _args = cp._args->clone();
-    return *this;
+    const ldb::lv::linda_tuple& result_tuple = ldb::lv::linda_tuple(result_values);
+
+    _runtime->store().out(result_tuple);
 }
 
-ldb::lv::linda_tuple
-ldb::lv::fn_call_holder::execute() const {
-    assert_that(gLdb_Dynamic_Function_Map != nullptr,
-                "dynamic execution was not initialized: maybe no functions are dynamically invocable?");
-    auto it = gLdb_Dynamic_Function_Map->find(_fn_name);
-    assert_that(it != gLdb_Dynamic_Function_Map->end(),
-                "dynamic function was not registered in dynamic execution subsystem");
-
-    return ldb::lv::linda_tuple(it->second(*_args));
+std::ostream&
+lrt::operator<<(std::ostream& os, const lrt::eval_work& work) {
+    return os << "[eval work]";
 }
-
-ldb::lv::fn_call_holder::fn_call_holder(ldb::lv::fn_call_holder&& mv) noexcept = default;
-
-ldb::lv::fn_call_holder&
-ldb::lv::fn_call_holder::operator=(ldb::lv::fn_call_holder&& mv) noexcept = default;

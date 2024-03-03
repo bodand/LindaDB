@@ -48,16 +48,22 @@ add_subdirectory(LindaDB)
 add_subdirectory(LindaRT)
 
 find_package(MPI REQUIRED)
-add_executable(lindart-test lindart.cxx)
-target_link_libraries(lindart-test
+
+#add_executable(lindart-test-mpi lindart.cxx)
+#target_link_libraries(lindart-test-mpi
+#                      PUBLIC MPI::MPI_CXX LindaRT
+#                      PRIVATE internal-coverage)
+#
+#add_test(NAME "LindaRT-MPI"
+#         COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lindart-test-mpi>)
+#set_tests_properties("LindaRT-MPI" PROPERTIES
+#                     ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
+
+add_executable(lindart-test-simple-eval simple-eval.cxx)
+target_link_libraries(lindart-test-simple-eval
                       PUBLIC MPI::MPI_CXX LindaRT
                       PRIVATE internal-coverage)
-
-add_test(NAME "LindaRT-MPI"
-         COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lindart-test>)
-set_tests_properties("LindaRT-MPI" PROPERTIES
+add_test(NAME "LindaRT-simple-eval"
+         COMMAND "${MPIEXEC_EXECUTABLE}" -l "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lindart-test-simple-eval>)
+set_tests_properties("LindaRT-simple-eval" PROPERTIES
                      ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
-
-find_package(Boost)
-add_executable(test-asd test.cxx)
-target_link_libraries(test-asd PRIVATE LindaRT)

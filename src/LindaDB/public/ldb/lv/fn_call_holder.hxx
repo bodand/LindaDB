@@ -68,16 +68,11 @@ namespace ldb::lv {
         args() const { return *_args; }
 
         /**
-         * \brief Executes the stored function call and injects its result into a tuple.
-         *
-         * \remarks
-         * Executes the function from the current executable by its name (as stored), by
-         * using the parameters in the stored tuple. The return tuple is created by taking
-         * \c after_prefix elements from the \c elements tuple, then the result of the
-         * function call, then the remaining elements.
+         * \brief Executes the held function and returns its result
+         * \return A 1-tuple containing the result of the execution
          */
         lv::linda_tuple
-        execute(int after_prefix, const linda_tuple& elements);
+        execute() const;
 
     private:
         friend struct ::std::hash<ldb::lv::fn_call_holder>;

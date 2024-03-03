@@ -105,6 +105,7 @@
     do {                                                                                 \
         LDB_EVAL_REGISTER_FUNCTIONS(LDB_EVAL_ARGS(__VA_ARGS__))                          \
         const auto call_payload = LDB_EVAL_BUILD_CALL_TUPLE(LDB_EVAL_ARGS(__VA_ARGS__)); \
+        lrt::this_runtime().eval(call_payload);                                          \
     } while (0)
 
 namespace lrt {

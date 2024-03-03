@@ -37,27 +37,25 @@
 #include <algorithm>
 #include <cstddef>
 #include <execution>
+#include <fstream>
 #include <ios>
-#include <iostream>
 #include <memory>
 #include <span>
 #include <stdexcept>
-#include <syncstream>
 #include <utility>
 #include <vector>
 
-#include <ldb/bcast/broadcaster.hxx>
+#define LRT_NOINCLUDE_EVAL
+
 #include <ldb/lv/linda_tuple.hxx>
+#include <lrt/communication_tags.hxx>
 #include <lrt/runtime.hxx>
 #include <lrt/serialize/tuple.hxx>
+#include <lrt/work_pool/work_factory.hxx>
 
 #include <mpi.h>
 
 namespace {
-    constexpr const int LINDA_RT_TERMINATE_TAG = 0xDB'00'01;
-    constexpr const int LINDA_RT_DB_SYNC_INSERT_TAG = 0xDB'00'02;
-    constexpr const int LINDA_RT_DB_SYNC_DELETE_TAG = 0xDB'00'03;
-
     struct mpi_request_vector_awaiter final {
         mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
                                    std::unique_ptr<std::byte[]>&& buf)
@@ -145,7 +143,7 @@ namespace {
         broadcast_insert(const manual_broadcast_handler& handler,
                          const ldb::lv::linda_tuple& tuple) {
             auto [val, val_sz] = lrt::serialize(tuple);
-            auto reqs = handler.broadcast_with_tag(LINDA_RT_DB_SYNC_INSERT_TAG,
+            auto reqs = handler.broadcast_with_tag(static_cast<int>(lrt::communication_tag::SyncInsert),
                                                    {val.get(), val_sz});
             return {std::move(reqs), std::move(val)};
         }
@@ -154,7 +152,7 @@ namespace {
         broadcast_delete(const manual_broadcast_handler& handler,
                          const ldb::lv::linda_tuple& tuple) {
             auto [val, val_sz] = lrt::serialize(tuple);
-            auto reqs = handler.broadcast_with_tag(LINDA_RT_DB_SYNC_DELETE_TAG,
+            auto reqs = handler.broadcast_with_tag(static_cast<int>(lrt::communication_tag::SyncDelete),
                                                    {val.get(), val_sz});
             return {std::move(reqs), std::move(val)};
         }
@@ -180,11 +178,16 @@ namespace {
     }
 }
 
-lrt::runtime::runtime(int* argc, char*** argv)
-     : _recv_thr(&lrt::runtime::recv_thread_worker, this) {
+lrt::runtime::runtime(int* argc, char*** argv, std::function<balancer(const runtime&)> load_balancer)
+     : _recv_thr(&lrt::runtime::recv_thread_worker, this),
+       _work_pool(1) {
     if (!_mpi_inited.test_and_set()) init_threaded_mpi(argc, argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &_world_size);
+
+    _balancer = load_balancer(*this);
+
     _store.set_broadcast(manual_broadcast_handler::for_communicator(MPI_COMM_WORLD));
     _recv_start.test_and_set();
     _recv_start.notify_all();
@@ -192,7 +195,7 @@ lrt::runtime::runtime(int* argc, char*** argv)
 
 lrt::runtime::~runtime() noexcept {
     constexpr char buf{};
-    MPI_Send(&buf, 0, MPI_CHAR, _rank, LINDA_RT_TERMINATE_TAG, MPI_COMM_WORLD);
+    MPI_Send(&buf, 0, MPI_CHAR, _rank, static_cast<int>(lrt::communication_tag::Terminate), MPI_COMM_WORLD);
     _recv_thr.join();
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
@@ -210,31 +213,31 @@ lrt::runtime::recv_thread_worker() {
         auto buf = std::vector<std::byte>(static_cast<std::size_t>(len));
 
         MPI_Recv(buf.data(), len, MPI_CHAR, stat.MPI_SOURCE, stat.MPI_TAG, MPI_COMM_WORLD, &stat);
-        const auto command = stat.MPI_TAG;
+        const auto command = static_cast<communication_tag>(stat.MPI_TAG);
         const auto payload = std::span<std::byte>(buf);
 
-        switch (command) {
-        case LINDA_RT_DB_SYNC_INSERT_TAG: {
-            const auto rx_inserted = deserialize(payload);
-            std::osyncstream(std::cout) << "INSERT (" << stat.MPI_SOURCE << " -> " << _rank << "): " << rx_inserted << "\n";
-            _store.out_nosignal(rx_inserted);
-            break;
-        }
-
-        case LINDA_RT_DB_SYNC_DELETE_TAG: {
-            const auto rx_deleted = deserialize(payload);
-            std::osyncstream(std::cout) << "REMOVE (" << stat.MPI_SOURCE << " -> " << _rank << "): " << rx_deleted << "\n";
-            _store.remove_nosignal(rx_deleted);
-            break;
-        }
-
-        case LINDA_RT_TERMINATE_TAG:
-            return;
-
-        default:
-            std::cerr << "ERROR: unknown command received ("
-                      << std::showbase << std::hex << command << std::dec << std::noshowbase
-                      << ")\n";
-        }
+        if (command == communication_tag::Terminate) return;
+        auto work = lrt::work_factory::create(command, payload, *this);
+//        _work_pool.enqueue(std::move(work));
+        work.perform();
     }
+}
+
+void
+lrt::runtime::eval(const ldb::lv::linda_tuple& call_tuple) {
+    assert_that(_balancer);
+    const auto dest = _balancer->send_to_rank(call_tuple);
+    const auto [rx_buf, rx_buf_sz] = serialize(call_tuple);
+
+    MPI_Send(rx_buf.get(),
+             static_cast<int>(rx_buf_sz),
+             MPI_CHAR,
+             dest,
+             static_cast<int>(lrt::communication_tag::Eval),
+             MPI_COMM_WORLD);
+}
+
+void
+lrt::runtime::loop() {
+    MPI_Barrier(MPI_COMM_WORLD);
 }
