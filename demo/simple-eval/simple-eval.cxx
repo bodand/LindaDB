@@ -30,7 +30,7 @@
  *
  * Originally created: 2024-03-02.
  *
- * test/simple --
+ * demo/simple-eval/simple-eval --
  *   
  */
 
