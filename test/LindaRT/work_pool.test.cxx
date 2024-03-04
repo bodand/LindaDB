@@ -41,10 +41,14 @@
 
 namespace {
     struct test_work {
-        int payload;
+        lrt::work_pool<lrt::work, 2>* pool;
+
+        explicit test_work(lrt::work_pool<lrt::work, 2>& pool) : pool(&pool) { }
 
         void
-        perform() { }
+        perform() {
+            pool->terminate();
+        }
 
         friend std::ostream&
         operator<<(std::ostream& os, const test_work& /*ignored*/) {
@@ -55,5 +59,5 @@ namespace {
 
 TEST_CASE("work_pool accepts works") {
     lrt::work_pool<lrt::work, 2> pool;
-    pool.enqueue(test_work{});
+    pool.enqueue(test_work(pool));
 }

@@ -37,6 +37,7 @@
 #define LINDADB_REMOVE_WORK_HXX
 
 #include <ostream>
+#include <fstream>
 
 #include <lrt/runtime.hxx>
 #include <lrt/serialize/tuple.hxx>
@@ -51,6 +52,7 @@ namespace lrt {
         void
         perform() {
             const auto tuple = deserialize(_bytes);
+            std::ofstream("_log.txt", std::ios::app) << "REMOVE " << tuple << std::endl;
             _runtime->store().remove_nosignal(tuple);
         }
 

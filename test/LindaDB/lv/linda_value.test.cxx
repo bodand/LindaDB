@@ -42,6 +42,7 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 
+using namespace std::literals;
 namespace lv = ldb::lv;
 
 TEMPLATE_TEST_CASE("linda_value prints as integer value",
@@ -56,7 +57,7 @@ TEMPLATE_TEST_CASE("linda_value prints as integer value",
     const lv::linda_value val = static_cast<TestType>(42);
     std::ostringstream oss;
     oss << val;
-    CHECK(oss.str() == "42");
+    CHECK(oss.str() == "(42::"s + typeid(TestType).name() + ")");
 }
 
 TEMPLATE_TEST_CASE("linda_value prints as float value",
@@ -67,7 +68,7 @@ TEMPLATE_TEST_CASE("linda_value prints as float value",
     const lv::linda_value val = static_cast<TestType>(42.12);
     std::ostringstream oss;
     oss << val;
-    CHECK(oss.str().substr(0, 5) == "42.12");
+    CHECK(oss.str().substr(1, 5) == "42.12");
 }
 
 TEST_CASE("linda_value prints as string value",
@@ -75,11 +76,12 @@ TEST_CASE("linda_value prints as string value",
     using namespace lv::io;
     using namespace std::literals;
     const auto string_value = "some string"s;
+    const auto string_lv_value = "(some string::"s + typeid(std::string).name() + ")";
 
     const lv::linda_value val = string_value;
     std::ostringstream oss;
     oss << val;
-    CHECK(oss.str() == string_value);
+    CHECK(oss.str() == string_lv_value);
 }
 
 TEST_CASE("make_linda_value constructs non-string value",

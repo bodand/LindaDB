@@ -1,6 +1,6 @@
 # LindaDB project
 #
-# Copyright (c) 2023 András Bodor <bodand@pm.me>
+# Copyright (c) 2024 András Bodor <bodand@pm.me>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,21 +28,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Originally created: 2023-10-14.
+# Originally created: 2024-03-04.
 #
-# test/CMakeLists.txt --
-#   The main orchestrator project file for handling the test-cases of LindaDB.
+# demo/CMakeLists.txt --
+#   Builds a set of demo applications for Linda
 
-if (NOT TARGET Catch2::Catch2)
-    message(STATUS "Catch2 not present -- skipping tests")
-    return()
-endif ()
+find_package(MPI REQUIRED)
 
-find_path(FAKEIT_INCLUDE_DIRS "boost/fakeit.hpp")
-add_library(fakeit INTERFACE)
-target_include_directories(fakeit INTERFACE "${FAKEIT_INCLUDE_DIRS}")
+add_subdirectory(simple-eval)
 
-include(Catch)
-
-add_subdirectory(LindaDB)
-add_subdirectory(LindaRT)

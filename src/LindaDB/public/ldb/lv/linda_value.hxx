@@ -37,6 +37,7 @@
 #define LINDADB_LINDA_VALUE_HXX
 
 #include <concepts>
+#include <typeinfo>
 #include <cstdint>
 #include <ostream>
 #include <string>
@@ -79,12 +80,12 @@ namespace ldb::lv {
             void
             operator()(T val)
                 requires(std::is_trivially_copyable_v<T>)
-            { _os << val; }
+            { _os << "(" << val << "::" << typeid(T).name() << ")"; }
             template<class T>
             void
             operator()(const T& val)
                 requires(!std::is_trivially_copyable_v<T>)
-            { _os << val; }
+            { _os << "(" << val << "::" << typeid(T).name() << ")"; }
 
         private:
             std::ostream& _os;

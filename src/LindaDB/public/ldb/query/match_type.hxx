@@ -82,7 +82,7 @@ namespace ldb {
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const match_type&) {
-            return os << "Type(" << typeid(T).name() << ")";
+            return os << "(::" << typeid(T).name() << ")";
         }
 
         T* _ref;

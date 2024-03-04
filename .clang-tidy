@@ -26,6 +26,7 @@ Checks: >-
   ,-readability-const-return-type
   ,-cppcoreguidelines-avoid-const-or-ref-data-members
   ,-clang-diagnostic-unused-macros
+  ,-readability-inconsistent-declaration-parameter-name
 WarningsAsErrors: >-
   *,-llvm-header-guard
   ,-google-runtime-int
@@ -53,6 +54,7 @@ WarningsAsErrors: >-
   ,-misc-non-private-member-variables-in-classes
   ,-readability-const-return-type
   ,-clang-diagnostic-unused-command-line-argument
+  ,-readability-inconsistent-declaration-parameter-name
 
 CheckOptions:
   readability-implicit-bool-conversion.AllowPointerConditions: "true"

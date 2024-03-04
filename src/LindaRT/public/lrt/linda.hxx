@@ -28,38 +28,17 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-03-04.
  *
- * test/simple --
+ * src/LindaRT/public/lrt/linda --
  *   
  */
+#ifndef LINDADB_LINDA_HXX
+#define LINDADB_LINDA_HXX
 
-#include <chrono>
-#include <cstring>
-
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query/match_type.hxx>
+#include <ldb/store.hxx>
 #include <lrt/runtime.hxx>
-
-using namespace std::literals;
-
-#include <mpi.h>
-
-namespace lrt {
-    static lrt::runtime* gLrt_Runtime_ObjectRef;
-
-    lrt::runtime&
-    this_runtime() {
-        assert_that(gLrt_Runtime_ObjectRef, "runtime has not yet been initialized");
-        return *gLrt_Runtime_ObjectRef;
-    }
-
-    ldb::store&
-    this_store() {
-        assert_that(gLrt_Runtime_ObjectRef, "runtime has not yet been initialized");
-        return gLrt_Runtime_ObjectRef->store();
-    }
-}
+#include <lrt/runtime_storage.hxx>
 
 #define out(...) lrt::this_store().out(ldb::lv::linda_tuple(__VA_ARGS__))
 #define in(...) lrt::this_store().in(__VA_ARGS__)
@@ -67,41 +46,4 @@ namespace lrt {
 #define rd(...) lrt::this_store().rd(__VA_ARGS__)
 #define rdp(...) lrt::this_store().rdp(__VA_ARGS__)
 
-std::size_t
-string_size(const char* str) {
-    int adage = 0;
-    //    in("str_adage", ldb::ref(&adage));
-    std::cout << "adage: " << adage << "\n";
-    return std::strlen(str) + adage;
-}
-
-int
-real_main() {
-        std::cout << "starting job...\n";
-        eval("str_size", (string_size) ("test"));
-        std::cout << "waiting in main process...\n";
-
-        out("str_size", 38);
-
-        std::size_t size;
-        in("str_size", ldb::ref(&size));
-        std::cout << "test size: " << size << "\n";
-
-    return 0;
-}
-
-int
-main(int argc, char** argv) {
-    lrt::runtime rt(&argc, &argv);
-    lrt::gLrt_Runtime_ObjectRef = &rt;
-
-    //    volatile int i = 1;
-    //    if (rt.rank() == 0)
-    //        while (i == 1) std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    int result = 0;
-    if (rt.rank() == 0) result = real_main();
-
-    rt.loop();
-    return result;
-}
+#endif

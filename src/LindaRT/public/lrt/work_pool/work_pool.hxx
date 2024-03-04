@@ -38,10 +38,10 @@
 
 #include <algorithm>
 #include <array>
+#include <fstream>
 #include <span>
 #include <thread>
 #include <vector>
-#include <fstream>
 
 #include <lrt/work_pool/work.hxx>
 #include <lrt/work_pool/work_if.hxx>
@@ -60,17 +60,22 @@ namespace lrt {
         void
         enqueue(value_type&& work) {
             int rank{};
-//            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            //            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             std::ofstream("_log.txt", std::ios::app) << rank << ": ENQUEUE POOL: " << work << std::endl;
             _queue.enqueue(std::move(work));
         }
 
-        ~work_pool() {
+        void
+        terminate() {
             _queue.terminate();
+        }
+
+        ~work_pool() {
+            _queue.await_terminated();
             std::ranges::for_each(threads(), [](auto& t) { t.join(); });
         }
 
-    private:
+//    private:
         struct worker_thread_job {
             explicit worker_thread_job(work_queue<>& work_queue) : _work_queue(work_queue) { }
 

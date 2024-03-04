@@ -93,7 +93,7 @@ namespace lrt {
     public:
         template<class Work>
         explicit(false) work(Work&& work)
-            requires(!std::same_as<Work, class work>)
+            requires(!std::same_as<std::remove_cvref_t<Work>, class work>)
              : _impl(std::make_unique<work_model<std::remove_cvref_t<Work>>>(std::forward<Work>(work))) { }
 
         work(const work& cp) = delete;

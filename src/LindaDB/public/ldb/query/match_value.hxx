@@ -39,6 +39,7 @@
 #include <concepts>
 #include <ostream>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <variant>
 
@@ -87,7 +88,7 @@ namespace ldb {
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const match_value& val) {
-            return os << val._field;
+            return os << "(" << val._field << "::" << typeid(T).name() << ")";
         }
 
         T _field;

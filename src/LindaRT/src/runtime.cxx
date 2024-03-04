@@ -84,6 +84,10 @@ namespace {
     start_send_buffer_to_with_tag(const std::span<std::byte> buffer,
                                   int to_rank,
                                   int tag) {
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        std::ofstream("_msglog.txt") << rank << " -> " << to_rank << ": " << std::showbase << std::hex << tag << std::endl;
+
         auto req = MPI_REQUEST_NULL;
         if (const auto status = MPI_Isend(buffer.data(),
                                           static_cast<int>(buffer.size()),
@@ -180,7 +184,7 @@ namespace {
 
 lrt::runtime::runtime(int* argc, char*** argv, std::function<balancer(const runtime&)> load_balancer)
      : _recv_thr(&lrt::runtime::recv_thread_worker, this),
-       _work_pool(1) {
+       _work_pool(3) {
     if (!_mpi_inited.test_and_set()) init_threaded_mpi(argc, argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
@@ -197,6 +201,7 @@ lrt::runtime::~runtime() noexcept {
     constexpr char buf{};
     MPI_Send(&buf, 0, MPI_CHAR, _rank, static_cast<int>(lrt::communication_tag::Terminate), MPI_COMM_WORLD);
     _recv_thr.join();
+    _work_pool.terminate();
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
 }
@@ -216,11 +221,12 @@ lrt::runtime::recv_thread_worker() {
         const auto command = static_cast<communication_tag>(stat.MPI_TAG);
         const auto payload = std::span<std::byte>(buf);
 
-        if (command == communication_tag::Terminate) return;
+        if (command == communication_tag::Terminate) break;
         auto work = lrt::work_factory::create(command, payload, *this);
-//        _work_pool.enqueue(std::move(work));
-        work.perform();
+        _work_pool.enqueue(std::move(work));
+        //        work.perform();
     }
+    _work_pool.terminate();
 }
 
 void

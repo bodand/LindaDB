@@ -34,8 +34,6 @@
  *   
  */
 
-#include <array>
-#include <concepts>
 #include <ostream>
 #include <thread>
 
@@ -101,5 +99,6 @@ TEST_CASE("parallel io of _work_queue works") {
                std::jthread(reader_thread),
         };
     }
+        work_queue.terminate();
     CHECK(results);
 }

@@ -28,47 +28,34 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-03.
+ * Originally created: 2024-03-02.
  *
- * src/LindaRT/include/lrt/work_pool/work/insert_work --
+ * test/simple --
  *   
  */
-#ifndef LINDADB_INSERT_WORK_HXX
-#define LINDADB_INSERT_WORK_HXX
 
-#include <fstream>
-#include <ostream>
+#include <cstring>
 
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
+#include <lrt/linda.hxx>
 
-#include <mpi.h>
-
-namespace lrt {
-    struct insert_work {
-        explicit insert_work(std::span<std::byte> payload,
-                             runtime& runtime)
-             : _bytes(std::from_range, payload),
-               _runtime(&runtime) { }
-
-        void
-        perform() {
-            const auto tuple = deserialize(_bytes);
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            std::ofstream("_log.txt", std::ios::app) << rank << ": INSERT " << tuple << std::endl;
-            _runtime->store().out_nosignal(tuple);
-        }
-
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const insert_work& work) {
-            return os << "[insert work]";
-        }
-
-        std::vector<std::byte> _bytes;
-        lrt::runtime* _runtime;
-    };
+std::size_t
+string_size(const char* str) {
+    int adage = 0;
+    in("str_adage", ldb::ref(&adage));
+    return std::strlen(str) + adage;
 }
 
-#endif
+int
+real_main() {
+    std::cout << "starting job...\n" << std::flush;
+    eval("str_size", (string_size) ("test"));
+    std::cout << "waiting in main process...\n" << std::flush;
+
+    out("str_adage", 38);
+
+    std::size_t size;
+    in("str_size", ldb::ref(&size));
+    std::cout << "test size: " << size << "\n" << std::flush;
+
+    return 0;
+}

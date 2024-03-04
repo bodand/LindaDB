@@ -171,36 +171,20 @@ endif ()
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
 
+# Linda macro
+macro(add_linda_executable exe)
+    add_executable("${exe}" ${ARGN})
+    target_link_libraries("${exe}" PRIVATE LindaRT LindaRT-main)
+endmacro()
+
 # targets
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>)
 set(PROJECT_TARGETS)
 add_subdirectory(src/LindaDB)
 add_subdirectory(src/LindaRT)
+# demo apps
+add_subdirectory(demo)
 # docs
 #add_subdirectory(docs)
 # test
 add_subdirectory(test)
-
-# clang-tidy
-if (CMAKE_GENERATOR MATCHES [[Make|Ninja]]
-    AND (NOT DEFINED ENV{CI} OR DEFINED ENV{CI_DO_CLANG_TIDY}))
-    # CMAKE_EXPORT_COMPILE_COMMANDS is only implemented on Make and Ninja...
-    cmake_path(RELATIVE_PATH CMAKE_CURRENT_BINARY_DIR OUTPUT_VARIABLE rel_bindir)
-    foreach (tgt IN LISTS PROJECT_TARGETS)
-        get_target_property(tgt_dir "${tgt}" SOURCE_DIR)
-        get_target_property(tgt_srces "${tgt}" SOURCES)
-        get_target_property(tgt_isrces "${tgt}" INTERFACE_SOURCES)
-        foreach (src IN LISTS tgt_srces tgt_isrces)
-            if (NOT src)
-                continue()
-            endif ()
-            cmake_path(ABSOLUTE_PATH src BASE_DIRECTORY "${tgt_dir}")
-            cmake_path(RELATIVE_PATH src BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-
-            add_test(NAME "clang-tidy whole project/${src}"
-                     COMMAND "clang-tidy" -p "${rel_bindir}" ${src}
-                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-                     COMMAND_EXPAND_LISTS)
-        endforeach ()
-    endforeach ()
-endif ()

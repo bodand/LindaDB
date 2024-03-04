@@ -48,11 +48,14 @@ add_library(LindaRT STATIC
             public/lrt/work_pool/work_pool.hxx
             public/lrt/work_pool/work_queue.hxx
             public/lrt/eval.hxx
+            public/lrt/linda.hxx
             public/lrt/runtime.hxx
+            public/lrt/runtime_storage.hxx
             src/serialize/tuple.cxx
             src/work_pool/work/eval_work.cxx
             src/work_pool/work_factory.cxx
-            src/runtime.cxx)
+            src/runtime.cxx
+            src/runtime_storage.cxx)
 
 add_library(LindaRT-malloc STATIC
             src/malloc_overrider.cxx)
@@ -65,16 +68,20 @@ target_link_libraries(LindaRT-malloc
 target_compile_definitions(LindaRT-malloc
                            PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
 
-list(APPEND PROJECT_TARGETS LindaRT-malloc)
-target_link_libraries(LindaRT PUBLIC LindaRT-malloc)
-
 target_include_directories(LindaRT
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaRT
-                      PUBLIC LindaDB internal-language-level
+                      PUBLIC LindaDB LindaRT-malloc internal-language-level
                       PRIVATE MPI::MPI_CXX internal-coverage internal-warnings internal-lto)
 target_compile_definitions(LindaRT-malloc
                            PUBLIC $<$<BOOL:${LINDA_RT_BIG_ENDIAN}>:LINDA_RT_BIG_ENDIAN>)
 
-list(APPEND PROJECT_TARGETS LindaRT)
+add_library(LindaRT-main STATIC src/main.cxx)
+target_include_directories(LindaRT-main
+                           PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
+                           PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(LindaRT-main
+                      PRIVATE LindaDB internal-warnings internal-lto internal-language-level)
+set(PROJECT_TARGETS "${PROJECT_TARGETS};LindaRT-malloc;LindaRT;LindaRT-main" PARENT_SCOPE)
+

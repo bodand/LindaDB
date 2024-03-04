@@ -28,47 +28,26 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-03.
+ * Originally created: 2024-03-04.
  *
- * src/LindaRT/include/lrt/work_pool/work/insert_work --
+ * src/LindaRT/src/main --
  *   
  */
-#ifndef LINDADB_INSERT_WORK_HXX
-#define LINDADB_INSERT_WORK_HXX
-
-#include <fstream>
-#include <ostream>
 
 #include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
+#include <lrt/runtime_storage.hxx>
 
-#include <mpi.h>
+int
+real_main();
 
-namespace lrt {
-    struct insert_work {
-        explicit insert_work(std::span<std::byte> payload,
-                             runtime& runtime)
-             : _bytes(std::from_range, payload),
-               _runtime(&runtime) { }
+int
+main(int argc, char** argv) {
+    lrt::runtime rt(&argc, &argv);
+    lrt::gLrt_Runtime_ObjectRef = &rt;
 
-        void
-        perform() {
-            const auto tuple = deserialize(_bytes);
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            std::ofstream("_log.txt", std::ios::app) << rank << ": INSERT " << tuple << std::endl;
-            _runtime->store().out_nosignal(tuple);
-        }
+    int result = 0;
+    if (rt.rank() == 0) result = real_main();
 
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const insert_work& work) {
-            return os << "[insert work]";
-        }
-
-        std::vector<std::byte> _bytes;
-        lrt::runtime* _runtime;
-    };
+    rt.loop();
+    return result;
 }
-
-#endif

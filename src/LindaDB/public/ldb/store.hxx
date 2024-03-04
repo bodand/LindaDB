@@ -76,8 +76,8 @@ namespace ldb {
 
         void
         out(const lv::linda_tuple& tuple) {
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            int rank{};
+//            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             std::ofstream("_log.txt", std::ios::app) << "(" << rank<< ")" << "out(" << tuple << ")" << std::endl;
             {
                 std::scoped_lock<std::shared_mutex> lck(_header_mtx);
@@ -195,6 +195,7 @@ namespace ldb {
                     return;
                 }
             }
+            std::ofstream("_log.txt", std::ios::app) << "OUT_NOSIGNAL" << tuple << std::endl;
             auto new_it = _data.push_back(tuple);
 
             {
@@ -232,6 +233,9 @@ namespace ldb {
             for (;;) {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
                 if (check_and_reset_sync_need()) continue;
+                int rank{};
+//                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+                std::ofstream("_log.txt", std::ios::app) << rank << ": WAITING ON INSERT" << std::endl;
                 wait_for_sync();
             }
         }
@@ -245,6 +249,9 @@ namespace ldb {
             for (;;) {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
                 if (check_and_reset_sync_need()) continue;
+                int rank {};
+//                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+                std::ofstream("_log.txt", std::ios::app) << rank << ": WAITING ON INSERT" << std::endl;
                 wait_for_sync();
             }
         }

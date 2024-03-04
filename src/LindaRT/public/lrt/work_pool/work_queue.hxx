@@ -49,7 +49,6 @@
 #include <mpi.h>
 
 
-
 namespace lrt {
     struct work_queue_terminated_exception : std::exception {
         [[nodiscard]] const char*
@@ -65,37 +64,36 @@ namespace lrt {
         void
         enqueue(value_type&& work) {
             assert_that(!_terminated.test(), "terminated work queue used");
-            int rank{};
-//            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            std::ofstream("_log.txt", std::ios::app) << rank << ": ENQUEUE QUEUE: " << work << std::endl;
-
             std::unique_lock lck(_mtx);
             _queue.emplace(std::move(work));
-            std::ofstream("_log.txt", std::ios::app) << rank << ": ENQUEUE QUEUED" << std::endl;
             _cv.notify_one();
         }
 
         value_type
         dequeue() {
-            assert_that(!_terminated.test(), "terminated work queue used");
+            if (_terminated.test()) throw work_queue_terminated_exception{};
 
             std::unique_lock lck(_mtx);
             if (_queue.empty()) _cv.wait(lck, [this] { return !_queue.empty() || _terminated.test(); });
             if (_terminated.test()) throw work_queue_terminated_exception{};
 
-            int rank{};
-//            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            std::ofstream("_log.txt", std::ios::app) << rank << ": DEQUEUE QUEUE" << std::endl;
-            auto result = _queue.front();
+            assert_that(!_queue.empty(), "empty queue popped");
+            auto result = std::move(_queue.front());
             _queue.pop();
-            std::ofstream("_log.txt", std::ios::app) << rank << ": DEQUEUE QUEUED:" << result << std::endl;
-            return result;
+            return std::move(result);
         }
 
         void
         terminate() {
-            _terminated.test_and_set();
-            _cv.notify_all();
+            if (!_terminated.test_and_set()) {
+                _cv.notify_all();
+            }
+            _terminated.notify_all();
+        }
+
+        void
+        await_terminated() {
+            if (!_terminated.test()) _terminated.wait(true);
         }
 
     private:

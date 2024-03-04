@@ -1,6 +1,6 @@
 # LindaDB project
 #
-# Copyright (c) 2023 András Bodor <bodand@pm.me>
+# Copyright (c) 2024 András Bodor <bodand@pm.me>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,21 +28,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Originally created: 2023-10-14.
+# Originally created: 2024-03-04.
 #
-# test/CMakeLists.txt --
-#   The main orchestrator project file for handling the test-cases of LindaDB.
+# demo/src/simple-eval/CMakeLists.txt --
+#   A simple Linda application that shows how the eval function works.
 
-if (NOT TARGET Catch2::Catch2)
-    message(STATUS "Catch2 not present -- skipping tests")
-    return()
-endif ()
+add_linda_executable(simple-eval simple-eval.cxx)
+add_test(NAME "Linda-simple-eval"
+         COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:simple-eval>)
 
-find_path(FAKEIT_INCLUDE_DIRS "boost/fakeit.hpp")
-add_library(fakeit INTERFACE)
-target_include_directories(fakeit INTERFACE "${FAKEIT_INCLUDE_DIRS}")
-
-include(Catch)
-
-add_subdirectory(LindaDB)
-add_subdirectory(LindaRT)
+# testing
+target_link_libraries(simple-eval PRIVATE internal-coverage)
+set_tests_properties("Linda-simple-eval" PROPERTIES
+                     ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")

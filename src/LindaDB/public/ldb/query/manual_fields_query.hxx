@@ -39,6 +39,7 @@
 #include <compare>
 #include <concepts>
 #include <cstddef>
+#include <fstream>
 #include <tuple>
 #include <utility>
 
@@ -155,6 +156,7 @@ namespace ldb {
 
         friend constexpr std::partial_ordering
         operator<=>(const lv::linda_tuple& lt, const manual_fields_query& query) {
+            std::ofstream("_log.txt", std::ios::app) << "COMPARING: " << lt << " <=> " << query << std::endl;
             if (lt.size() != sizeof...(Matchers)) return lt.size() <=> sizeof...(Matchers);
             return [&lt, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
                 std::partial_ordering order = std::strong_ordering::equal;
@@ -166,12 +168,7 @@ namespace ldb {
         template<meta::tuple_wrapper TupleWrapper>
         friend constexpr std::partial_ordering
         operator<=>(const TupleWrapper& tw, const manual_fields_query& query) {
-            if (tw->size() != sizeof...(Matchers)) return tw->size() <=> sizeof...(Matchers);
-            return [&tw, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
-                std::partial_ordering order = std::strong_ordering::equal;
-                std::ignore = (matcher(order)(std::get<Is>(payload) <=> (*tw)[Is]) && ...);
-                return order;
-            }(std::make_index_sequence<sizeof...(Matchers)>());
+            return *tw <=> query;
         }
 
         friend constexpr bool
@@ -183,6 +180,16 @@ namespace ldb {
         friend constexpr bool
         operator==(const TupleWrapper& tw, const manual_fields_query& query) {
             return (*tw <=> query) == 0;
+        }
+
+        friend std::ostream&
+        operator<<(std::ostream& os, const manual_fields_query& query) {
+            [&os, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
+                os << "QUERY(";
+                ((os << "," << std::get<Is>(payload)), ...);
+                os << ")";
+            }(std::make_index_sequence<sizeof...(Matchers)>());
+            return os;
         }
 
         std::tuple<meta::matcher_type<Matchers>...> _payload;
