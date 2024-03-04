@@ -36,6 +36,8 @@
 
 #include <ostream>
 #include <thread>
+#include <array>
+#include <algorithm>
 
 #include <catch2/catch_test_macros.hpp>
 #include <lrt/work_pool/work_queue.hxx>
@@ -89,7 +91,7 @@ TEST_CASE("parallel io of _work_queue works") {
         };
 
         std::array<std::jthread, 8> holder;
-        std::generate(holder.begin(), holder.end(), [&, n = 0]() mutable {
+        std::ranges::generate(holder, [&, n = 0]() mutable {
             if (n < 4) return std::jthread(writer_thread);
             return std::jthread(reader_thread);
         });
