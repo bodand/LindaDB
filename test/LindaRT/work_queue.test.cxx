@@ -88,16 +88,11 @@ TEST_CASE("parallel io of _work_queue works") {
             }
         };
 
-        const auto holder = std::array{
-               std::jthread(writer_thread),
-               std::jthread(writer_thread),
-               std::jthread(writer_thread),
-               std::jthread(writer_thread),
-               std::jthread(reader_thread),
-               std::jthread(reader_thread),
-               std::jthread(reader_thread),
-               std::jthread(reader_thread),
-        };
+        std::array<std::jthread, 8> holder;
+        std::ranges::generate(holder, [&, n = 0]() mutable {
+            if (n < 4) return std::jthread(writer_thread);
+            return std::jthread(reader_thread);
+        });
     }
     work_queue.terminate();
     CHECK(results);
