@@ -53,8 +53,6 @@ lrt::work_factory::create(lrt::communication_tag tag,
     case communication_tag::Eval: return eval_work(payload, runtime);
     case communication_tag::Terminate:
         // termination does not happen through this message system
-        [[fallthrough]];
-    default:
         return nop_work{};
     }
     LDB_UNREACHABLE;

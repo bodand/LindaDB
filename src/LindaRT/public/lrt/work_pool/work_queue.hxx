@@ -52,7 +52,7 @@
 namespace lrt {
     struct work_queue_terminated_exception : std::exception {
         [[nodiscard]] const char*
-        what() const override {
+        what() const noexcept override {
             return "_work_queue has been terminated";
         }
     };

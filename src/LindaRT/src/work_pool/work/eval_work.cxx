@@ -72,5 +72,6 @@ lrt::eval_work::perform() {
 
 std::ostream&
 lrt::operator<<(std::ostream& os, const lrt::eval_work& work) {
+    std::ignore = work;
     return os << "[eval work]";
 }

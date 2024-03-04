@@ -44,10 +44,10 @@ namespace {
     struct test_work {
         int payload;
 
-        void
+        [[maybe_unused]]void
         perform() { }
 
-        friend std::ostream&
+        [[maybe_unused]] friend std::ostream&
         operator<<(std::ostream& os, const test_work& /*ignored*/) {
             return os;
         }

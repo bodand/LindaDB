@@ -38,6 +38,7 @@
 
 #include <fstream>
 #include <ostream>
+#include <ranges>
 
 #include <lrt/runtime.hxx>
 #include <lrt/serialize/tuple.hxx>
@@ -63,6 +64,7 @@ namespace lrt {
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const insert_work& work) {
+            std::ignore = work;
             return os << "[insert work]";
         }
 

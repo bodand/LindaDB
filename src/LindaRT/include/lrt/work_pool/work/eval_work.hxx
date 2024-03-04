@@ -40,6 +40,7 @@
 #include <cstddef>
 #include <ostream>
 #include <span>
+#include <ranges>
 
 #include <lrt/runtime.hxx>
 #include <lrt/serialize/tuple.hxx>

@@ -45,6 +45,7 @@ namespace lrt {
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const nop_work& work) {
+            std::ignore = work;
             return os << "[nop work]";
         }
     };
