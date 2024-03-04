@@ -47,15 +47,15 @@ string_size(const char* str) {
 
 int
 real_main() {
-    std::cout << "starting job...\n" << std::flush;
+    std::cout << "starting job...\n";
     eval("str_size", (string_size) ("test"));
-    std::cout << "waiting in main process...\n" << std::flush;
+    std::cout << "waiting in main process...\n";
 
     out("str_adage", 38);
 
     std::size_t size;
     in("str_size", ldb::ref(&size));
-    std::cout << "test size: " << size << "\n" << std::flush;
+    std::cout << "test size: " << size << "\n";
 
     return 0;
 }
