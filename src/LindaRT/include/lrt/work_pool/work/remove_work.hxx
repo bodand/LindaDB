@@ -47,7 +47,7 @@ namespace lrt {
     struct remove_work {
         explicit remove_work(std::span<std::byte> payload,
                              runtime& runtime)
-             : _bytes(std::from_range, payload),
+             : _bytes(payload.begin(), payload.end()),
                _runtime(&runtime) { }
 
         void

@@ -49,7 +49,7 @@ namespace lrt {
     struct insert_work {
         explicit insert_work(std::span<std::byte> payload,
                              runtime& runtime)
-             : _bytes(std::from_range, payload),
+             : _bytes(payload.begin(), payload.end()),
                _runtime(&runtime) { }
 
         void

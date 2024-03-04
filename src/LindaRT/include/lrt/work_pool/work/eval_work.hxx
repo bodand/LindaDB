@@ -49,7 +49,7 @@ namespace lrt {
     struct eval_work {
         explicit eval_work(std::span<std::byte> payload,
                            runtime& runtime)
-             : _bytes(std::from_range, payload),
+             : _bytes(payload.begin(), payload.end()),
                _runtime(&runtime) { }
 
         void
