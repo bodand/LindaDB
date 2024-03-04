@@ -43,8 +43,6 @@
 #include <lrt/runtime.hxx>
 #include <lrt/serialize/tuple.hxx>
 
-#include <mpi.h>
-
 namespace lrt {
     struct insert_work {
         explicit insert_work(std::span<std::byte> payload,
@@ -55,9 +53,6 @@ namespace lrt {
         void
         perform() {
             const auto tuple = deserialize(_bytes);
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            std::ofstream("_log.txt", std::ios::app) << rank << ": INSERT " << tuple << std::endl;
             _runtime->store().out_nosignal(tuple);
         }
 

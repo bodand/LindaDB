@@ -57,7 +57,6 @@ namespace {
 void
 lrt::eval_work::perform() {
     const auto tuple = deserialize(_bytes);
-    std::ofstream("_log.txt", std::ios::app) << "EVAL " << tuple << std::endl;
     std::vector<ldb::lv::linda_value> result_values;
     result_values.reserve(tuple.size());
 

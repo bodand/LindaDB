@@ -44,7 +44,7 @@ namespace {
     struct test_work {
         int payload;
 
-        [[maybe_unused]]void
+        [[maybe_unused]] void
         perform() { }
 
         [[maybe_unused]] friend std::ostream&
@@ -88,7 +88,7 @@ TEST_CASE("parallel io of _work_queue works") {
             }
         };
 
-        const std::array holder{
+        const auto holder = std::array{
                std::jthread(writer_thread),
                std::jthread(writer_thread),
                std::jthread(writer_thread),
@@ -99,6 +99,6 @@ TEST_CASE("parallel io of _work_queue works") {
                std::jthread(reader_thread),
         };
     }
-        work_queue.terminate();
+    work_queue.terminate();
     CHECK(results);
 }
