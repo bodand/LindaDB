@@ -86,7 +86,9 @@ namespace {
                                   int tag) {
         int rank;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        std::ofstream("_msglog.txt") << rank << " -> " << to_rank << ": " << std::showbase << std::hex << tag << std::endl;
+        auto tuple = lrt::deserialize(buffer);
+        std::ofstream("_msglog.txt", std::ios::app) << rank << " -> " << to_rank << ": " << std::showbase << std::hex << tag
+                                                    << std::dec << std::noshowbase << tuple << std::endl;
 
         auto req = MPI_REQUEST_NULL;
         if (const auto status = MPI_Isend(buffer.data(),
@@ -184,7 +186,7 @@ namespace {
 
 lrt::runtime::runtime(int* argc, char*** argv, std::function<balancer(const runtime&)> load_balancer)
      : _recv_thr(&lrt::runtime::recv_thread_worker, this),
-       _work_pool(3) {
+       _work_pool(1) {
     if (!_mpi_inited.test_and_set()) init_threaded_mpi(argc, argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
@@ -224,7 +226,6 @@ lrt::runtime::recv_thread_worker() {
         if (command == communication_tag::Terminate) break;
         auto work = lrt::work_factory::create(command, payload, *this);
         _work_pool.enqueue(std::move(work));
-        //        work.perform();
     }
     _work_pool.terminate();
 }

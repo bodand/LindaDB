@@ -360,7 +360,7 @@ namespace ldb::index::tree::payloads {
         private:
             friend constexpr std::ostream&
             operator<<(std::ostream& os, const chime_value_set& self) {
-                os << "(";
+                os << "(chimeset: ";
                 for (std::size_t i = 0; i < self._values.size(); ++i) {
                     os << self._values[i];
                     if (i != self._values.size() - 1) os << " ";
@@ -373,9 +373,9 @@ namespace ldb::index::tree::payloads {
 
         friend constexpr std::ostream&
         operator<<(std::ostream& os, const chime_payload& pl) {
-            os << "(" << pl.capacity() << " " << pl.size();
+            os << "(chime: " << pl.capacity() << " " << pl.size();
             for (std::size_t i = 0; i < pl._data_sz; ++i) {
-                os << " (" << pl._keys[i] << " " << pl._sets[i] << ")";
+                os << " (" << pl._keys[i] << ")";
             }
             return os << ")";
         }

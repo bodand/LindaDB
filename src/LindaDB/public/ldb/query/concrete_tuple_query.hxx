@@ -122,6 +122,11 @@ namespace ldb {
         operator==(const TupleWrapper& tw, const concrete_tuple_query& query) {
             return std::is_eq(*tw <=> query);
         }
+
+        friend std::ostream&
+        operator<<(std::ostream& os, const concrete_tuple_query& query) {
+            return os << "QUERY(" << query._tuple << ")";
+        }
     };
 }
 

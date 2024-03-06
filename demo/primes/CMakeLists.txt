@@ -30,11 +30,15 @@
 #
 # Originally created: 2024-03-04.
 #
-# demo/CMakeLists.txt --
-#   Builds a set of demo applications for Linda
+# demo/src/primes/CMakeLists.txt --
+#   A parallel implementation of the sieve of Eratosthenes in Linda
 
-find_package(MPI REQUIRED)
+add_linda_executable(primes primes.cxx)
+target_compile_features(primes PUBLIC cxx_std_20)
+add_test(NAME "Linda-primes"
+         COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:primes>)
 
-add_subdirectory(primes)
-add_subdirectory(simple-eval)
-
+# testing
+target_link_libraries(primes PRIVATE internal-coverage)
+set_tests_properties("Linda-primes" PROPERTIES
+                     ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")

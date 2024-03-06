@@ -36,15 +36,17 @@
 #ifndef LREMOVEDADB_STORE_HXX
 #define LREMOVEDADB_STORE_HXX
 
+#include <algorithm>
 #include <array>
-#include <fstream>
 #include <atomic>
 #include <concepts>
 #include <condition_variable>
 #include <cstddef>
+#include <fstream>
 #include <functional>
 #include <mutex>
 #include <optional>
+#include <ranges>
 #include <shared_mutex>
 #include <tuple>
 #include <type_traits>
@@ -62,10 +64,10 @@
 #include <ldb/query/concrete_tuple_query.hxx>
 #include <ldb/query/tuple_query.hxx>
 
+#include <mpi.h>
+
 #include "ldb/query/make_matcher.hxx"
 #include "ldb/query/manual_fields_query.hxx"
-
-#include <mpi.h>
 
 namespace ldb {
     struct store {
@@ -76,11 +78,12 @@ namespace ldb {
 
         void
         out(const lv::linda_tuple& tuple) {
+            std::scoped_lock<std::shared_mutex> lck(_header_mtx);
             int rank{};
-//            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            std::ofstream("_log.txt", std::ios::app) << "(" << rank<< ")" << "out(" << tuple << ")" << std::endl;
+            //            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            std::ofstream("_log.txt", std::ios::app) << "(" << rank << ")"
+                                                     << "out(" << tuple << ")" << std::endl;
             {
-                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 if (const auto it = _removed_later.find(tuple);
                     it != _removed_later.end()) {
                     _removed_later.erase(it);
@@ -91,7 +94,7 @@ namespace ldb {
             auto new_it = _data.push_back(tuple);
 
             {
-                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
+                //                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -187,8 +190,8 @@ namespace ldb {
 
         void
         out_nosignal(const lv::linda_tuple& tuple) {
+            std::scoped_lock<std::shared_mutex> lck(_header_mtx);
             {
-                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 if (const auto it = _removed_later.find(tuple);
                     it != _removed_later.end()) {
                     _removed_later.erase(it);
@@ -199,7 +202,7 @@ namespace ldb {
             auto new_it = _data.push_back(tuple);
 
             {
-                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
+                //                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -221,6 +224,15 @@ namespace ldb {
             }
         }
 
+        void
+        dump_indices(std::ostream& os) {
+            std::ranges::for_each(_header_indices, [&os](auto& index) {
+                index.apply([&os](const auto& value) {
+                    os << value << "\n";
+                });
+            });
+        }
+
     private:
         // TODO(C++23): update retreive_(strong|weak) to use deducing this and remove duplication
 
@@ -234,7 +246,7 @@ namespace ldb {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
                 if (check_and_reset_sync_need()) continue;
                 int rank{};
-//                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+                //                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
                 std::ofstream("_log.txt", std::ios::app) << rank << ": WAITING ON INSERT" << std::endl;
                 wait_for_sync();
             }
@@ -249,8 +261,8 @@ namespace ldb {
             for (;;) {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
                 if (check_and_reset_sync_need()) continue;
-                int rank {};
-//                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+                int rank{};
+                //                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
                 std::ofstream("_log.txt", std::ios::app) << rank << ": WAITING ON INSERT" << std::endl;
                 wait_for_sync();
             }
@@ -296,36 +308,54 @@ namespace ldb {
 
         struct query_result_visitor {
             std::optional<pointer_type>
-            operator()(field_incomparable) const noexcept { return {}; }
+            operator()(field_incomparable) const noexcept {
+                return {};
+            }
 
             std::optional<pointer_type>
-            operator()(field_not_found) const noexcept { return {}; }
+            operator()(field_not_found) const noexcept {
+                return pointer_type{};
+            }
 
             std::optional<pointer_type>
-            operator()(field_found<pointer_type> found) const { return found.value; }
+            operator()(field_found<pointer_type> found) const noexcept {
+                return found.value;
+            }
         };
 
         std::optional<lv::linda_tuple>
         read(const query_type& query) const {
             std::shared_lock<std::shared_mutex> lck(_header_mtx);
+            std::ofstream("_log.txt", std::ios::app) << "LOOKUP(SAFE): " << query << std::endl;
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.search_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);
-                    found) return **found;
+                    found) {
+                    if (*found == pointer_type{}) return {};
+
+                    auto tuple = **found;
+                    std::ofstream("_log.txt", std::ios::app) << "LOOKED(SAFE) UP: " << tuple << " TO " << query << " VIA " << i << std::endl;
+                    return tuple;
+                }
             }
+            std::ofstream("_log.txt", std::ios::app) << "FAILED INDEXED LOOKUP(SAFE): " << query << std::endl;
             return _data.locked_find(query);
         }
 
         std::optional<lv::linda_tuple>
         read_and_remove(const query_type& query) {
             std::scoped_lock<std::shared_mutex> lck(_header_mtx);
+            std::ofstream("_log.txt", std::ios::app) << "LOOKUP(LOUD): " << query << std::endl;
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.remove_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);
                     found) {
+                    if (*found == pointer_type{}) return {};
+
                     const auto it = *found;
                     auto tuple = **found; // not-const to allow move from return
                     auto bcast = broadcast_delete(_broadcast, tuple);
+                    std::ofstream("_log.txt", std::ios::app) << "LOOKED(LOUD) UP: " << tuple << " TO " << query << " VIA " << i << std::endl;
                     for (std::size_t j = 0; j < _header_indices.size(); ++j) {
                         if (j == i) continue;
                         std::ignore = _header_indices[i].remove(index::tree::value_lookup(tuple[i], it));
@@ -335,6 +365,7 @@ namespace ldb {
                     return tuple;
                 }
             }
+            std::ofstream("_log.txt", std::ios::app) << "FAILED INDEXED LOOKUP(LOUD): " << query << std::endl;
             const auto res = _data.locked_destructive_find(query);
             if (res) await(broadcast_delete(_broadcast, *res));
             return res;
@@ -343,12 +374,16 @@ namespace ldb {
         std::optional<lv::linda_tuple>
         read_and_remove_nosignal(const query_type& query) {
             const std::scoped_lock<std::shared_mutex> lck(_header_mtx);
+            std::ofstream("_log.txt", std::ios::app) << "LOOKUP: " << query << std::endl;
             for (std::size_t i = 0; i < _header_indices.size(); ++i) {
                 const auto result = query.remove_on_index(i, _header_indices[i]);
                 if (const auto found = std::visit(query_result_visitor{}, result);
                     found) {
+                    if (*found == pointer_type{}) return {};
+
                     const auto it = *found;
                     auto tuple = **found; // not-const to allow move from return
+                    std::ofstream("_log.txt", std::ios::app) << "LOOKED UP: " << tuple << " TO " << query << " VIA " << i << std::endl;
                     for (std::size_t j = 0; j < _header_indices.size(); ++j) {
                         if (j == i) continue;
                         std::ignore = _header_indices[i].remove(index::tree::value_lookup(tuple[i], it));
@@ -357,6 +392,7 @@ namespace ldb {
                     return tuple;
                 }
             }
+            std::ofstream("_log.txt", std::ios::app) << "FAILED INDEXED LOOKUP: " << query << std::endl;
             return _data.locked_destructive_find(query);
         }
 
@@ -381,7 +417,9 @@ namespace ldb {
 
         mutable std::shared_mutex _header_mtx;
         std::unordered_set<lv::linda_tuple> _removed_later{};
-        std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>, 2> _header_indices{};
+        std::array<index::tree::avl2_tree<lv::linda_value, pointer_type>,
+                   1>
+               _header_indices{};
         broadcast _broadcast = null_broadcast{};
         storage_type _data{};
     };

@@ -58,6 +58,7 @@
 #include <boost/preprocessor/seq/size.hpp>
 #include <boost/preprocessor/seq/variadic_seq_to_seq.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
+#include <ldb/common.hxx>
 #include <ldb/lv/dyn_function_adapter.hxx>
 #include <ldb/lv/global_function_map.hxx>
 #include <ldb/lv/linda_tuple.hxx>

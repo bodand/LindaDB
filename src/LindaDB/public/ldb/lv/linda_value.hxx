@@ -80,12 +80,16 @@ namespace ldb::lv {
             void
             operator()(T val)
                 requires(std::is_trivially_copyable_v<T>)
-            { _os << "(" << val << "::" << typeid(T).name() << ")"; }
+            { _os << "(lv: " << val << "::" << typeid(T).name() << ")"; }
             template<class T>
             void
             operator()(const T& val)
                 requires(!std::is_trivially_copyable_v<T>)
-            { _os << "(" << val << "::" << typeid(T).name() << ")"; }
+            { _os << "(lv: " << val << "::" << typeid(T).name() << ")"; }
+
+            void
+            operator()(const std::string& val)
+            { _os << "(lv: " << val << "@" << val.size() << "::string)"; }
 
         private:
             std::ostream& _os;

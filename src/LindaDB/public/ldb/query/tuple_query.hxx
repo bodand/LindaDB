@@ -75,6 +75,9 @@ namespace ldb {
             [[nodiscard]] virtual std::partial_ordering
             do_compare(const lv::linda_tuple& tuple) const = 0;
 
+            virtual std::ostream&
+            write_to(std::ostream& os) = 0;
+
             [[nodiscard]] virtual std::unique_ptr<query_concept>
             clone() const = 0;
 
@@ -106,6 +109,11 @@ namespace ldb {
                 return std::make_unique<query_model<Query>>(query_impl);
             }
 
+            std::ostream&
+            write_to(std::ostream& os) override {
+                return os << query_impl;
+            }
+
             explicit query_model(Query query_impl)
                  : query_impl(std::move(query_impl)) { }
 
@@ -134,6 +142,11 @@ namespace ldb {
         friend constexpr bool
         operator==(const TupleWrapper& tw, const tuple_query& query) {
             return std::is_eq(*tw <=> query);
+        }
+
+        friend std::ostream&
+        operator<<(std::ostream& os, const tuple_query& query) {
+            return query._impl->write_to(os);
         }
 
     public:

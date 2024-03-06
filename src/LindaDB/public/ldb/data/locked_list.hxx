@@ -28,43 +28,26 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-03.
+ * Originally created: 2024-03-05.
  *
- * src/LindaRT/include/lrt/work_pool/work/insert_work --
+ * src/LindaDB/public/ldb/data/locked_list --
  *   
  */
-#ifndef LINDADB_REMOVE_WORK_HXX
-#define LINDADB_REMOVE_WORK_HXX
+#ifndef LINDADB_LOCKED_LIST_HXX
+#define LINDADB_LOCKED_LIST_HXX
 
-#include <ostream>
-#include <fstream>
-#include <ranges>
+#include <cstdint>
 
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
-
-namespace lrt {
-    struct remove_work {
-        explicit remove_work(std::span<std::byte> payload,
-                             runtime& runtime)
-             : _bytes(payload.begin(), payload.end()),
-               _runtime(&runtime) { }
-
-        void
-        perform() {
-            const auto tuple = deserialize(_bytes);
-            _runtime->store().remove_nosignal(tuple);
-        }
-
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const remove_work& work) {
-            std::ignore = work;
-            return os << "[remove work]: " << lrt::deserialize(work._bytes) << "\n";
-        }
-
-        mutable std::vector<std::byte> _bytes;
-        lrt::runtime* _runtime;
+namespace ldb::data {
+    template<class T>
+    struct locked_list {
+        using value_type = T;
+        using reference = T&;
+        using const_reference = const T&;
+        using pointer = T*;
+        using const_pointer = const T*;
+        using difference_type = std::ptrdiff_t;
+        using size_type = std::size_t;
     };
 }
 

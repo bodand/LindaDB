@@ -70,8 +70,8 @@ private:
 #include <source_location>
 #include <string_view>
 
-#define LDB_STR_I(x) #x
-#define LDB_STR(x) LDB_STR_I(x)
+#define LDB_STR_I(...) #__VA_ARGS__
+#define LDB_STR(...) LDB_STR_I(__VA_ARGS__)
 #define assert_that(cond, ...) ::ldb::assert_that_impl(static_cast<bool>(cond), LDB_STR(cond) __VA_OPT__(, ) __VA_ARGS__)
 
 namespace ldb {

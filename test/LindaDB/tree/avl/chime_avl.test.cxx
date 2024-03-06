@@ -316,3 +316,33 @@ TEST_CASE("new chime AVL-tree can remove elements indefinitely",
     }
     SUCCEED();
 }
+
+TEST_CASE("chime AVL-tree can find elems through query") {
+    using index_type = ldb::index::tree::avl2_tree<ldb::lv::linda_value, ldb::lv::linda_tuple*>;
+    index_type sut;
+    std::vector buf{
+           ldb::lv::linda_tuple("m", 2),
+           ldb::lv::linda_tuple("done", 0),
+           ldb::lv::linda_tuple(1),
+           ldb::lv::linda_tuple("xasd", 3, "dsa"),
+           ldb::lv::linda_tuple("xasd", 4, "dsa"),
+           ldb::lv::linda_tuple("xasd", 5, "dsa"),
+           ldb::lv::linda_tuple("xasd", 6, "dsa"),
+           ldb::lv::linda_tuple("xasd", 7, "dsa"),
+           ldb::lv::linda_tuple("xasd", 8, "dsa"),
+           ldb::lv::linda_tuple("xasd", 9, "dsa"),
+           ldb::lv::linda_tuple("xasd", 10, "dsa"),
+           ldb::lv::linda_tuple("xasd", 11, "dsa"),
+           ldb::lv::linda_tuple("xasd", 12, "dsa"),
+    };
+    for (unsigned i = 0; i < 4; ++i) {
+        sut.insert(buf[i][0], &buf[i]);
+    }
+
+    int data{};
+    auto querym = ldb::make_query(ldb::over_index<index_type>, "m", ldb::ref(&data));
+    std::ignore = querym.remove_via_field(0, sut);
+
+    auto query1 = ldb::make_query(ldb::over_index<index_type>, 1);
+    auto res = query1.remove_via_field(0, sut);
+}

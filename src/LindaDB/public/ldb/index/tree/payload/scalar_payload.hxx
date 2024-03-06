@@ -230,8 +230,8 @@ namespace ldb::index::tree::payloads {
 
         friend constexpr std::ostream&
         operator<<(std::ostream& os, const scalar_payload& pl) {
-            if (pl.empty()) return os << "(1 0)";
-            return os << "(1 1 (" << pl._value->first << " " << pl._value->second << "))";
+            if (pl.empty()) return os << "(scalar: 1 0)";
+            return os << "(scalar: 1 1 (" << pl._value->first << " " << pl._value->second << "))";
         }
 
         [[nodiscard]] friend constexpr bool

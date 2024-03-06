@@ -349,6 +349,44 @@ TEST_CASE("multi-element chime_payload remains sorted after insert") {
     CHECK(sut > Test_Key3 - 1);
     CHECK(sut < Test_Key2 + 1);
 }
+//
+//TEST_CASE("chime payload finds requested element") {
+//    lps::chime_payload<ldb::lv::linda_value, ldb::lv::linda_tuple*, 14> sut;
+//    using index_type = ldb::index::tree::avl2_tree<ldb::lv::linda_value,
+//           ldb::lv::linda_tuple*,
+//           0,
+//           decltype(sut)>;
+//    std::vector buf{
+//           ldb::lv::linda_tuple("m", 2),
+//           ldb::lv::linda_tuple("done", 0),
+//           ldb::lv::linda_tuple("m_lock"),
+//           ldb::lv::linda_tuple("xasd", 3, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 4, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 5, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 6, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 7, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 8, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 9, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 10, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 11, "dsa"),
+//           ldb::lv::linda_tuple("xasd", 12, "dsa"),
+//    };
+//    for (unsigned i = 0; i < 4; ++i) {
+//        REQUIRE(sut.try_set(buf[i][0], &buf[i]));
+//    }
+//
+//    int data{};
+//    auto val_lookup = ldb::index::tree::value_lookup(
+//           ldb::match_value("m"),
+//           ldb::make_query(ldb::over_index<index_type>,
+//                           "m",
+//                           ldb::ref(&data)));
+//    CHECK_FALSE(val_lookup.key() == sut);
+//    auto res = sut.remove(val_lookup);
+//    REQUIRE(res.has_value());
+//    CHECK(*res == &buf[0]);
+//    CHECK(data == 2);
+//}
 
 TEST_CASE("chime_payload removes correct element") {
     lps::chime_payload<ldb::lv::linda_value, ldb::lv::linda_tuple*, 8> sut;

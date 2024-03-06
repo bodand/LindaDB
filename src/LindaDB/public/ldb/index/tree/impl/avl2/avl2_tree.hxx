@@ -39,15 +39,23 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <shared_mutex>
-#include <mutex>
 
 #include <ldb/common.hxx>
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload_dispatcher.hxx>
+
+inline std::ostream&
+operator<<(std::ostream&& os, const std::weak_ordering& wo) {
+    if (wo < 0) return os << "(LESS)";
+    if (wo > 0) return os << "(GREATER)";
+    return os << "(EQ)";
+}
 
 namespace ldb::index::tree {
     enum avlbf : std::int8_t {
@@ -147,7 +155,7 @@ namespace ldb::index::tree {
                 assert_that(*p != nullptr);
                 assert_that((*p).get() != this);
                 assert_that((*p).get()->left().get() == this
-                       || (*p).get()->right().get() == this);
+                            || (*p).get()->right().get() == this);
             }
             _parent = p;
         }
@@ -355,6 +363,11 @@ namespace ldb::index::tree {
         }
 
     private:
+        friend std::ostream&
+        operator<<(std::ostream& os, const avl2_node& node) {
+            return os << "[AVL NODE: " << node.data << "]";
+        }
+
         std::unique_ptr<avl2_node>* _parent{};
         std::unique_ptr<avl2_node> _left{};
         std::unique_ptr<avl2_node> _right{};
@@ -514,7 +527,9 @@ namespace ldb::index::tree {
         [[nodiscard]] std::optional<value_type>
         remove(const Q& query) {
             std::scoped_lock<std::shared_mutex> lck(_mtx);
+            std::ofstream("_fa.log", std::ios::app) << "AVL REMOVE: " << query << std::endl;
             auto* node = traverse_tree(query.key());
+            std::ofstream("_fa.log", std::ios::app) << "AVL REMOVE RESULT: " << *node << std::endl;
             if (!*node) return {};
 
             // T-tree: removing from node does not always result
@@ -679,7 +694,9 @@ namespace ldb::index::tree {
 
             for (;;) {
                 if (*node == nullptr) return node;
+                std::ofstream("_fa.log", std::ios::app) << "AVL TRAVERSE NODE: " << *(*node) << std::endl;
                 auto dir = key <=> (*node)->data;
+                std::ofstream("_fa.log", std::ios::app) << "AVL COMPARE: " << dir << " <- " << typeid(key).name() << key << " <=> " << (*node)->data << std::endl;
                 if (dir < 0) {
                     node = (*node)->left_ptr();
                     continue;
@@ -699,7 +716,9 @@ namespace ldb::index::tree {
 
             for (;;) {
                 if (*node == nullptr) return node;
+                std::ofstream("_fa.log", std::ios::app) << "AVL TRAVERSE NODE: " << *(*node) << std::endl;
                 auto dir = key <=> (*node)->data;
+                std::ofstream("_fa.log", std::ios::app) << "AVL COMPARE: " << dir << " <- " << typeid(key).name() << key << " <=> " << (*node)->data << std::endl;
                 if (dir < 0) {
                     node = (*node)->left_ptr();
                     continue;

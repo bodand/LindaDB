@@ -48,7 +48,8 @@ string_size(const char* str) {
 int
 real_main() {
     std::cout << "starting job...\n";
-    eval("str_size", (string_size) ("test"));
+    const char* test = "test";
+    eval("str_size", (string_size)(test));
     std::cout << "waiting in main process...\n";
 
     out("str_adage", 38);

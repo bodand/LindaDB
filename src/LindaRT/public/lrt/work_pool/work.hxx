@@ -41,6 +41,8 @@
 
 #include <lrt/work_pool/work_if.hxx>
 
+#include <mpi.h>
+
 namespace lrt {
     class work final {
         struct work_concept {
@@ -70,8 +72,11 @@ namespace lrt {
 
             void
             do_perform() override {
-                std::ofstream("_log.txt", std::ios::app) << "DO_PERFORM" << std::endl;
+                int rank;
+                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+                std::ofstream("_log.txt", std::ios::app) << rank << ": DO_PERFORM: " << work << std::endl;
                 this->work.perform();
+                std::ofstream("_log.txt", std::ios::app) << rank << ": DONE_PERFORM: " << work << std::endl;
             }
 
             void

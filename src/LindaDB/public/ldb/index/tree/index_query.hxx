@@ -39,6 +39,7 @@
 
 #include <compare>
 #include <concepts>
+#include <ostream>
 #include <tuple>
 #include <type_traits>
 
@@ -77,6 +78,11 @@ namespace ldb::index::tree {
         operator==(const auto& a, const any_value_lookup& b) noexcept {
             return std::is_eq(a <=> b);
         }
+
+        friend std::ostream&
+        operator<<(std::ostream& os, const any_value_lookup& value_lookup) {
+            return os << "[any value lookup: " << value_lookup._key << "]";
+        }
     };
     static_assert(index_lookup<any_value_lookup<int>, int>);
 
@@ -109,6 +115,11 @@ namespace ldb::index::tree {
         friend constexpr bool
         operator==(const auto& a, const value_lookup& b) noexcept {
             return std::is_eq(a <=> b);
+        }
+
+        friend std::ostream&
+        operator<<(std::ostream& os, const value_lookup& value_lookup) {
+            return os << "[value lookup: " << value_lookup._key << ", " << value_lookup._value << "]";
         }
     };
     static_assert(index_lookup<value_lookup<int, int>, int>);

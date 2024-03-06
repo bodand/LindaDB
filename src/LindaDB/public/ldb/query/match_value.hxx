@@ -63,7 +63,7 @@ namespace ldb {
         {
             return std::visit([field = mv._field]<class V>(V&& val) {
                 if constexpr (std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<V>>) {
-                    return field <=> std::forward<V>(val);
+                    return std::forward<V>(val) <=> field;
                 }
                 else {
                     auto t_idx = []<std::size_t... Is>(std::index_sequence<Is...>) {
@@ -76,7 +76,7 @@ namespace ldb {
                         (meta::finder(idx)(std::same_as<V, Args>, Is) || ...);
                         return idx;
                     }(std::make_index_sequence<sizeof...(Args)>());
-                    return v_idx <=> t_idx;
+                    return t_idx <=> v_idx;
                 }
             },
                               value);
@@ -88,7 +88,12 @@ namespace ldb {
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const match_value& val) {
-            return os << "(" << val._field << "::" << typeid(T).name() << ")";
+            if constexpr (std::same_as<T, std::string>) {
+                return os << "(value: " << val._field << "@" << val._field.size() << "::string)";
+            }
+            else {
+                return os << "(value: " << val._field << "::" << typeid(T).name() << ")";
+            }
         }
 
         T _field;

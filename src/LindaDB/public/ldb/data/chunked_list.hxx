@@ -490,6 +490,11 @@ namespace ldb::data {
                  : _chunk(chunk),
                    _index(index) { }
 
+            friend std::ostream&
+            operator<<(std::ostream& os, const iterator_impl& it) {
+                return os << "[chunked_list::iterator: chunk: " << it._chunk << ", index: " << it._index << " => " << *it << "]";
+            }
+
             void
             inc(size_type by = 1U) {
                 while (by != 0) {
@@ -529,7 +534,8 @@ namespace ldb::data {
 
             [[nodiscard]] constexpr bool
             is_end() const noexcept {
-                return _chunk && _chunk->is_final() && _index == _chunk->size();
+                if (!_chunk) return true;
+                return _chunk->is_final() && _index == _chunk->size();
             }
 
             data_chunk* _chunk{};

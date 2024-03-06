@@ -141,8 +141,8 @@ namespace ldb::lv {
              : _exeuctor(std::make_unique<typed_tuple_builder<R, Args...>>()),
                _fn(std::bit_cast<stored_type>(&fun)) { }
 
-        template<class T>
-        explicit dyn_function_adapter(T&&)
+        template<class... T>
+        explicit dyn_function_adapter(T&&...)
              : _exeuctor(),
                _fn() { assert_that(false, "non-function object passed to dyn_function_adapter"); }
 

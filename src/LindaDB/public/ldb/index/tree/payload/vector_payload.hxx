@@ -233,7 +233,7 @@ namespace ldb::index::tree::payloads {
     private:
         friend constexpr std::ostream&
         operator<<(std::ostream& os, const vector_payload& pl) {
-            os << "(" << pl.capacity() << " " << pl.size();
+            os << "(vector: " << pl.capacity() << " " << pl.size();
             for (std::size_t i = 0; i < pl._data_sz; ++i) {
                 os << " (" << pl._data[i].first << " " << pl._data[i].second << ")";
             }
