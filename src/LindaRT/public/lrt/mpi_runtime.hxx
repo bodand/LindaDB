@@ -28,44 +28,50 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-01-10.
+ * Originally created: 2024-03-08.
  *
- * src/LindaDB/public/ldb/bcast/broadcaster --
- *   Interface requirements of a broadcaster implementation.
+ * src/LindaRT/public/mpi_runtime --
+ *   
  */
-#ifndef LINDADB_BROADCASTER_HXX
-#define LINDADB_BROADCASTER_HXX
+#ifndef LINDADB_MPI_RUNTIME_HXX
+#define LINDADB_MPI_RUNTIME_HXX
 
-#include <concepts>
-#include <vector>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
+#include <atomic>
+#include <stdexcept>
 
-#include <ldb/lv/linda_tuple.hxx>
-
-namespace ldb {
-    template<class Awaitable>
-    concept await_if = requires(Awaitable awaitable) {
-        { await(awaitable) } -> std::same_as<void>;
+namespace lrt {
+    struct incompatible_mpi_exception : std::runtime_error {
+        incompatible_mpi_exception()
+             : std::runtime_error("MPI_Init_thread: insufficient threading capabilities: "
+                                  "LindaRT requires at least MPI_THREAD_SERIALIZED but the current "
+                                  "MPI runtime cannot provide this functionality.") { }
     };
 
-    struct broadcast_msg {
-        int from;
-        int tag;
-        std::vector<std::byte> buffer;
+    struct mpi_runtime {
+        mpi_runtime(int* argc, char*** argv);
+
+        mpi_runtime(const mpi_runtime& cp) = delete;
+        mpi_runtime&
+        operator=(const mpi_runtime& cp) = delete;
+
+        mpi_runtime(mpi_runtime&& mv) noexcept = default;
+        mpi_runtime&
+        operator=(mpi_runtime&& mv) noexcept = default;
+
+        ~mpi_runtime();
+
+        [[nodiscard]] int
+        rank() const noexcept { return _rank; }
+
+        [[nodiscard]] int
+        world_size() const noexcept { return _world_size; }
+
+    private:
+        inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
+
+        int _rank;
+        int _world_size;
     };
-
-    template<class Broadcast>
-    concept broadcast_if = requires(Broadcast bcast) {
-        typename Broadcast::await_type;
-
-        { broadcast_recv(bcast) } -> std::same_as<std::vector<broadcast_msg>>;
-        { broadcast_terminate(bcast) } -> await_if;
-        { send_eval(bcast, int{}, lv::linda_tuple{}) } -> await_if;
-        { broadcast_insert(bcast, lv::linda_tuple{}) } -> await_if;
-        { broadcast_delete(bcast, lv::linda_tuple{}) } -> await_if;
-    } && await_if<typename Broadcast::await_type>;
 }
 
 #endif

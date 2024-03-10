@@ -62,12 +62,11 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 #include <ldb/query/concrete_tuple_query.hxx>
+#include <ldb/query/make_matcher.hxx>
+#include <ldb/query/manual_fields_query.hxx>
 #include <ldb/query/tuple_query.hxx>
 
 #include <mpi.h>
-
-#include "ldb/query/make_matcher.hxx"
-#include "ldb/query/manual_fields_query.hxx"
 
 namespace ldb {
     struct store {
@@ -182,10 +181,10 @@ namespace ldb {
             return rd(make_query(over_index<index_type>, std::forward<Args>(args)...));
         }
 
-        template<broadcaster Bcast>
+        template<broadcast_if Bcast>
         void
-        set_broadcast(Bcast&& bcast) {
-            _broadcast = std::forward<Bcast>(bcast);
+        set_broadcast(const Bcast& bcast) {
+            _broadcast = bcast;
         }
 
         void
@@ -231,6 +230,11 @@ namespace ldb {
                     os << value << "\n";
                 });
             });
+        }
+
+        void
+        terminate() {
+            _data.terminate();
         }
 
     private:
@@ -292,6 +296,7 @@ namespace ldb {
             auto sync_check_over_this = [this]() noexcept {
                 return check_sync_need();
             };
+            using namespace std::literals;
             _wait_read.wait(lck, sync_check_over_this);
         }
 

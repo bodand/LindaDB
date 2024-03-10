@@ -44,6 +44,7 @@
 #include <mpi.h>
 
 namespace lrt {
+    template<class... Context>
     class work final {
         struct work_concept {
             work_concept(const work_concept& cp) = delete;
@@ -57,7 +58,7 @@ namespace lrt {
             virtual ~work_concept() noexcept = default;
 
             virtual void
-            do_perform() = 0;
+            do_perform(const Context&... context) = 0;
 
             virtual void
             write_to(std::ostream& os) = 0;
@@ -66,16 +67,16 @@ namespace lrt {
             work_concept() noexcept = default;
         };
 
-        template<work_if Work>
+        template<work_if<Context...> Work>
         struct work_model final : work_concept {
             explicit work_model(Work work) : work(work) { }
 
             void
-            do_perform() override {
+            do_perform(const Context&... ctx) override {
                 int rank;
                 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
                 std::ofstream("_log.txt", std::ios::app) << rank << ": DO_PERFORM: " << work << std::endl;
-                this->work.perform();
+                this->work.perform(ctx...);
                 std::ofstream("_log.txt", std::ios::app) << rank << ": DONE_PERFORM: " << work << std::endl;
             }
 
@@ -111,8 +112,9 @@ namespace lrt {
 
         ~work() noexcept = default;
 
+        template<class... Args>
         void
-        perform() { _impl->do_perform(); }
+        perform(Args&&... args) { _impl->do_perform(std::forward<Args>(args)...); }
     };
 }
 

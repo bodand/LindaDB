@@ -41,9 +41,9 @@
 
 namespace {
     struct test_work {
-        lrt::work_pool<lrt::work, 2>* pool;
+        lrt::work_pool<2, lrt::work<>>* pool;
 
-        explicit test_work(lrt::work_pool<lrt::work, 2>& pool) : pool(&pool) { }
+        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
 
         void
         perform() {
@@ -58,6 +58,8 @@ namespace {
 }
 
 TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<lrt::work, 2> pool;
+    lrt::work_pool<2, lrt::work<>> pool([]() {
+        return std::make_tuple();
+    });
     pool.enqueue(test_work(pool));
 }

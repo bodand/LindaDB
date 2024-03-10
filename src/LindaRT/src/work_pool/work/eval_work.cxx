@@ -55,7 +55,7 @@ namespace {
 }
 
 void
-lrt::eval_work::perform() {
+lrt::eval_work::perform(const mpi_thread_context& context) {
     const auto tuple = deserialize(_bytes);
     std::vector<ldb::lv::linda_value> result_values;
     result_values.reserve(tuple.size());
@@ -66,11 +66,12 @@ lrt::eval_work::perform() {
 
     const ldb::lv::linda_tuple& result_tuple = ldb::lv::linda_tuple(result_values);
 
+    mpi_thread_context::set_current(context);
     _runtime->store().out(result_tuple);
 }
 
 std::ostream&
 lrt::operator<<(std::ostream& os, const lrt::eval_work& work) {
     std::ignore = work;
-    return os << "[eval work]";
+    return os << "[eval work] on thread " << std::this_thread::get_id();
 }

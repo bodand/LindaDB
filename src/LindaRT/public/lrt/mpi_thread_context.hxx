@@ -28,44 +28,51 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-01-10.
+ * Originally created: 2024-03-08.
  *
- * src/LindaDB/public/ldb/bcast/broadcaster --
- *   Interface requirements of a broadcaster implementation.
+ * src/LindaRT/public/lrt/mpi_thread_context --
+ *   
  */
-#ifndef LINDADB_BROADCASTER_HXX
-#define LINDADB_BROADCASTER_HXX
+#ifndef LINDADB_MPI_THREAD_CONTEXT_HXX
+#define LINDADB_MPI_THREAD_CONTEXT_HXX
 
-#include <concepts>
-#include <vector>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
+#include <optional>
 
-#include <ldb/lv/linda_tuple.hxx>
+#include <mpi.h>
 
-namespace ldb {
-    template<class Awaitable>
-    concept await_if = requires(Awaitable awaitable) {
-        { await(awaitable) } -> std::same_as<void>;
+namespace lrt {
+    struct mpi_thread_context {
+        MPI_Comm thread_communicator;
+
+        int
+        rank() const noexcept {
+            int rank;
+            MPI_Comm_rank(thread_communicator, &rank);
+            return rank;
+        }
+
+        int
+        size() const noexcept {
+            int size;
+            MPI_Comm_size(thread_communicator, &size);
+            return size;
+        }
+
+        static const mpi_thread_context&
+        current() noexcept {
+            if (current_context) return *current_context;
+            return global_context;
+        }
+
+        static void
+        set_current(const mpi_thread_context& context) noexcept {
+            current_context = context;
+        }
+
+    private:
+        static mpi_thread_context global_context;
+        static thread_local std::optional<mpi_thread_context> current_context;
     };
-
-    struct broadcast_msg {
-        int from;
-        int tag;
-        std::vector<std::byte> buffer;
-    };
-
-    template<class Broadcast>
-    concept broadcast_if = requires(Broadcast bcast) {
-        typename Broadcast::await_type;
-
-        { broadcast_recv(bcast) } -> std::same_as<std::vector<broadcast_msg>>;
-        { broadcast_terminate(bcast) } -> await_if;
-        { send_eval(bcast, int{}, lv::linda_tuple{}) } -> await_if;
-        { broadcast_insert(bcast, lv::linda_tuple{}) } -> await_if;
-        { broadcast_delete(bcast, lv::linda_tuple{}) } -> await_if;
-    } && await_if<typename Broadcast::await_type>;
 }
 
 #endif

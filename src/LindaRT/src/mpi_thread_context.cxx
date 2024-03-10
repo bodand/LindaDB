@@ -28,44 +28,15 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-01-10.
+ * Originally created: 2024-03-08.
  *
- * src/LindaDB/public/ldb/bcast/broadcaster --
- *   Interface requirements of a broadcaster implementation.
+ * src/LindaRT/src/mpi_thread_context --
+ *   
  */
-#ifndef LINDADB_BROADCASTER_HXX
-#define LINDADB_BROADCASTER_HXX
 
-#include <concepts>
-#include <vector>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
+#include <lrt/mpi_thread_context.hxx>
 
-#include <ldb/lv/linda_tuple.hxx>
+lrt::mpi_thread_context lrt::mpi_thread_context::global_context = mpi_thread_context{
+       .thread_communicator = MPI_COMM_WORLD};
 
-namespace ldb {
-    template<class Awaitable>
-    concept await_if = requires(Awaitable awaitable) {
-        { await(awaitable) } -> std::same_as<void>;
-    };
-
-    struct broadcast_msg {
-        int from;
-        int tag;
-        std::vector<std::byte> buffer;
-    };
-
-    template<class Broadcast>
-    concept broadcast_if = requires(Broadcast bcast) {
-        typename Broadcast::await_type;
-
-        { broadcast_recv(bcast) } -> std::same_as<std::vector<broadcast_msg>>;
-        { broadcast_terminate(bcast) } -> await_if;
-        { send_eval(bcast, int{}, lv::linda_tuple{}) } -> await_if;
-        { broadcast_insert(bcast, lv::linda_tuple{}) } -> await_if;
-        { broadcast_delete(bcast, lv::linda_tuple{}) } -> await_if;
-    } && await_if<typename Broadcast::await_type>;
-}
-
-#endif
+thread_local std::optional<lrt::mpi_thread_context> lrt::mpi_thread_context::current_context{};

@@ -43,14 +43,14 @@
 #include <lrt/work_pool/work/remove_work.hxx>
 #include <lrt/work_pool/work_factory.hxx>
 
-lrt::work
+lrt::work<lrt::mpi_thread_context>
 lrt::work_factory::create(lrt::communication_tag tag,
-                          std::span<std::byte> payload,
+                          std::vector<std::byte>&& payload,
                           lrt::runtime& runtime) {
     switch (tag) {
-    case communication_tag::SyncInsert: return insert_work(payload, runtime);
-    case communication_tag::SyncDelete: return remove_work(payload, runtime);
-    case communication_tag::Eval: return eval_work(payload, runtime);
+    case communication_tag::SyncInsert: return insert_work(std::move(payload), runtime);
+    case communication_tag::SyncDelete: return remove_work(std::move(payload), runtime);
+    case communication_tag::Eval: return eval_work(std::move(payload), runtime);
     case communication_tag::Terminate:
         // termination does not happen through this message system
         return nop_work{};

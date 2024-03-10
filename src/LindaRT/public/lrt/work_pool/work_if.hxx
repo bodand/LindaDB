@@ -40,12 +40,14 @@
 #include <ostream>
 
 namespace lrt {
-    template<class Work>
+    template<class Work, class... Context>
     concept work_if =
            std::movable<Work>
-           && requires(Work work, std::ostream& os) {
+           && requires(Work work,
+                       std::ostream& os,
+                       Context&&... context) {
                   { os << work } -> std::same_as<std::ostream&>;
-                  { work.perform() };
+                  { work.perform(context...) };
               };
 }
 

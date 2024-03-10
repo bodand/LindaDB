@@ -39,21 +39,21 @@
 #include <algorithm>
 #include <cstddef>
 #include <ostream>
-#include <span>
 #include <ranges>
+#include <span>
 
 #include <lrt/runtime.hxx>
 #include <lrt/serialize/tuple.hxx>
 
 namespace lrt {
     struct eval_work {
-        explicit eval_work(std::span<std::byte> payload,
+        explicit eval_work(std::vector<std::byte>&& payload,
                            runtime& runtime)
-             : _bytes(payload.begin(), payload.end()),
+             : _bytes(std::move(payload)),
                _runtime(&runtime) { }
 
         void
-        perform();
+        perform(const mpi_thread_context& context);
 
     private:
         friend std::ostream&

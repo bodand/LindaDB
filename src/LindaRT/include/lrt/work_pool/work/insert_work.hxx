@@ -45,14 +45,15 @@
 
 namespace lrt {
     struct insert_work {
-        explicit insert_work(std::span<std::byte> payload,
+        explicit insert_work(std::vector<std::byte>&& payload,
                              runtime& runtime)
-             : _bytes(payload.begin(), payload.end()),
+             : _bytes(std::move(payload)),
                _runtime(&runtime) { }
 
         void
-        perform() {
+        perform(const mpi_thread_context& context) {
             const auto tuple = deserialize(_bytes);
+            mpi_thread_context::set_current(context);
             _runtime->store().out_nosignal(tuple);
         }
 
@@ -60,7 +61,7 @@ namespace lrt {
         friend std::ostream&
         operator<<(std::ostream& os, const insert_work& work) {
             std::ignore = work;
-            return os << "[insert work]";
+            return os << "[insert work] on thread " << std::this_thread::get_id();
         }
 
         std::vector<std::byte> _bytes;

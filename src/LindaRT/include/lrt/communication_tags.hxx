@@ -38,12 +38,22 @@
 #define LINDADB_COMMUNICATION_TAGS_HXX
 
 namespace lrt {
+    constexpr const static auto comm_tag_mask = ~0xFF'DB'00'00;
     enum class communication_tag : int {
         Terminate = 0xDB'00'01,
         SyncInsert = 0xDB'00'02,
         SyncDelete = 0xDB'00'03,
         Eval = 0xDB'00'04,
     };
+
+    [[nodiscard]] constexpr auto
+    operator<=>(int int_tag, communication_tag tag) noexcept {
+        return int_tag <=> static_cast<int>(tag);
+    }
+    [[nodiscard]] constexpr auto
+    operator==(int int_tag, communication_tag tag) noexcept {
+        return std::is_eq(int_tag <=> tag);
+    }
 }
 
 #endif

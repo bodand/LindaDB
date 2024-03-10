@@ -35,197 +35,98 @@
  */
 
 #include <algorithm>
-#include <cstddef>
-#include <execution>
 #include <fstream>
-#include <ios>
-#include <memory>
-#include <span>
-#include <stdexcept>
+#include <functional>
+#include <iterator>
 #include <utility>
-#include <vector>
 
 #define LRT_NOINCLUDE_EVAL
 
 #include <ldb/lv/linda_tuple.hxx>
+#include <lrt/bcast/multi_thread_broadcast.hxx>
+#include <lrt/bcast/manual_broadcast_handler.hxx>
 #include <lrt/communication_tags.hxx>
 #include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
 #include <lrt/work_pool/work_factory.hxx>
 
 #include <mpi.h>
 
-namespace {
-    struct mpi_request_vector_awaiter final {
-        mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
-                                   std::unique_ptr<std::byte[]>&& buf)
-             : _reqs(std::move(reqs)),
-               _buf(std::move(buf)) { }
+lrt::runtime::runtime(int* argc,
+                      char*** argv,
+                      std::function<balancer(const runtime&)> load_balancer)
+     : _mpi(argc, argv),
+       _recv_thr(&lrt::runtime::recv_thread_worker, this),
+       _work_pool([this]() {
+           mpi_thread_context ctx{};
+           MPI_Comm_dup(MPI_COMM_WORLD, &ctx.thread_communicator);
+           std::ofstream("_comm.log", std::ios::app) << rank() << ": DUPING WORLD: " << std::hex << ctx.thread_communicator << std::endl;
+           return std::make_tuple(ctx);
+       },
+                  3) {
+    mpi_thread_context main_ctx;
+    MPI_Comm_dup(MPI_COMM_WORLD, &main_ctx.thread_communicator);
+    mpi_thread_context::set_current(main_ctx);
+    std::ofstream("_comm.log", std::ios::app) << rank() << ": DUPING WORLD: " << std::hex << main_ctx.thread_communicator << std::endl;
+    _main_thread_context = std::make_tuple(main_ctx);
 
-    private:
-        friend void
-        await(mpi_request_vector_awaiter& awaiter) {
-            assert_that(!awaiter._finished);
-            MPI_Waitall(static_cast<int>(awaiter._reqs.size()),
-                        awaiter._reqs.data(),
-                        MPI_STATUS_IGNORE);
-            awaiter._finished = true;
-            awaiter._buf.reset();
-        }
+    std::vector<std::tuple<mpi_thread_context>*> contexts;
+    contexts.reserve(_work_pool.thread_contexts().size() + 1);
+    contexts.push_back(&_main_thread_context);
 
-        bool _finished{};
-        std::vector<MPI_Request> _reqs;
-        std::unique_ptr<std::byte[]> _buf;
-    };
+    std::ranges::copy(_work_pool.thread_contexts(), std::back_inserter(contexts));
 
-    static_assert(ldb::awaitable<mpi_request_vector_awaiter>);
-
-    MPI_Request
-    start_send_buffer_to_with_tag(const std::span<std::byte> buffer,
-                                  int to_rank,
-                                  int tag) {
-        int rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        auto tuple = lrt::deserialize(buffer);
-        std::ofstream("_msglog.txt", std::ios::app) << rank << " -> " << to_rank << ": " << std::showbase << std::hex << tag
-                                                    << std::dec << std::noshowbase << tuple << std::endl;
-
-        auto req = MPI_REQUEST_NULL;
-        if (const auto status = MPI_Isend(buffer.data(),
-                                          static_cast<int>(buffer.size()),
-                                          MPI_CHAR,
-                                          to_rank,
-                                          tag,
-                                          MPI_COMM_WORLD,
-                                          &req);
-            status != 0) return MPI_REQUEST_NULL;
-        return req;
+    {
+        std::ofstream os("_comm.log", std::ios::app);
+        os << rank() << ": " << std::hex;
+        std::ranges::transform(contexts,
+                               std::ostream_iterator<int>(os, " "),
+                               [](std::tuple<mpi_thread_context>* ptr) {
+                                   return std::get<0>(*ptr).thread_communicator;
+                               });
+        os << std::endl;
     }
 
-    struct manual_broadcast_handler final {
-        using await_type = mpi_request_vector_awaiter;
-
-        static manual_broadcast_handler
-        for_communicator(MPI_Comm comm) {
-            int rank;
-            int comm_size;
-            MPI_Comm_rank(comm, &rank);
-            MPI_Comm_size(comm, &comm_size);
-            return {rank, comm_size};
-        }
-
-    private:
-        manual_broadcast_handler(const int rank, const int size)
-             : _myrank(rank),
-               _size(static_cast<std::size_t>(size)) { }
-
-        [[nodiscard]] std::vector<int>
-        get_recipients() const {
-            std::vector<int> recipient_ranks(_size - 1);
-            std::ranges::generate(recipient_ranks, [idx = 0, skipped = _myrank]() mutable {
-                const auto rank = idx++;
-                if (rank == skipped) return idx++;
-                return rank;
-            });
-            return recipient_ranks;
-        }
-
-        [[nodiscard]] std::vector<MPI_Request>
-        broadcast_with_tag(int tag, std::span<std::byte> bytes) const {
-            std::vector requests(_size, MPI_REQUEST_NULL);
-            const auto recipient_ranks = get_recipients();
-            std::transform(std::execution::par_unseq,
-                           recipient_ranks.begin(),
-                           recipient_ranks.end(),
-                           requests.begin(),
-                           [bytes, tag](int rank) {
-                               return start_send_buffer_to_with_tag(bytes, rank, tag);
-                           });
-
-            return requests;
-        }
-
-        friend mpi_request_vector_awaiter
-        broadcast_insert(const manual_broadcast_handler& handler,
-                         const ldb::lv::linda_tuple& tuple) {
-            auto [val, val_sz] = lrt::serialize(tuple);
-            auto reqs = handler.broadcast_with_tag(static_cast<int>(lrt::communication_tag::SyncInsert),
-                                                   {val.get(), val_sz});
-            return {std::move(reqs), std::move(val)};
-        }
-
-        friend mpi_request_vector_awaiter
-        broadcast_delete(const manual_broadcast_handler& handler,
-                         const ldb::lv::linda_tuple& tuple) {
-            auto [val, val_sz] = lrt::serialize(tuple);
-            auto reqs = handler.broadcast_with_tag(static_cast<int>(lrt::communication_tag::SyncDelete),
-                                                   {val.get(), val_sz});
-            return {std::move(reqs), std::move(val)};
-        }
-
-        int _myrank;
-        std::size_t _size;
-    };
-
-    struct incompatible_mpi_exception : std::runtime_error {
-        incompatible_mpi_exception()
-             : std::runtime_error("MPI_Init_thread: insufficient threading capabilities: "
-                                  "LindaRT requires at least MPI_THREAD_SERIALIZED but the current "
-                                  "MPI runtime cannot provide this functionality.") { }
-    };
-
-    void
-    init_threaded_mpi(int* argc, char*** argv) {
-        int got_thread = MPI_THREAD_SINGLE;
-        MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &got_thread);
-
-        if (got_thread == MPI_THREAD_SINGLE
-            || got_thread == MPI_THREAD_FUNNELED) throw incompatible_mpi_exception();
-    }
-}
-
-lrt::runtime::runtime(int* argc, char*** argv, std::function<balancer(const runtime&)> load_balancer)
-     : _recv_thr(&lrt::runtime::recv_thread_worker, this),
-       _work_pool(1) {
-    if (!_mpi_inited.test_and_set()) init_threaded_mpi(argc, argv);
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &_world_size);
-
+    _broadcast = lrt::multi_thread_broadcast(contexts);
     _balancer = load_balancer(*this);
 
-    _store.set_broadcast(manual_broadcast_handler::for_communicator(MPI_COMM_WORLD));
+    _store.set_broadcast(_broadcast);
     _recv_start.test_and_set();
     _recv_start.notify_all();
 }
 
 lrt::runtime::~runtime() noexcept {
-    constexpr char buf{};
-    MPI_Send(&buf, 0, MPI_CHAR, _rank, static_cast<int>(lrt::communication_tag::Terminate), MPI_COMM_WORLD);
+    std::ofstream("_runtime.log") << "RUNTIME ENDING 0: "
+                                  << mpi_thread_context::current().thread_communicator << " =?= "
+                                  << std::get<0>(_main_thread_context).thread_communicator << std::endl;
+    await(broadcast_terminate(_broadcast));
+    std::ofstream("_runtime.log") << "RUNTIME ENDING 1" << std::endl;
     _recv_thr.join();
+    std::ofstream("_runtime.log") << "RUNTIME ENDING 2" << std::endl;
+    _store.terminate();
+    std::ofstream("_runtime.log") << "RUNTIME ENDING 3" << std::endl;
     _work_pool.terminate();
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Finalize();
+    std::ofstream("_runtime.log") << "RUNTIME ENDING 4" << std::endl;
 }
 
 void
 lrt::runtime::recv_thread_worker() {
     _recv_start.wait(false);
-    for (;;) {
-        MPI_Status stat{};
-        MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &stat);
+    bool do_spin = true;
+    while (do_spin) {
+        auto msgs = broadcast_recv(_broadcast);
+        for (auto& msg : msgs) {
+            const auto command = static_cast<communication_tag>(msg.tag);
+            std::ofstream("_cmd.log", std::ios::app) << rank() << ": RECEIVED COMMAND: " << std::hex << msg.tag << std::endl;
 
-        int len;
-        MPI_Get_count(&stat, MPI_CHAR, &len);
-        auto buf = std::vector<std::byte>(static_cast<std::size_t>(len));
-
-        MPI_Recv(buf.data(), len, MPI_CHAR, stat.MPI_SOURCE, stat.MPI_TAG, MPI_COMM_WORLD, &stat);
-        const auto command = static_cast<communication_tag>(stat.MPI_TAG);
-        const auto payload = std::span<std::byte>(buf);
-
-        if (command == communication_tag::Terminate) break;
-        auto work = lrt::work_factory::create(command, payload, *this);
-        _work_pool.enqueue(std::move(work));
+            if (command == communication_tag::Terminate) {
+                do_spin = false;
+                break;
+            }
+            auto work = lrt::work_factory::create(command,
+                                                  std::move(msg.buffer),
+                                                  *this);
+            _work_pool.enqueue(std::move(work));
+        }
     }
     _work_pool.terminate();
 }
@@ -234,14 +135,7 @@ void
 lrt::runtime::eval(const ldb::lv::linda_tuple& call_tuple) {
     assert_that(_balancer);
     const auto dest = _balancer->send_to_rank(call_tuple);
-    const auto [rx_buf, rx_buf_sz] = serialize(call_tuple);
-
-    MPI_Send(rx_buf.get(),
-             static_cast<int>(rx_buf_sz),
-             MPI_CHAR,
-             dest,
-             static_cast<int>(lrt::communication_tag::Eval),
-             MPI_COMM_WORLD);
+    await(send_eval(_broadcast, dest, call_tuple));
 }
 
 void

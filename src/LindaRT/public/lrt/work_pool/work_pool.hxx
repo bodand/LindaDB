@@ -39,6 +39,8 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
+#include <functional>
+#include <latch>
 #include <span>
 #include <thread>
 #include <vector>
@@ -46,16 +48,26 @@
 #include <lrt/work_pool/work.hxx>
 #include <lrt/work_pool/work_if.hxx>
 #include <lrt/work_pool/work_queue.hxx>
+// TEMPORARY
+#include <lrt/mpi_thread_context.hxx>
 
 #include <mpi.h>
 
 namespace lrt {
-    template<work_if Work = class work, std::size_t PoolSize = std::dynamic_extent>
-    struct work_pool {
-        using value_type = Work;
+    template<std::size_t, class...>
+    struct work_pool;
 
-        explicit work_pool(std::size_t pool_size = std::thread::hardware_concurrency())
-             : _storage(pool_size, _queue) { }
+    template<class... WorkerContext,
+             work_if<WorkerContext...> Work,
+             std::size_t PoolSize>
+    struct work_pool<PoolSize, Work, WorkerContext...> {
+        using value_type = Work;
+        using queue_type = work_queue<value_type, WorkerContext...>;
+        using context_builder_type = std::function<std::tuple<WorkerContext...>()>;
+
+        explicit work_pool(const context_builder_type& context_builder,
+                           std::size_t pool_size = std::thread::hardware_concurrency())
+             : _storage(context_builder, pool_size, _queue) { }
 
         void
         enqueue(value_type&& work) {
@@ -75,14 +87,32 @@ namespace lrt {
             std::ranges::for_each(threads(), [](auto& t) { t.join(); });
         }
 
-//    private:
-        struct worker_thread_job {
-            explicit worker_thread_job(work_queue<>& work_queue) : _work_queue(work_queue) { }
+        std::size_t
+        worker_size() noexcept {
+            return threads().size();
+        }
 
+        std::span<std::tuple<WorkerContext...>*>
+        thread_contexts() noexcept {
+            return _storage._context_pointers;
+        }
+
+    private:
+        struct worker_thread_job {
             void
-            operator()() const {
+            operator()(std::tuple<WorkerContext...>** ctx_pointer,
+                       const context_builder_type* builder,
+                       queue_type* work_queue,
+                       std::latch* latch) const {
+                std::tuple<WorkerContext...> thread_context = (*builder)();
+                *ctx_pointer = &thread_context;
+                if constexpr (sizeof...(WorkerContext) > 0) {
+                    mpi_thread_context::set_current(std::get<0>(thread_context));
+                }
+
                 try {
-                    work_loop();
+                    latch->count_down();
+                    work_loop(thread_context, *work_queue);
                 } catch (work_queue_terminated_exception) {
                     return;
                 }
@@ -90,52 +120,65 @@ namespace lrt {
 
         private:
             void
-            work_loop() const {
+            work_loop(std::tuple<WorkerContext...>& thread_context,
+                      queue_type& work_queue) const {
                 for (;;) {
-                    auto work = _work_queue.dequeue();
-                    work.perform();
+                    auto work = work_queue.dequeue();
+                    std::ofstream("_wp.log", std::ios::app) << "RETRIEVED WORK: " << work << std::endl;
+                    std::apply([&work]<class... CallCtx>(CallCtx&&... context) {
+                        work.perform(std::forward<CallCtx>(context)...);
+                    },
+                               thread_context);
                 }
             }
-
-            work_queue<>& _work_queue;
         };
 
         template<std::size_t Size>
         struct pool_storage {
-            pool_storage(std::size_t size, work_queue<>& work_queue)
-                 : _threads() {
-                std::ignore = size;
+            pool_storage(const context_builder_type& builder,
+                         std::size_t size,
+                         queue_type& work_queue) {
+                std::latch start_latch(static_cast<std::ptrdiff_t>(size) + 1);
                 std::ranges::generate(_threads,
-                                      [&work_queue]() {
-                                          return std::thread{worker_thread_job(work_queue)};
+                                      [n = 0ull, this, &start_latch, &builder, &work_queue]() mutable {
+                                          return std::thread(worker_thread_job(), &_context_pointers[n++], &builder, &work_queue, &start_latch);
                                       });
+                start_latch.arrive_and_wait();
             }
 
+            std::array<std::tuple<WorkerContext...>*, Size> _context_pointers{};
             std::array<std::thread, Size> _threads{};
         };
         template<>
         struct pool_storage<std::dynamic_extent> {
-            pool_storage(std::size_t size, work_queue<>& work_queue)
-                 : _threads(size) {
+            pool_storage(const context_builder_type& builder,
+                         std::size_t size,
+                         queue_type& work_queue)
+                 : _context_pointers(size),
+                   _threads(size) {
+                std::latch start_latch(static_cast<std::ptrdiff_t>(size) + 1);
                 std::ranges::generate(_threads,
-                                      [&work_queue]() {
-                                          return std::thread{worker_thread_job(work_queue)};
+                                      [n = 0ull, this, &start_latch, &builder, &work_queue]() mutable {
+                                          return std::thread(worker_thread_job(), &_context_pointers[n++], &builder, &work_queue, &start_latch);
                                       });
+                start_latch.arrive_and_wait();
             }
 
+            std::vector<std::tuple<WorkerContext...>*> _context_pointers;
             std::vector<std::thread> _threads;
         };
 
-        work_queue<> _queue{};
+        queue_type _queue{};
         pool_storage<PoolSize> _storage;
 
         std::span<std::thread>
-        threads() noexcept { return _storage._threads; }
-        std::span<std::thread>
-        threads() const noexcept { return _storage._threads; }
+        threads() noexcept {
+            return std::span(_storage._threads.begin(),
+                             _storage._threads.end());
+        }
     };
 
-    work_pool() -> work_pool<>;
+    work_pool() -> work_pool<std::dynamic_extent, work<>>;
 }
 
 #endif

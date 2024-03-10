@@ -42,9 +42,10 @@
 #include <ldb/store.hxx>
 #include <lrt/balancer/balancer.hxx>
 #include <lrt/balancer/uniform_random_balancer.hxx>
+#include <lrt/mpi_runtime.hxx>
+#include <lrt/mpi_thread_context.hxx>
 #include <lrt/work_pool/work.hxx>
-
-#include "lrt/work_pool/work_pool.hxx"
+#include <lrt/work_pool/work_pool.hxx>
 
 namespace lrt {
     struct runtime {
@@ -71,26 +72,33 @@ namespace lrt {
         store() const noexcept { return _store; }
 
         [[nodiscard]] int
-        rank() const noexcept { return _rank; }
+        rank() const noexcept { return _mpi.rank(); }
 
         [[nodiscard]] int
-        world_size() const noexcept { return _world_size; }
+        world_size() const noexcept { return _mpi.world_size(); }
 
         void
         loop();
 
     private:
-        inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
-
         void
         recv_thread_worker();
 
-        int _rank;
-        int _world_size;
+        lrt::mpi_runtime _mpi;
+
         std::atomic_flag _recv_start = ATOMIC_FLAG_INIT;
         std::thread _recv_thr;
+
+        std::tuple<mpi_thread_context> _main_thread_context;
+        ldb::broadcast _broadcast;
+
         std::optional<balancer> _balancer{std::nullopt};
-        lrt::work_pool<> _work_pool;
+
+        lrt::work_pool<std::dynamic_extent,
+                       class work<mpi_thread_context>,
+                       mpi_thread_context>
+               _work_pool;
+
         ldb::store _store{};
     };
 }

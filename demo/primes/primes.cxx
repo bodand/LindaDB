@@ -49,16 +49,6 @@ initialize_values(int n) {
 }
 
 int
-increase_modulus() {
-    in("m_lock");
-    int current_num;
-    in("m", ldb::ref(&current_num));
-    out("m", current_num + 1);
-    out("m_lock");
-    return current_num;
-}
-
-int
 eliminate_multiples(int p, int n) {
     std::ofstream("_primes.log", std::ios::app) << "p: " << p << "\n";
 
@@ -85,10 +75,8 @@ eliminate_multiples(int p, int n) {
         out("m", current_num + 1);
     }
 
-    int proc;
-    in("done", ldb::ref(&proc));
-    out("done", proc + 1);
-    std::ofstream("_primes.log", std::ios::app) << "p: " << p << "--done: " << proc << "\n";
+    out("done", p);
+    std::ofstream("_primes.log", std::ios::app) << "p: " << p << "--done: " << "\n";
 
     return 0;
 }
@@ -98,7 +86,6 @@ real_main() {
     constexpr static auto checked_range_end = 1000;
     initialize_values(checked_range_end);
     std::ofstream("_primes.log", std::ios::app) << "Initialized...\n";
-    out("done", 0);
     {
         std::ofstream os("_primes.log", std::ios::app);
         lrt::this_store().dump_indices(os);
@@ -109,13 +96,15 @@ real_main() {
                               eval((eliminate_multiples) (i, checked_range_end));
                           });
 
-    in(0);
-    in("done", lrt::this_runtime().world_size() - 1);
+    int proc = 1;
+    while (proc < lrt::this_runtime().world_size() - 1) {
+        in("done", proc);
+        ++proc;
+    }
+
     std::cout << "Primes in [1.." << checked_range_end << "]:\n";
-    std::ranges::for_each(std::views::iota(2, checked_range_end),
-                          [](int i) {
-                              if (inp("vec", i)) std::cout << " " << i;
-                          });
+    int i;
+    while (inp("vec", ldb::ref(&i))) std::cout << " " << i;
 
     return 0;
 }

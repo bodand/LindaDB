@@ -179,6 +179,7 @@ endmacro()
 
 # targets
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>)
+
 set(PROJECT_TARGETS)
 add_subdirectory(src/LindaDB)
 add_subdirectory(src/LindaRT)

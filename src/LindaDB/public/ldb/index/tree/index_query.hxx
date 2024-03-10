@@ -86,6 +86,7 @@ namespace ldb::index::tree {
     };
     static_assert(index_lookup<any_value_lookup<int>, int>);
 
+
     template<class K>
     any_value_lookup(const K&) -> any_value_lookup<K>;
 
@@ -95,8 +96,8 @@ namespace ldb::index::tree {
         using value_type = V;
 
         explicit value_lookup(key_type key,
-                             value_type value) noexcept(std::is_nothrow_move_constructible_v<key_type>
-                                                        && std::is_nothrow_move_constructible_v<value_type>)
+                              value_type value) noexcept(std::is_nothrow_move_constructible_v<key_type>
+                                                         && std::is_nothrow_move_constructible_v<value_type>)
              : _key(std::move(key)),
                _value(std::move(value)) { }
 
@@ -123,6 +124,7 @@ namespace ldb::index::tree {
         }
     };
     static_assert(index_lookup<value_lookup<int, int>, int>);
+
 
     template<class K, class V>
     value_lookup(const K&, const V&) -> value_lookup<K, V>;

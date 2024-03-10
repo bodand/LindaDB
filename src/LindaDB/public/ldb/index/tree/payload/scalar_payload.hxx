@@ -48,12 +48,12 @@
 #include <functional>
 #include <optional>
 #include <tuple>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
+#include <ldb/common.hxx>
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload.hxx>
-#include <ldb/common.hxx>
 
 namespace ldb::index::tree::payloads {
     template<class K, std::movable P>
@@ -68,24 +68,18 @@ namespace ldb::index::tree::payloads {
             requires(std::constructible_from<std::pair<K, P>, std::pair<K2, P2>>)
              : _value(std::make_pair(std::forward<K2>(key), std::forward<P2>(value))) { }
 
-        constexpr explicit
-        scalar_payload(bundle_type&& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
+        constexpr explicit scalar_payload(bundle_type&& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
              : _value(std::move(bundle)) { }
 
-        constexpr explicit
-        scalar_payload(const bundle_type& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
+        constexpr explicit scalar_payload(const bundle_type& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
              : _value(bundle) { }
 
-        constexpr
-        scalar_payload() = default;
+        constexpr scalar_payload() = default;
 
-        constexpr
-        scalar_payload(const scalar_payload& cp) = default;
-        constexpr
-        scalar_payload(scalar_payload&& mv) noexcept = default;
+        constexpr scalar_payload(const scalar_payload& cp) = default;
+        constexpr scalar_payload(scalar_payload&& mv) noexcept = default;
 
-        constexpr ~
-        scalar_payload() noexcept = default;
+        constexpr ~scalar_payload() noexcept = default;
 
         constexpr scalar_payload&
         operator=(const scalar_payload& cp) = default;
@@ -94,7 +88,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] std::weak_ordering
         operator<=>(const auto& other) const noexcept(noexcept(kv_key() <=> other)) {
-                        if (empty()) return std::weak_ordering::equivalent;
+            if (empty()) return std::weak_ordering::equivalent;
             return kv_key() <=> other;
         }
 
@@ -128,7 +122,7 @@ namespace ldb::index::tree::payloads {
         template<index_lookup<value_type> Q>
         [[nodiscard]] constexpr std::optional<value_type>
         try_get(Q query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
-                        if (empty()) return std::nullopt;
+            if (empty()) return std::nullopt;
             if (kv_key() != query.key()) return std::nullopt;
             if (kv_value() != query) return std::nullopt;
             return {kv_value()};
@@ -136,7 +130,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr bool
         try_set(const key_type& key, const value_type& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
-                        if (full()) {
+            if (full()) {
                 if (kv_key() == key) {
                     kv_value() = value;
                     return true;
@@ -154,7 +148,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
-                        if (!empty() && kv_key() == key) {
+            if (!empty() && kv_key() == key) {
                 kv_value() = value;
                 return std::nullopt;
             }
@@ -236,25 +230,25 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] friend constexpr bool
         operator==(const scalar_payload<K, P>& self, const K& other) noexcept(noexcept(self.kv_key() == other)) {
-                        if (self.empty()) return true;
+            if (self.empty()) return true;
             return self.kv_key() == other;
         }
 
         [[nodiscard]] friend constexpr bool
         operator==(const K& other, const scalar_payload<K, P>& self) noexcept(noexcept(other == self.kv_key())) {
-                        if (self.empty()) return true;
+            if (self.empty()) return true;
             return other == self.kv_key();
         }
 
         [[nodiscard]] friend constexpr bool
         operator!=(const scalar_payload<K, P>& self, const K& other) noexcept(noexcept(self.kv_key() != other)) {
-                        if (self.empty()) return false;
+            if (self.empty()) return false;
             return self.kv_key() != other;
         }
 
         [[nodiscard]] friend constexpr bool
         operator!=(const K& other, const scalar_payload<K, P>& self) noexcept(noexcept(other != self.kv_key())) {
-                        if (self.empty()) return false;
+            if (self.empty()) return false;
             return other != self.kv_key();
         }
 

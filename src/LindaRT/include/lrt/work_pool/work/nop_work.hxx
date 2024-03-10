@@ -39,14 +39,18 @@
 #include <ostream>
 namespace lrt {
     struct nop_work final {
+        template<class... Args>
         void
-        perform() { }
+        perform(Args&&... args) {
+            ((std::ignore = std::forward<Args>(args)), ...);
+
+        }
 
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const nop_work& work) {
             std::ignore = work;
-            return os << "[nop work]";
+            return os << "[nop work] on thread " << std::this_thread::get_id();
         }
     };
 }

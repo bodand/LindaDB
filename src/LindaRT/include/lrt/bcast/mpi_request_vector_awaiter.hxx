@@ -28,44 +28,48 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-01-10.
+ * Originally created: 2024-03-07.
  *
- * src/LindaDB/public/ldb/bcast/broadcaster --
- *   Interface requirements of a broadcaster implementation.
+ * src/LindaRT/include/lrt/bcast/mpi_request_vector_awaiter --
+ *   
  */
-#ifndef LINDADB_BROADCASTER_HXX
-#define LINDADB_BROADCASTER_HXX
+#ifndef LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
+#define LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
 
-#include <concepts>
-#include <vector>
 #include <cstddef>
-#include <cstdint>
 #include <memory>
+#include <utility>
+#include <vector>
 
-#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/bcast/broadcaster.hxx>
+#include <ldb/common.hxx>
 
-namespace ldb {
-    template<class Awaitable>
-    concept await_if = requires(Awaitable awaitable) {
-        { await(awaitable) } -> std::same_as<void>;
+#include <mpi.h>
+
+namespace lrt {
+    struct mpi_request_vector_awaiter final {
+        mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
+                                   std::unique_ptr<std::byte[]>&& buf)
+             : _reqs(std::move(reqs)),
+               _buf(std::move(buf)) { }
+
+    private:
+        friend void
+        await(mpi_request_vector_awaiter& awaiter) {
+            assert_that(!awaiter._finished);
+            MPI_Waitall(static_cast<int>(awaiter._reqs.size()),
+                        awaiter._reqs.data(),
+                        MPI_STATUS_IGNORE);
+            awaiter._finished = true;
+            awaiter._buf.reset();
+        }
+
+        bool _finished{};
+        std::vector<MPI_Request> _reqs;
+        std::unique_ptr<std::byte[]> _buf;
     };
 
-    struct broadcast_msg {
-        int from;
-        int tag;
-        std::vector<std::byte> buffer;
-    };
-
-    template<class Broadcast>
-    concept broadcast_if = requires(Broadcast bcast) {
-        typename Broadcast::await_type;
-
-        { broadcast_recv(bcast) } -> std::same_as<std::vector<broadcast_msg>>;
-        { broadcast_terminate(bcast) } -> await_if;
-        { send_eval(bcast, int{}, lv::linda_tuple{}) } -> await_if;
-        { broadcast_insert(bcast, lv::linda_tuple{}) } -> await_if;
-        { broadcast_delete(bcast, lv::linda_tuple{}) } -> await_if;
-    } && await_if<typename Broadcast::await_type>;
+    static_assert(ldb::await_if<mpi_request_vector_awaiter>);
 }
 
 #endif

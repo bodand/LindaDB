@@ -53,12 +53,16 @@ namespace lrt {
     struct work_queue_terminated_exception : std::exception {
         [[nodiscard]] const char*
         what() const noexcept override {
-            return "_work_queue has been terminated";
+            return "work_queue has been terminated";
         }
     };
 
-    template<work_if Work = class work>
-    struct work_queue {
+    template<class...>
+    struct work_queue;
+
+    template<class... Context,
+             work_if<Context...> Work>
+    struct work_queue<Work, Context...> {
         using value_type = Work;
 
         void
@@ -103,7 +107,7 @@ namespace lrt {
         std::condition_variable _cv{};
     };
 
-    work_queue() -> work_queue<>;
+    work_queue() -> work_queue<class work<>>;
 }
 
 #endif

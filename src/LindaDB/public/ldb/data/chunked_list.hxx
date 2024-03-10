@@ -80,6 +80,8 @@
 #include <ldb/common.hxx>
 
 namespace ldb::data {
+    struct terminated_exception : std::exception { };
+
     namespace meta {
         template<std::size_t Size>
         using count_size_t = std::conditional_t<
@@ -276,7 +278,7 @@ namespace ldb::data {
             [[nodiscard]] constexpr reference
             operator[](size_type idx) noexcept {
                 assert_that(idx < ChunkSize, "Index is within chunk bounds");
-                std::shared_lock<std::shared_mutex> lck(_data_mtx);
+                auto lck = lock_read();
                 assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<pointer>(&_data[idx * sizeof(T)]);
             }
@@ -284,7 +286,7 @@ namespace ldb::data {
             [[nodiscard]] constexpr const_reference
             operator[](size_type idx) const noexcept {
                 assert_that(idx < ChunkSize, "Index is within chunk bounds");
-                std::shared_lock<std::shared_mutex> lck(_data_mtx);
+                auto lck = lock_read();
                 assert_that(valid_at_index(idx), "Index points to a valid value");
                 return *std::bit_cast<const_pointer>(&_data[idx * sizeof(T)]);
             }
@@ -300,7 +302,7 @@ namespace ldb::data {
 
                     const auto new_valids = static_cast<chunk_size_t>(local_valids | (1U << next_idx));
 
-                    std::scoped_lock<std::shared_mutex> lck(_data_mtx);
+                    auto lck = lock_write();
                     if (_valids.compare_exchange_strong(local_valids, new_valids, //
                                                         std::memory_order::acq_rel,
                                                         std::memory_order::acquire)) {
@@ -321,7 +323,7 @@ namespace ldb::data {
 
                     const auto new_valids = static_cast<chunk_size_t>(local_valids | (1U << next_idx));
 
-                    std::scoped_lock<std::shared_mutex> lck(_data_mtx);
+                    auto lck = lock_write();
                     if (_valids.compare_exchange_strong(local_valids, new_valids, //
                                                         std::memory_order::acq_rel,
                                                         std::memory_order::acquire)) {
@@ -339,10 +341,10 @@ namespace ldb::data {
                 for (;;) {
                     const auto new_valids = static_cast<chunk_size_t>(local_valids & ~(1U << idx));
 
-                    std::scoped_lock<std::shared_mutex> lck(_data_mtx);
                     if (_valids.compare_exchange_strong(local_valids, new_valids, //
                                                         std::memory_order::acq_rel,
                                                         std::memory_order::acquire)) {
+                        auto lck = lock_write();
                         std::destroy_at(std::bit_cast<pointer>(&_data[idx * sizeof(T)]));
                         return;
                     }
@@ -380,14 +382,16 @@ namespace ldb::data {
                 return _chunk_index.load(std::memory_order::acquire) == 0;
             }
 
-            ~data_chunk() noexcept {
+            ~data_chunk() noexcept try {
                 if (empty()) return;
 
-                std::scoped_lock<std::shared_mutex> lck(_data_mtx);
+                auto lck = lock_read();
                 for (std::size_t i = 0; i < ChunkSize; ++i) {
                     if (!valid_at_index(i)) continue;
                     std::destroy_at(std::bit_cast<pointer>(&_data[i * sizeof(T)]));
                 }
+            } catch (terminated_exception) {
+                //
             }
 
             void
@@ -396,11 +400,29 @@ namespace ldb::data {
             }
 
         private:
+            std::unique_lock<std::shared_timed_mutex>
+            lock_write() {
+                using namespace std::literals;
+                while (!_data_mtx.try_lock_for(777ms)) {
+                    if (_owner->_terminated.test()) throw terminated_exception{};
+                }
+                return std::unique_lock(_data_mtx, std::adopt_lock);
+            }
+
+            std::shared_lock<std::shared_timed_mutex>
+            lock_read() {
+                using namespace std::literals;
+                while (!_data_mtx.try_lock_shared_for(777ms)) {
+                    if (_owner->_terminated.test()) throw terminated_exception{};
+                }
+                return std::shared_lock(_data_mtx, std::adopt_lock);
+            }
+
             friend chunked_list;
             const chunked_list* const _owner;
             std::atomic<size_type> _chunk_index;
             std::atomic<chunk_size_t> _valids{};
-            mutable std::shared_mutex _data_mtx;
+            mutable std::shared_timed_mutex _data_mtx;
             alignas(alignof(T)) std::array<std::byte, sizeof(T) * ChunkSize> _data{std::byte{}};
         };
 
@@ -551,6 +573,7 @@ namespace ldb::data {
         }
 
         mutable std::shared_mutex _mtx;
+        std::atomic_flag _terminated = ATOMIC_FLAG_INIT;
         std::vector<std::unique_ptr<data_chunk>> _chunks;
 
     public:
@@ -630,6 +653,11 @@ namespace ldb::data {
             });
             if (found == last) return std::nullopt;
             return std::optional{*found};
+        }
+
+        void
+        terminate() {
+            _terminated.test_and_set();
         }
 
     private:

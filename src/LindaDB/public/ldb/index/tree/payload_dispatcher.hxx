@@ -81,5 +81,4 @@ namespace ldb::index::tree {
         using type = payloads::scalar_payload<K, V>;
     };
 }
-
 #endif

@@ -65,7 +65,6 @@ namespace ldb::lv {
     };
 }
 
-
 namespace std {
     template<>
     struct hash<ldb::lv::fn_call_tag> {

@@ -48,7 +48,7 @@ namespace ldb {
     await(null_awaiter) {
         /*nop*/
     }
-    static_assert(awaitable<null_awaiter>);
+    static_assert(await_if<null_awaiter>);
 
     struct null_broadcast {
         using await_type = null_awaiter;
@@ -59,13 +59,31 @@ namespace ldb {
         std::ignore = tuple;
         return null_awaiter{};
     }
+
     inline null_awaiter
     broadcast_delete(null_broadcast, const lv::linda_tuple& tuple) {
         std::ignore = tuple;
         return null_awaiter{};
     }
 
-    static_assert(broadcaster<null_broadcast>);
+    inline std::vector<broadcast_msg>
+    broadcast_recv(null_broadcast) {
+        return {};
+    }
+
+    inline null_awaiter
+    send_eval(null_broadcast, int target, const lv::linda_tuple& tuple) {
+        std::ignore = target;
+        std::ignore = tuple;
+        return null_awaiter{};
+    }
+
+    inline null_awaiter
+    broadcast_terminate(null_broadcast) {
+        return null_awaiter{};
+    }
+
+    static_assert(broadcast_if<null_broadcast>);
 }
 
 #endif
