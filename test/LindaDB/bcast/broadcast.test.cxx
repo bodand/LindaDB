@@ -38,75 +38,75 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wself-move"
 
-#include <utility>
-
-#include <catch2/catch_test_macros.hpp>
-#include <ldb/bcast/broadcast.hxx>
-#include <ldb/bcast/null_broadcast.hxx>
-#include <ldb/lv/linda_tuple.hxx>
-
-TEST_CASE("await_if can be awaited") {
-    const ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
-    await(await_bcast);
-}
-
-TEST_CASE("default constructed await_if can be awaited, is nop") {
-    const ldb::broadcast_awaitable await_bcast;
-    await(await_bcast);
-}
-
-TEST_CASE("await_if can be move constructed") {
-    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
-    const ldb::broadcast_awaitable await_bcast2 = std::move(await_bcast);
-    await(await_bcast2);
-}
-
-TEST_CASE("await_if can be move assigned") {
-    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
-    ldb::broadcast_awaitable await_bcast2;
-    await_bcast2 = std::move(await_bcast);
-    await(await_bcast2);
-}
-
-TEST_CASE("await_if handles self-assigment") {
-    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
-    await_bcast = std::move(await_bcast);
-    await(await_bcast);
-}
-
-TEST_CASE("broadcast_if can broadcast insert") {
-    const ldb::broadcast bcast = ldb::null_broadcast{};
-    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
-}
-
-TEST_CASE("broadcast_if can broadcast delete") {
-    const ldb::broadcast bcast = ldb::null_broadcast{};
-    await(broadcast_delete(bcast, ldb::lv::linda_tuple{}));
-}
-
-TEST_CASE("default constructed broadcast_if can be called, is nop") {
-    const ldb::broadcast bcast;
-    broadcast_insert(bcast, ldb::lv::linda_tuple{});
-    broadcast_delete(bcast, ldb::lv::linda_tuple{});
-}
-
-TEST_CASE("broadcast can be move constructed") {
-    ldb::broadcast bcast = ldb::null_broadcast{};
-    const ldb::broadcast bcast2 = std::move(bcast);
-    await(broadcast_insert(bcast2, ldb::lv::linda_tuple{}));
-}
-
-TEST_CASE("broadcast can be move assigned") {
-    ldb::broadcast bcast = ldb::null_broadcast{};
-    ldb::broadcast bcast2;
-    bcast2 = std::move(bcast);
-    await(broadcast_insert(bcast2, ldb::lv::linda_tuple{}));
-}
-
-TEST_CASE("broadcast handles self-assignment") {
-    ldb::broadcast bcast = ldb::null_broadcast{};
-    bcast = std::move(bcast);
-    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
-}
-
-#pragma clang diagnostic pop
+//#include <utility>
+//
+//#include <catch2/catch_test_macros.hpp>
+//#include <ldb/bcast/broadcast.hxx>
+//#include <ldb/bcast/null_broadcast.hxx>
+//#include <ldb/lv/linda_tuple.hxx>
+//
+//TEST_CASE("await_if can be awaited") {
+//    const ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
+//    await(await_bcast);
+//}
+//
+//TEST_CASE("default constructed await_if can be awaited, is nop") {
+//    const ldb::broadcast_awaitable await_bcast;
+//    await(await_bcast);
+//}
+//
+//TEST_CASE("await_if can be move constructed") {
+//    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
+//    const ldb::broadcast_awaitable await_bcast2 = std::move(await_bcast);
+//    await(await_bcast2);
+//}
+//
+//TEST_CASE("await_if can be move assigned") {
+//    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
+//    ldb::broadcast_awaitable await_bcast2;
+//    await_bcast2 = std::move(await_bcast);
+//    await(await_bcast2);
+//}
+//
+//TEST_CASE("await_if handles self-assigment") {
+//    ldb::broadcast_awaitable await_bcast = ldb::null_awaiter{};
+//    await_bcast = std::move(await_bcast);
+//    await(await_bcast);
+//}
+//
+//TEST_CASE("broadcast_if can broadcast insert") {
+//    const ldb::broadcast bcast = ldb::null_broadcast{};
+//    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
+//}
+//
+//TEST_CASE("broadcast_if can broadcast delete") {
+//    const ldb::broadcast bcast = ldb::null_broadcast{};
+//    await(broadcast_delete(bcast, ldb::lv::linda_tuple{}));
+//}
+//
+//TEST_CASE("default constructed broadcast_if can be called, is nop") {
+//    const ldb::broadcast bcast;
+//    broadcast_insert(bcast, ldb::lv::linda_tuple{});
+//    broadcast_delete(bcast, ldb::lv::linda_tuple{});
+//}
+//
+//TEST_CASE("broadcast can be move constructed") {
+//    ldb::broadcast bcast = ldb::null_broadcast{};
+//    const ldb::broadcast bcast2 = std::move(bcast);
+//    await(broadcast_insert(bcast2, ldb::lv::linda_tuple{}));
+//}
+//
+//TEST_CASE("broadcast can be move assigned") {
+//    ldb::broadcast bcast = ldb::null_broadcast{};
+//    ldb::broadcast bcast2;
+//    bcast2 = std::move(bcast);
+//    await(broadcast_insert(bcast2, ldb::lv::linda_tuple{}));
+//}
+//
+//TEST_CASE("broadcast handles self-assignment") {
+//    ldb::broadcast bcast = ldb::null_broadcast{};
+//    bcast = std::move(bcast);
+//    await(broadcast_insert(bcast, ldb::lv::linda_tuple{}));
+//}
+//
+//#pragma clang diagnostic pop

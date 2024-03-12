@@ -42,29 +42,31 @@
 #include <utility>
 
 #include <ldb/bcast/broadcaster.hxx>
+#include <ldb/bcast/null_broadcast.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 
 namespace ldb {
+    template<class R = void>
     class broadcast_awaitable final {
         struct awaitable_concept {
-            virtual void
+            virtual R
             do_await() = 0;
 
             virtual ~awaitable_concept() = default;
         };
 
-        template<await_if Impl>
+        template<await_if<R> Impl>
         struct awaitable_model final : awaitable_concept {
             using impl_type = Impl;
 
-            template<await_if T = impl_type>
+            template<await_if<R> T = impl_type>
             explicit awaitable_model(T&& init) /* todo noexcept in some cases... */
                 requires(!std::same_as<T, awaitable_model>)
                  : value(std::forward<T>(init)) { }
 
-            void
+            R
             do_await() override {
-                await(value);
+                return await(value);
             }
 
             impl_type value;
@@ -72,16 +74,17 @@ namespace ldb {
 
         std::unique_ptr<awaitable_concept> _impl = nullptr;
 
-        friend void
+        friend R
         await(const broadcast_awaitable& bcast_await_handle) {
-            if (bcast_await_handle._impl) bcast_await_handle._impl->do_await();
+            if (bcast_await_handle._impl) return bcast_await_handle._impl->do_await();
+            return R{};
         }
 
     public:
         broadcast_awaitable() = default;
         ~broadcast_awaitable() = default;
 
-        template<await_if Impl>
+        template<await_if<R> Impl>
         explicit(false) broadcast_awaitable(Impl value)
              : _impl(std::make_unique<awaitable_model<Impl>>(std::move(value))) { }
 
@@ -101,21 +104,25 @@ namespace ldb {
         }
     };
 
+    template<class RTerminate,
+             class REval,
+             class RInsert,
+             class RDelete>
     class broadcast final {
         struct broadcast_concept {
-            [[nodiscard]] virtual broadcast_awaitable
+            [[nodiscard]] virtual broadcast_awaitable<RInsert>
             do_broadcast_insert(const lv::linda_tuple& tuple) = 0;
 
-            [[nodiscard]] virtual broadcast_awaitable
+            [[nodiscard]] virtual broadcast_awaitable<RDelete>
             do_broadcast_delete(const lv::linda_tuple& tuple) = 0;
 
             [[nodiscard]] virtual std::vector<broadcast_msg>
             do_broadcast_recv() = 0;
 
-            [[nodiscard]] virtual broadcast_awaitable
+            [[nodiscard]] virtual broadcast_awaitable<RTerminate>
             do_broadcast_terminate() = 0;
 
-            [[nodiscard]] virtual broadcast_awaitable
+            [[nodiscard]] virtual broadcast_awaitable<REval>
             do_send_eval(int to, const lv::linda_tuple& tuple) = 0;
 
             [[nodiscard]] virtual std::unique_ptr<broadcast_concept>
@@ -124,22 +131,22 @@ namespace ldb {
             virtual ~broadcast_concept() = default;
         };
 
-        template<broadcast_if Impl>
+        template<broadcast_if<RTerminate, REval, RInsert, RDelete> Impl>
         struct broadcast_model final : broadcast_concept {
             using impl_type = Impl;
 
             template<class T = impl_type>
             explicit broadcast_model(T&& init) /* todo noexcept in some cases... */
                 requires(!std::same_as<T, broadcast_model>
-                         && broadcast_if<std::remove_cvref_t<T>>)
+                         && broadcast_if<std::remove_cvref_t<T>, RTerminate, REval, RInsert, RDelete>)
                  : bcast(std::forward<T>(init)) { }
 
-            [[nodiscard]] broadcast_awaitable
+            [[nodiscard]] broadcast_awaitable<RInsert>
             do_broadcast_insert(const lv::linda_tuple& tuple) override {
                 return broadcast_insert(bcast, tuple);
             }
 
-            [[nodiscard]] broadcast_awaitable
+            [[nodiscard]] broadcast_awaitable<RDelete>
             do_broadcast_delete(const lv::linda_tuple& tuple) override {
                 return broadcast_delete(bcast, tuple);
             }
@@ -154,12 +161,12 @@ namespace ldb {
                 return std::make_unique<broadcast_model>(bcast);
             }
 
-            broadcast_awaitable
+            broadcast_awaitable<RTerminate>
             do_broadcast_terminate() override {
                 return broadcast_terminate(bcast);
             }
 
-            broadcast_awaitable
+            broadcast_awaitable<REval>
             do_send_eval(int to, const lv::linda_tuple& tuple) override {
                 return send_eval(bcast, to, tuple);
             }
@@ -169,17 +176,17 @@ namespace ldb {
 
         std::unique_ptr<broadcast_concept> _impl = nullptr;
 
-        [[nodiscard]] friend broadcast_awaitable
+        [[nodiscard]] friend broadcast_awaitable<RInsert>
         broadcast_insert(const broadcast& bcast,
                          const lv::linda_tuple& tuple) {
-            if (!bcast._impl) return {};
+            if (!bcast._impl) return null_awaiter<RInsert>{};
             return bcast._impl->do_broadcast_insert(tuple);
         }
 
-        [[nodiscard]] friend broadcast_awaitable
+        [[nodiscard]] friend broadcast_awaitable<RDelete>
         broadcast_delete(const broadcast& bcast,
                          const lv::linda_tuple& tuple) {
-            if (!bcast._impl) return {};
+            if (!bcast._impl) return null_awaiter<RDelete>{};
             return bcast._impl->do_broadcast_delete(tuple);
         }
 
@@ -189,27 +196,25 @@ namespace ldb {
             return bcast._impl->do_broadcast_recv();
         }
 
-        [[nodiscard]] friend broadcast_awaitable
+        [[nodiscard]] friend broadcast_awaitable<RTerminate>
         broadcast_terminate(const broadcast& bcast) {
-            if (!bcast._impl) return {};
+            if (!bcast._impl) return null_awaiter<RTerminate>{};
             return bcast._impl->do_broadcast_terminate();
         }
 
-        [[nodiscard]] friend broadcast_awaitable
+        [[nodiscard]] friend broadcast_awaitable<REval>
         send_eval(const broadcast& bcast,
                   int to,
                   const lv::linda_tuple& tuple) {
-            if (!bcast._impl) return {};
+            if (!bcast._impl) return null_awaiter<REval>{};
             return bcast._impl->do_send_eval(to, tuple);
         }
 
     public:
-        using await_type = broadcast_awaitable;
-
         broadcast() = default;
         ~broadcast() = default;
 
-        template<broadcast_if Impl>
+        template<broadcast_if<RTerminate, REval, RInsert, RDelete> Impl>
         explicit(false) broadcast(Impl value)
              : _impl(std::make_unique<broadcast_model<Impl>>(std::move(value))) { }
 

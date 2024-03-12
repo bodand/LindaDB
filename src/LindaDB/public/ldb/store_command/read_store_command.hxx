@@ -28,48 +28,40 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-07.
+ * Originally created: 2024-03-11.
  *
- * src/LindaRT/include/lrt/bcast/mpi_request_vector_awaiter --
+ * src/LindaDB/public/ldb/store_command/read_store_command --
  *   
  */
-#ifndef LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
-#define LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
+#ifndef LINDADB_READ_STORE_COMMAND_HXX
+#define LINDADB_READ_STORE_COMMAND_HXX
 
-#include <cstddef>
-#include <memory>
-#include <utility>
-#include <vector>
+#include <type_traits>
 
-#include <ldb/bcast/broadcaster.hxx>
-#include <ldb/common.hxx>
+#include <ldb/lv/linda_tuple.hxx>
 
-#include <mpi.h>
+namespace ldb {
+    template<class Index, class Pointer>
+    struct read_store_command {
+        using index_type = std::add_const_t<Index>;
 
-namespace lrt {
-    struct mpi_request_vector_awaiter final {
-        mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
-                                   std::unique_ptr<std::byte[]>&& buf)
-             : _reqs(std::move(reqs)),
-               _buf(std::move(buf)) { }
-
-    private:
-        friend void
-        await(mpi_request_vector_awaiter& awaiter) {
-            assert_that(!awaiter._finished);
-            MPI_Waitall(static_cast<int>(awaiter._reqs.size()),
-                        awaiter._reqs.data(),
-                        MPI_STATUS_IGNORE);
-            awaiter._finished = true;
-            awaiter._buf.reset();
+        template<std::ranges::forward_range Rng>
+        read_store_command(helper::over_index_impl<Index> /*type dispatch*/,
+                           Pointer tuple,
+                           Rng&& indices)
+            requires(std::same_as<std::ranges::range_value_t<Rng>, Index*>)
+             : _tuple_it(tuple) {
+            std::ignore = indices;
         }
 
-        bool _finished{};
-        std::vector<MPI_Request> _reqs;
-        std::unique_ptr<std::byte[]> _buf;
-    };
+        lv::linda_tuple
+        commit() {
+            return *_tuple_it;
+        }
 
-    static_assert(ldb::await_if<mpi_request_vector_awaiter, void>);
+    private:
+        Pointer _tuple_it;
+    };
 }
 
 #endif

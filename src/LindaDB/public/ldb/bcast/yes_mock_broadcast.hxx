@@ -33,81 +33,79 @@
  * src/LindaDB/public/ldb/bcast/null_broadcast --
  *   A special broadcast implementation that does nothing.
  */
-#ifndef LDB_NULL_BROADCAST_HXX
-#define LDB_NULL_BROADCAST_HXX
+#ifndef LDB_YES_BROADCAST_HXX
+#define LDB_YES_BROADCAST_HXX
 
 #include <tuple>
 
 #include <ldb/bcast/broadcaster.hxx>
+#include <ldb/bcast/null_broadcast.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 
 namespace ldb {
-    template<class R>
-    struct null_awaiter { };
+    struct yes_awaiter { };
 
-    template<class R>
-    R
-    await(null_awaiter<R>) {
-        return R{};
+    constexpr bool
+    await(yes_awaiter) {
+        return true;
     }
 
-    void
-    await(null_awaiter<void>) { }
-
     template<class RTerminate,
-             class REval,
-             class RInsert,
-             class RDelete>
-    struct null_broadcast {
+             class REval>
+    struct yes_mock_broadcast {
     };
 
     template<class RTerminate,
-             class REval,
-             class RInsert,
-             class RDelete>
-    null_awaiter<RInsert>
-    broadcast_insert(null_broadcast<RTerminate, REval, RInsert, RDelete>, const lv::linda_tuple& tuple) {
+             class REval>
+    yes_awaiter
+    broadcast_insert(yes_mock_broadcast<RTerminate, REval>, const lv::linda_tuple& tuple) {
         std::ignore = tuple;
-        return null_awaiter<RInsert>{};
-    }
-
-    template<class RTerminate,
-             class REval,
-             class RInsert,
-             class RDelete>
-    null_awaiter<RDelete>
-    broadcast_delete(null_broadcast<RTerminate, REval, RInsert, RDelete>, const lv::linda_tuple& tuple) {
-        std::ignore = tuple;
-        return null_awaiter<RDelete>{};
-    }
-
-    template<class RTerminate,
-             class REval,
-             class RInsert,
-             class RDelete>
-    std::vector<broadcast_msg>
-    broadcast_recv(null_broadcast<RTerminate, REval, RInsert, RDelete>) {
         return {};
     }
 
     template<class RTerminate,
-             class REval,
-             class RInsert,
-             class RDelete>
+             class REval>
+    yes_awaiter
+    broadcast_delete(yes_mock_broadcast<RTerminate, REval>, const lv::linda_tuple& tuple) {
+        std::ignore = tuple;
+        return {};
+    }
+
+    template<class RTerminate,
+             class REval>
+    std::vector<broadcast_msg>
+    broadcast_recv(yes_mock_broadcast<RTerminate, REval>) {
+        return {};
+    }
+
+    template<class RTerminate,
+             class REval>
     null_awaiter<REval>
-    send_eval(null_broadcast<RTerminate, REval, RInsert, RDelete>, int target, const lv::linda_tuple& tuple) {
+    send_eval(yes_mock_broadcast<RTerminate, REval>, int target, const lv::linda_tuple& tuple) {
         std::ignore = target;
         std::ignore = tuple;
         return null_awaiter<REval>{};
     }
 
+    template<class RTerminate>
+    yes_awaiter
+    send_eval(yes_mock_broadcast<RTerminate, bool>, int target, const lv::linda_tuple& tuple) {
+        std::ignore = target;
+        std::ignore = tuple;
+        return {};
+    }
+
     template<class RTerminate,
-             class REval,
-             class RInsert,
-             class RDelete>
+             class REval>
     null_awaiter<RTerminate>
-    broadcast_terminate(null_broadcast<RTerminate, REval, RInsert, RDelete>) {
+    broadcast_terminate(yes_mock_broadcast<RTerminate, REval>) {
         return null_awaiter<RTerminate>{};
+    }
+
+    template<class REval>
+    yes_awaiter
+    broadcast_terminate(yes_mock_broadcast<bool, REval>) {
+        return {};
     }
 }
 

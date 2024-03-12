@@ -49,8 +49,6 @@
 
 namespace lrt {
     struct multi_thread_broadcast {
-        using await_type = ldb::null_awaiter;
-
         explicit multi_thread_broadcast(std::span<std::tuple<mpi_thread_context>*> receivers);
 
     private:
@@ -90,13 +88,13 @@ namespace lrt {
         friend lrt::mpi_request_vector_awaiter
         broadcast_terminate(multi_thread_broadcast& bcast);
 
-        friend ldb::null_awaiter
+        friend ldb::null_awaiter<void>
         send_eval(multi_thread_broadcast& bcast, int to, const ldb::lv::linda_tuple& tuple);
 
-        friend ldb::null_awaiter
+        friend ldb::null_awaiter<bool>
         broadcast_insert(multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple);
 
-        friend ldb::null_awaiter
+        friend ldb::null_awaiter<bool>
         broadcast_delete(multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple);
     };
 }

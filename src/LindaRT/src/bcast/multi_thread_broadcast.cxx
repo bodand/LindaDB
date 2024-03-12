@@ -59,13 +59,7 @@ namespace {
 
 ldb::broadcast_msg
 lrt::multi_thread_broadcast::thread_local_receiver::recv(int source) {
-    std::ofstream("_recv.log", std::ios::app) << mpi_thread_context::current().rank()
-                                              << ": INCOMING MESSAGE: "
-                                              << (void*) _bcast_init_payload
-                                              << ": size: " << _bcast_init_payload[0]
-                                              << " type: " << std::hex << _bcast_init_payload[1] << std::flush;
     auto payload = recv_payload(_bcast_init_payload[0], source);
-    std::ofstream("_recv.log", std::ios::app) << "## RECEIVED SIZE: " << payload.size() << std::endl;
     return ldb::broadcast_msg{
            .from = source,
            .tag = _bcast_init_payload[1],
@@ -257,7 +251,7 @@ lrt::send_eval(lrt::multi_thread_broadcast& bcast, int to, const ldb::lv::linda_
     return ldb::null_awaiter{};
 }
 
-ldb::null_awaiter
+ldb::null_awaiter<bool>
 lrt::broadcast_insert(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple) {
     auto [val, val_sz] = lrt::serialize(tuple);
 
@@ -287,6 +281,15 @@ lrt::broadcast_insert(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_t
               MPI_CHAR,
               context.rank(),
               context.thread_communicator);
+
+    int sender_yes = true; // initiator always agrees on commit
+    int recv = false;      // abort by default
+    MPI_Allreduce(&sender_yes,
+                  &recv,
+                  1,
+                  MPI_INT,
+                  MPI_LAND,
+                  context.thread_communicator);
 
     return ldb::null_awaiter{};
 }
@@ -321,6 +324,15 @@ lrt::broadcast_delete(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_t
               MPI_CHAR,
               context.rank(),
               context.thread_communicator);
+
+    int sender_yes = true; // initiator always agrees on commit
+    int recv = false;      // abort by default
+    MPI_Allreduce(&sender_yes,
+                  &recv,
+                  1,
+                  MPI_INT,
+                  MPI_LAND,
+                  context.thread_communicator);
 
     return ldb::null_awaiter{};
 }

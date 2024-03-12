@@ -61,8 +61,7 @@ lrt::runtime::runtime(int* argc,
            MPI_Comm_dup(MPI_COMM_WORLD, &ctx.thread_communicator);
            std::ofstream("_comm.log", std::ios::app) << rank() << ": DUPING WORLD: " << std::hex << ctx.thread_communicator << std::endl;
            return std::make_tuple(ctx);
-       },
-                  3) {
+       }) {
     mpi_thread_context main_ctx;
     MPI_Comm_dup(MPI_COMM_WORLD, &main_ctx.thread_communicator);
     mpi_thread_context::set_current(main_ctx);

@@ -28,48 +28,60 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-07.
+ * Originally created: 2024-03-10.
  *
- * src/LindaRT/include/lrt/bcast/mpi_request_vector_awaiter --
- *   
+ * demo/primes/primes --
+ *   A pure C++ serial implementation of the primes example code meant as a baseline.
  */
-#ifndef LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
-#define LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
 
-#include <cstddef>
-#include <memory>
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <iterator>
+#include <numeric>
+#include <ranges>
 #include <utility>
 #include <vector>
 
-#include <ldb/bcast/broadcaster.hxx>
-#include <ldb/common.hxx>
+constexpr static auto checked_range_start = 2;
+constexpr static auto checked_range_end = 1000;
 
-#include <mpi.h>
+[[nodiscard]] constexpr std::size_t
+value_to_index(int x) noexcept { return static_cast<std::size_t>(x) - checked_range_start; }
 
-namespace lrt {
-    struct mpi_request_vector_awaiter final {
-        mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
-                                   std::unique_ptr<std::byte[]>&& buf)
-             : _reqs(std::move(reqs)),
-               _buf(std::move(buf)) { }
-
-    private:
-        friend void
-        await(mpi_request_vector_awaiter& awaiter) {
-            assert_that(!awaiter._finished);
-            MPI_Waitall(static_cast<int>(awaiter._reqs.size()),
-                        awaiter._reqs.data(),
-                        MPI_STATUS_IGNORE);
-            awaiter._finished = true;
-            awaiter._buf.reset();
-        }
-
-        bool _finished{};
-        std::vector<MPI_Request> _reqs;
-        std::unique_ptr<std::byte[]> _buf;
-    };
-
-    static_assert(ldb::await_if<mpi_request_vector_awaiter, void>);
+template<std::random_access_iterator It,
+         std::sentinel_for<It> S>
+It
+next_max_until(It current,
+               S end,
+               std::iter_difference_t<It> by = 1) {
+    return current + std::min(by, std::distance(current, end));
 }
 
-#endif
+template<std::random_access_iterator It,
+         std::sentinel_for<It> S>
+void
+advance_max_until(It& current,
+                  S end,
+                  std::iter_difference_t<It> by = 1) {
+    current = next_max_until(current, end, by);
+}
+
+int
+main() {
+    std::vector<int> values(checked_range_end - checked_range_start);
+    std::iota(values.begin(), values.end(), checked_range_start);
+
+    std::ranges::for_each(values, [&values](int val) {
+        if (val == 0) return;
+        auto sqr_idx = value_to_index(val * val);
+        for (auto begin = next_max_until(values.begin(), values.end(), sqr_idx);
+             begin != values.end();
+             advance_max_until(begin, values.end(), val)) {
+            *begin = 0;
+        }
+    });
+
+    std::ranges::copy(values | std::views::filter(std::bind_front(std::not_equal_to{}, 0)),
+                      std::ostream_iterator<int>(std::cout, " "));
+}

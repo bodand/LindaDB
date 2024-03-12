@@ -37,17 +37,17 @@
 #define LINDADB_BROADCASTER_HXX
 
 #include <concepts>
-#include <vector>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <ldb/lv/linda_tuple.hxx>
 
 namespace ldb {
-    template<class Awaitable>
+    template<class Awaitable, class R>
     concept await_if = requires(Awaitable awaitable) {
-        { await(awaitable) } -> std::same_as<void>;
+        { await(awaitable) } -> std::same_as<R>;
     };
 
     struct broadcast_msg {
@@ -56,16 +56,18 @@ namespace ldb {
         std::vector<std::byte> buffer;
     };
 
-    template<class Broadcast>
+    template<class Broadcast,
+             class RTerminate,
+             class REval,
+             class RInsert,
+             class RDelete>
     concept broadcast_if = requires(Broadcast bcast) {
-        typename Broadcast::await_type;
-
         { broadcast_recv(bcast) } -> std::same_as<std::vector<broadcast_msg>>;
-        { broadcast_terminate(bcast) } -> await_if;
-        { send_eval(bcast, int{}, lv::linda_tuple{}) } -> await_if;
-        { broadcast_insert(bcast, lv::linda_tuple{}) } -> await_if;
-        { broadcast_delete(bcast, lv::linda_tuple{}) } -> await_if;
-    } && await_if<typename Broadcast::await_type>;
+        { broadcast_terminate(bcast) } -> await_if<RTerminate>;
+        { send_eval(bcast, int{}, lv::linda_tuple{}) } -> await_if<REval>;
+        { broadcast_insert(bcast, lv::linda_tuple{}) } -> await_if<RInsert>;
+        { broadcast_delete(bcast, lv::linda_tuple{}) } -> await_if<RDelete>;
+    };
 }
 
 #endif

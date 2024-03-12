@@ -38,6 +38,9 @@ target_compile_features(primes PUBLIC cxx_std_20)
 add_test(NAME "Linda-primes"
          COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:primes>)
 
+add_executable(primes-serial primes-serial.cxx)
+target_compile_features(primes-serial PUBLIC cxx_std_20)
+
 # testing
 target_link_libraries(primes PRIVATE internal-coverage)
 set_tests_properties("Linda-primes" PROPERTIES

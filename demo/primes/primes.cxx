@@ -44,7 +44,6 @@ initialize_values(int n) {
     std::ranges::for_each(std::views::iota(2, n), [](int i) {
         out("vec", i);
     });
-    out("m_lock");
     out("m", 2);
 }
 
@@ -52,19 +51,16 @@ int
 eliminate_multiples(int p, int n) {
     std::ofstream("_primes.log", std::ios::app) << "p: " << p << "\n";
 
-    {
-        std::ofstream os("_primes.log", std::ios::app);
-        os << "RANK: " << lrt::this_runtime().rank() << " INDEX DUMP:\n";
-        lrt::this_store().dump_indices(os);
-    }
-
-
     int current_num;
     in("m", ldb::ref(&current_num));
+    out("m", current_num);
     out("m", current_num + 1);
     std::ofstream("_primes.log", std::ios::app) << "num: " << current_num << "\n";
+
     while (current_num * current_num < n) {
-        if (rdp("vec", current_num)) {
+        auto vec = rdp("vec", current_num);
+        std::ofstream("_primes.log", std::ios::app) << "(vec, " << current_num << ")\n";
+        if (vec) {
             int square = current_num * current_num;
             while (square < n) {
                 inp("vec", square);
@@ -72,13 +68,14 @@ eliminate_multiples(int p, int n) {
             }
         }
         in("m", ldb::ref(&current_num));
+        std::ofstream("_primes.log", std::ios::app) << "num: " << current_num << "\n";
         out("m", current_num + 1);
     }
 
-    out("done", p);
-    std::ofstream("_primes.log", std::ios::app) << "p: " << p << "--done: " << "\n";
+    std::ofstream("_primes.log", std::ios::app) << "p: " << p << "--done: "
+                                                << "\n";
 
-    return 0;
+    return p;
 }
 
 int
@@ -93,14 +90,12 @@ real_main() {
 
     std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
                           [](int i) {
-                              eval((eliminate_multiples) (i, checked_range_end));
+                              eval("done", (eliminate_multiples) (i, checked_range_end));
                           });
-
-    int proc = 1;
-    while (proc < lrt::this_runtime().world_size() - 1) {
-        in("done", proc);
-        ++proc;
-    }
+    std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
+                          [](int i) {
+                              in("done", i);
+                          });
 
     std::cout << "Primes in [1.." << checked_range_end << "]:\n";
     int i;

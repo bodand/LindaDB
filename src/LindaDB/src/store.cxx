@@ -33,4 +33,60 @@
  * src/LindaDB/src/store --
  */
 
+#include <ldb/bcast/yes_mock_broadcast.hxx>
 #include <ldb/store.hxx>
+
+std::optional<ldb::lv::linda_tuple>
+ldb::store::read_and_remove_nosignal(const query_type& query) {
+    broadcast_type yes = yes_mock_broadcast<void, void>{};
+    return remove_impl(query, yes);
+}
+
+std::optional<ldb::lv::linda_tuple>
+ldb::store::remove_impl(const query_type& query, ldb::store::broadcast_type& bcast) {
+    std::unique_lock<std::shared_mutex> lck(_header_mtx);
+    for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+        auto [cont, command] = remove_one(i, query, bcast);
+        if (cont) continue;
+        if (!command) return {};
+        return command->commit();
+    }
+    return remove_directly(query, bcast);
+}
+
+std::pair<bool, std::optional<ldb::store::my_remove_command>>
+ldb::store::remove_one(std::size_t i, const query_type& query, ldb::store::broadcast_type& bcast) {
+    const auto result = query.search_on_index(i, _header_indices[i]);
+    return std::visit(query_result_visitor<my_remove_command>{bcast, _header_indices},
+                      result);
+}
+
+std::optional<ldb::lv::linda_tuple>
+ldb::store::remove_directly(const query_type& query, ldb::store::broadcast_type& bcast) {
+    return {}; // todo
+}
+
+std::optional<ldb::lv::linda_tuple>
+ldb::store::read(const query_type& query) const {
+    std::unique_lock<std::shared_mutex> lck(_header_mtx);
+    for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+        auto [cont, command] = read_one(i, query);
+        if (cont) continue;
+        if (!command) return {};
+        return command->commit();
+    }
+    return read_directly(query);
+}
+
+std::pair<bool, std::optional<ldb::store::my_read_command>>
+ldb::store::read_one(std::size_t i, const query_type& query) const {
+    broadcast_type yes = yes_mock_broadcast<void, void>{};
+    const auto result = query.search_on_index(i, _header_indices[i]);
+    return std::visit(query_result_visitor<my_read_command>{yes, _header_indices},
+                      result);
+}
+
+std::optional<ldb::lv::linda_tuple>
+ldb::store::read_directly(const query_type& query) const {
+    return _data.locked_find(query);
+}
