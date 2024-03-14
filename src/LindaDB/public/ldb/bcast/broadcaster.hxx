@@ -50,19 +50,22 @@ namespace ldb {
         { await(awaitable) } -> std::same_as<R>;
     };
 
+    template<class Context>
     struct broadcast_msg {
         int from;
         int tag;
         std::vector<std::byte> buffer;
+        Context context;
     };
 
     template<class Broadcast,
              class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
+             class RDelete,
+             class TContext>
     concept broadcast_if = requires(Broadcast bcast) {
-        { broadcast_recv(bcast) } -> std::same_as<std::vector<broadcast_msg>>;
+        { broadcast_recv(bcast) } -> std::same_as<std::vector<broadcast_msg<TContext>>>;
         { broadcast_terminate(bcast) } -> await_if<RTerminate>;
         { send_eval(bcast, int{}, lv::linda_tuple{}) } -> await_if<REval>;
         { broadcast_insert(bcast, lv::linda_tuple{}) } -> await_if<RInsert>;

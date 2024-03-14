@@ -48,6 +48,7 @@
 #include <optional>
 #include <ranges>
 #include <shared_mutex>
+#include <span>
 #include <tuple>
 #include <type_traits>
 #include <unordered_set>
@@ -72,41 +73,31 @@
 
 namespace ldb {
     struct store {
-        using broadcast_type = broadcast<void, void, bool, bool>;
+        using broadcast_type = broadcast<void, void, bool, bool, MPI_Comm>;
         using storage_type = data::chunked_list<lv::linda_tuple>;
         using pointer_type = storage_type::iterator;
         using query_type = tuple_query<index::tree::avl2_tree<lv::linda_value,
                                                               pointer_type>>;
+        using index_type = index::tree::avl2_tree<lv::linda_value, pointer_type>;
 
-        //        void
-        //        out(const lv::linda_tuple& tuple) {
-        //            std::scoped_lock<std::shared_mutex> lck(_header_mtx);
-        //            int rank{};
-        //            //            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        //            std::ofstream("_log.txt", std::ios::app) << "(" << rank << ")"
-        //                                                     << "out(" << tuple << ")" << std::endl;
-        //            {
-        //                if (const auto it = _removed_later.find(tuple);
-        //                    it != _removed_later.end()) {
-        //                    _removed_later.erase(it);
-        //                    return;
-        //                }
-        //            }
-        //            const auto await_handle = broadcast_insert(_broadcast, tuple);
-        //            auto new_it = _data.push_back(tuple);
-        //
-        //            {
-        //                //                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
-        //                for (std::size_t i = 0;
-        //                     i < _header_indices.size() && i < tuple.size();
-        //                     ++i) {
-        //                    _header_indices[i].insert(tuple[i], new_it);
-        //                }
-        //            }
-        //
-        //            await(await_handle);
-        //            notify_readers();
-        //        }
+        void
+        out(const lv::linda_tuple& tuple) {
+            std::scoped_lock<std::shared_mutex> lck(_header_mtx);
+            const auto await_handle = broadcast_insert(_broadcast, tuple);
+            auto new_it = _data.push_back(tuple);
+
+            {
+                //                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
+                for (std::size_t i = 0;
+                     i < _header_indices.size() && i < tuple.size();
+                     ++i) {
+                    _header_indices[i].insert(tuple[i], new_it);
+                }
+            }
+
+            await(await_handle);
+            notify_readers();
+        }
 
 
         std::optional<lv::linda_tuple>
@@ -141,8 +132,6 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
             return inp(make_query(over_index<index_type>, std::forward<Args>(args)...));
         }
 
@@ -154,8 +143,6 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
             return in(make_query(over_index<index_type>, std::forward<Args>(args)...));
         }
 
@@ -167,8 +154,6 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
             return rdp(make_query(over_index<index_type>, std::forward<Args>(args)...));
         }
 
@@ -180,21 +165,18 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
             return rd(make_query(over_index<index_type>, std::forward<Args>(args)...));
         }
 
-        template<broadcast_if<void, void, void, bool> Bcast>
+        template<broadcast_if<void, void, bool, bool, MPI_Comm> Bcast>
         void
         set_broadcast(const Bcast& bcast) {
             _broadcast = bcast;
         }
 
-        void
-        out_nosignal(const lv::linda_tuple& tuple) {
+        auto
+        insert_nosignal(const lv::linda_tuple& tuple) {
             std::scoped_lock<std::shared_mutex> lck(_header_mtx);
-            std::ofstream("_log.txt", std::ios::app) << "OUT_NOSIGNAL" << tuple << std::endl;
             auto new_it = _data.push_back(tuple);
 
             {
@@ -209,12 +191,11 @@ namespace ldb {
             notify_readers();
         }
 
-        void
+        auto
         remove_nosignal(const lv::linda_tuple& tuple) {
-            using index_type = index::tree::avl2_tree<lv::linda_value,
-                                                      pointer_type>;
-            const auto removed = retrieve_weak(concrete_tuple_query<index_type>(tuple),
-                                               std::mem_fn(&store::read_and_remove_nosignal));
+            auto mem = std::mem_fn(&store::prepare_remove);
+            return retrieve_weak<decltype(mem), my_remove_command>(concrete_tuple_query<index_type>(tuple),
+                                                                   std::move(mem));
         }
 
         void
@@ -232,7 +213,6 @@ namespace ldb {
         }
 
     private:
-        using index_type = index::tree::avl2_tree<lv::linda_value, pointer_type>;
         // TODO(C++23): update retreive_(strong|weak) to use deducing this and remove duplication
 
         template<class Extractor>
@@ -267,8 +247,8 @@ namespace ldb {
             }
         }
 
-        template<class Extractor>
-        std::optional<lv::linda_tuple>
+        template<class Extractor, class T = lv::linda_tuple>
+        [[nodiscard]] std::optional<T>
         retrieve_weak(const query_type& query,
                       Extractor&& extractor)
             requires(std::invocable<Extractor, store, decltype(query)>)
@@ -276,8 +256,8 @@ namespace ldb {
             return std::forward<Extractor>(extractor)(this, query);
         }
 
-        template<class Extractor>
-        std::optional<lv::linda_tuple>
+        template<class Extractor, class T = lv::linda_tuple>
+        [[nodiscard]] std::optional<T>
         retrieve_weak(const query_type& query,
                       Extractor&& extractor) const
             requires(std::invocable<Extractor, const store, decltype(query)>)
@@ -306,37 +286,6 @@ namespace ldb {
             _wait_read.notify_one();
         }
 
-        template<class TCommand>
-        struct query_result_visitor {
-            using continuation_command = std::optional<TCommand>;
-
-            std::pair<bool, continuation_command>
-            operator()(field_incomparable) const noexcept {
-                return std::make_pair(true, continuation_command{});
-            }
-
-            std::pair<bool, continuation_command>
-            operator()(field_not_found) const noexcept {
-                return std::make_pair(false, continuation_command{});
-            }
-
-            std::pair<bool, continuation_command>
-            operator()(field_found<pointer_type> found) const noexcept {
-                auto commit = await(broadcast_delete(bcast, *found.value));
-                if (!commit) return std::make_pair(false, continuation_command{});
-                auto index_pointers = indices | std::views::transform([](index_type& idx) {
-                                          return &idx;
-                                      });
-
-                return std::make_pair(false,
-                                      continuation_command(TCommand{over_index<index_type>,
-                                                                    found.value,
-                                                                    index_pointers}));
-            }
-
-            broadcast_type& bcast;
-            std::span<typename TCommand::index_type> indices;
-        };
 
         using my_remove_command = remove_store_command<index_type, pointer_type>;
         using my_read_command = read_store_command<index_type, pointer_type>;
@@ -355,8 +304,8 @@ namespace ldb {
             return remove_impl(query, _broadcast);
         }
 
-        std::optional<lv::linda_tuple>
-        read_and_remove_nosignal(const query_type& query);
+        std::optional<my_remove_command>
+        prepare_remove(const query_type& query);
 
         std::optional<lv::linda_tuple>
         remove_impl(const query_type& query, broadcast_type& bcast);
@@ -388,7 +337,7 @@ namespace ldb {
 
         mutable std::shared_mutex _header_mtx;
         std::array<index_type, 1> _header_indices{};
-        broadcast_type _broadcast = null_broadcast<void, void, bool, bool>{};
+        broadcast_type _broadcast = null_broadcast<void, void, bool, bool, MPI_Comm>{};
         storage_type _data{};
     };
 }

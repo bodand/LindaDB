@@ -51,60 +51,69 @@ namespace ldb {
     }
 
     template<class RTerminate,
-             class REval>
+             class REval,
+             class TContext>
     struct yes_mock_broadcast {
+        using context_type = bool;
     };
 
     template<class RTerminate,
-             class REval>
+             class REval,
+             class TContext>
     yes_awaiter
-    broadcast_insert(yes_mock_broadcast<RTerminate, REval>, const lv::linda_tuple& tuple) {
+    broadcast_insert(yes_mock_broadcast<RTerminate, REval, TContext>, const lv::linda_tuple& tuple) {
         std::ignore = tuple;
         return {};
     }
 
     template<class RTerminate,
-             class REval>
+             class REval,
+             class TContext>
     yes_awaiter
-    broadcast_delete(yes_mock_broadcast<RTerminate, REval>, const lv::linda_tuple& tuple) {
+    broadcast_delete(yes_mock_broadcast<RTerminate, REval, TContext>, const lv::linda_tuple& tuple) {
         std::ignore = tuple;
         return {};
     }
 
     template<class RTerminate,
-             class REval>
-    std::vector<broadcast_msg>
-    broadcast_recv(yes_mock_broadcast<RTerminate, REval>) {
+             class REval,
+             class TContext>
+    std::vector<broadcast_msg<TContext>>
+    broadcast_recv(yes_mock_broadcast<RTerminate, REval, TContext>) {
         return {};
     }
 
     template<class RTerminate,
-             class REval>
+             class REval,
+             class TContext>
     null_awaiter<REval>
-    send_eval(yes_mock_broadcast<RTerminate, REval>, int target, const lv::linda_tuple& tuple) {
+    send_eval(yes_mock_broadcast<RTerminate, REval, TContext>, int target, const lv::linda_tuple& tuple) {
         std::ignore = target;
         std::ignore = tuple;
         return null_awaiter<REval>{};
     }
 
-    template<class RTerminate>
+    template<class RTerminate,
+             class TContext>
     yes_awaiter
-    send_eval(yes_mock_broadcast<RTerminate, bool>, int target, const lv::linda_tuple& tuple) {
+    send_eval(yes_mock_broadcast<RTerminate, bool, TContext>, int target, const lv::linda_tuple& tuple) {
         std::ignore = target;
         std::ignore = tuple;
         return {};
     }
 
     template<class RTerminate,
-             class REval>
+             class REval,
+             class TContext>
     null_awaiter<RTerminate>
-    broadcast_terminate(yes_mock_broadcast<RTerminate, REval>) {
+    broadcast_terminate(yes_mock_broadcast<RTerminate, REval, TContext>) {
         return null_awaiter<RTerminate>{};
     }
 
-    template<class REval>
+    template<class REval,
+             class TContext>
     yes_awaiter
-    broadcast_terminate(yes_mock_broadcast<bool, REval>) {
+    broadcast_terminate(yes_mock_broadcast<bool, REval, TContext>) {
         return {};
     }
 }

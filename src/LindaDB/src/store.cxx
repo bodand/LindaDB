@@ -36,10 +36,51 @@
 #include <ldb/bcast/yes_mock_broadcast.hxx>
 #include <ldb/store.hxx>
 
-std::optional<ldb::lv::linda_tuple>
-ldb::store::read_and_remove_nosignal(const query_type& query) {
-    broadcast_type yes = yes_mock_broadcast<void, void>{};
-    return remove_impl(query, yes);
+namespace {
+    template<class TCommand>
+    struct query_result_visitor {
+        using continuation_command = std::optional<TCommand>;
+        using index_type = std::remove_const_t<typename TCommand::index_type>;
+
+        std::pair<bool, continuation_command>
+        operator()(ldb::field_incomparable) const noexcept {
+            return std::make_pair(true, continuation_command{});
+        }
+
+        std::pair<bool, continuation_command>
+        operator()(ldb::field_not_found) const noexcept {
+            return std::make_pair(false, continuation_command{});
+        }
+
+        std::pair<bool, continuation_command>
+        operator()(ldb::field_found<ldb::store::pointer_type> found) const noexcept {
+            auto commit = await(broadcast_delete(bcast, *found.value));
+            if (!commit) return std::make_pair(false, continuation_command{});
+            auto index_pointers = std::views::transform(indices, [](const index_type& idx) {
+                return const_cast<index_type*>(std::addressof(idx));
+            });
+
+            return std::make_pair(false,
+                                  continuation_command(TCommand{ldb::over_index<index_type>,
+                                                                found.value,
+                                                                index_pointers}));
+        }
+
+        ldb::store::broadcast_type& bcast;
+        mutable std::span<typename TCommand::index_type> indices;
+    };
+}
+
+std::optional<ldb::store::my_remove_command>
+ldb::store::prepare_remove(const query_type& query) {
+    broadcast_type yes = yes_mock_broadcast<void, void, MPI_Comm>{};
+    std::unique_lock<std::shared_mutex> lck(_header_mtx);
+    for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+        auto [cont, command] = remove_one(i, query, yes);
+        if (cont) continue;
+        return command;
+    }
+    return {}; // todo: remove_directly(query, yes);
 }
 
 std::optional<ldb::lv::linda_tuple>
@@ -80,7 +121,7 @@ ldb::store::read(const query_type& query) const {
 
 std::pair<bool, std::optional<ldb::store::my_read_command>>
 ldb::store::read_one(std::size_t i, const query_type& query) const {
-    broadcast_type yes = yes_mock_broadcast<void, void>{};
+    broadcast_type yes = yes_mock_broadcast<void, void, MPI_Comm>{};
     const auto result = query.search_on_index(i, _header_indices[i]);
     return std::visit(query_result_visitor<my_read_command>{yes, _header_indices},
                       result);

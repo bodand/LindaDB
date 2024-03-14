@@ -47,8 +47,10 @@ initialize_values(int n) {
     out("m", 2);
 }
 
+constexpr static auto checked_range_end = 1000;
+
 int
-eliminate_multiples(int p, int n) {
+eliminate_multiples(int p) {
     std::ofstream("_primes.log", std::ios::app) << "p: " << p << "\n";
 
     int current_num;
@@ -57,12 +59,12 @@ eliminate_multiples(int p, int n) {
     out("m", current_num + 1);
     std::ofstream("_primes.log", std::ios::app) << "num: " << current_num << "\n";
 
-    while (current_num * current_num < n) {
+    while (current_num * current_num < checked_range_end)  {
         auto vec = rdp("vec", current_num);
         std::ofstream("_primes.log", std::ios::app) << "(vec, " << current_num << ")\n";
         if (vec) {
             int square = current_num * current_num;
-            while (square < n) {
+            while (square < checked_range_end) {
                 inp("vec", square);
                 square = square + current_num;
             }
@@ -80,7 +82,6 @@ eliminate_multiples(int p, int n) {
 
 int
 real_main() {
-    constexpr static auto checked_range_end = 1000;
     initialize_values(checked_range_end);
     std::ofstream("_primes.log", std::ios::app) << "Initialized...\n";
     {
@@ -90,7 +91,7 @@ real_main() {
 
     std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
                           [](int i) {
-                              eval("done", (eliminate_multiples) (i, checked_range_end));
+                              eval("done", (eliminate_multiples) (i));
                           });
     std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
                           [](int i) {

@@ -66,7 +66,7 @@ TEST_CASE("store can store and rdp by value a nonempty tuple") {
 TEST_CASE("store can store without signaling and rdp by value a nonempty tuple") {
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
-    store.out_nosignal(tuple);
+    store.insert_nosignal(tuple);
     auto ret = store.rdp("asd", 2);
     REQUIRE(ret.has_value());
     CHECK(*ret == tuple);

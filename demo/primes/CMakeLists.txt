@@ -33,7 +33,9 @@
 # demo/src/primes/CMakeLists.txt --
 #   A parallel implementation of the sieve of Eratosthenes in Linda
 
-add_linda_executable(primes primes.cxx)
+add_executable(primes primes.ii)
+target_link_libraries(primes PRIVATE LindaRT LindaRT-main)
+#add_linda_executable(primes primes.ii)
 target_compile_features(primes PUBLIC cxx_std_20)
 add_test(NAME "Linda-primes"
          COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:primes>)

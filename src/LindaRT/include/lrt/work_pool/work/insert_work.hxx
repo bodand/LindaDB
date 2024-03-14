@@ -46,15 +46,25 @@
 namespace lrt {
     struct insert_work {
         explicit insert_work(std::vector<std::byte>&& payload,
-                             runtime& runtime)
+                             runtime& runtime,
+                             MPI_Comm statusResponseComm)
              : _bytes(std::move(payload)),
-               _runtime(&runtime) { }
+               _runtime(&runtime),
+               _status_response_comm(statusResponseComm) { }
 
         void
         perform(const mpi_thread_context& context) {
             const auto tuple = deserialize(_bytes);
             mpi_thread_context::set_current(context);
-            _runtime->store().out_nosignal(tuple);
+            int commit_vote = static_cast<int>(true); // insert is always OK
+            int commit_consensus = 0;
+            MPI_Allreduce(&commit_vote,
+                          &commit_consensus,
+                          1,
+                          MPI_INT,
+                          MPI_LAND,
+                          _status_response_comm);
+            if (commit_consensus) _runtime->store().insert_nosignal(tuple);
         }
 
     private:
@@ -66,6 +76,7 @@ namespace lrt {
 
         std::vector<std::byte> _bytes;
         lrt::runtime* _runtime;
+        MPI_Comm _status_response_comm;
     };
 }
 

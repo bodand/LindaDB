@@ -80,6 +80,13 @@ namespace ldb {
             return R{};
         }
 
+        friend void
+        await(const broadcast_awaitable& bcast_await_handle)
+            requires(std::same_as<R, void>)
+        {
+            if (bcast_await_handle._impl) bcast_await_handle._impl->do_await();
+        }
+
     public:
         broadcast_awaitable() = default;
         ~broadcast_awaitable() = default;
@@ -107,7 +114,8 @@ namespace ldb {
     template<class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
+             class RDelete,
+             class TContext>
     class broadcast final {
         struct broadcast_concept {
             [[nodiscard]] virtual broadcast_awaitable<RInsert>
@@ -116,7 +124,7 @@ namespace ldb {
             [[nodiscard]] virtual broadcast_awaitable<RDelete>
             do_broadcast_delete(const lv::linda_tuple& tuple) = 0;
 
-            [[nodiscard]] virtual std::vector<broadcast_msg>
+            [[nodiscard]] virtual std::vector<broadcast_msg<TContext>>
             do_broadcast_recv() = 0;
 
             [[nodiscard]] virtual broadcast_awaitable<RTerminate>
@@ -131,14 +139,14 @@ namespace ldb {
             virtual ~broadcast_concept() = default;
         };
 
-        template<broadcast_if<RTerminate, REval, RInsert, RDelete> Impl>
+        template<broadcast_if<RTerminate, REval, RInsert, RDelete, TContext> Impl>
         struct broadcast_model final : broadcast_concept {
             using impl_type = Impl;
 
             template<class T = impl_type>
             explicit broadcast_model(T&& init) /* todo noexcept in some cases... */
                 requires(!std::same_as<T, broadcast_model>
-                         && broadcast_if<std::remove_cvref_t<T>, RTerminate, REval, RInsert, RDelete>)
+                         && broadcast_if<std::remove_cvref_t<T>, RTerminate, REval, RInsert, RDelete, TContext>)
                  : bcast(std::forward<T>(init)) { }
 
             [[nodiscard]] broadcast_awaitable<RInsert>
@@ -151,7 +159,7 @@ namespace ldb {
                 return broadcast_delete(bcast, tuple);
             }
 
-            [[nodiscard]] std::vector<broadcast_msg>
+            [[nodiscard]] std::vector<broadcast_msg<TContext>>
             do_broadcast_recv() override {
                 return broadcast_recv(bcast);
             }
@@ -190,7 +198,7 @@ namespace ldb {
             return bcast._impl->do_broadcast_delete(tuple);
         }
 
-        [[nodiscard]] friend std::vector<broadcast_msg>
+        [[nodiscard]] friend std::vector<broadcast_msg<TContext>>
         broadcast_recv(const broadcast& bcast) {
             if (!bcast._impl) return {};
             return bcast._impl->do_broadcast_recv();
@@ -214,7 +222,7 @@ namespace ldb {
         broadcast() = default;
         ~broadcast() = default;
 
-        template<broadcast_if<RTerminate, REval, RInsert, RDelete> Impl>
+        template<broadcast_if<RTerminate, REval, RInsert, RDelete, TContext> Impl>
         explicit(false) broadcast(Impl value)
              : _impl(std::make_unique<broadcast_model<Impl>>(std::move(value))) { }
 

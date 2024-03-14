@@ -43,7 +43,6 @@ namespace lrt {
         void
         perform(Args&&... args) {
             ((std::ignore = std::forward<Args>(args)), ...);
-
         }
 
     private:

@@ -46,7 +46,10 @@
 namespace lrt {
     struct work_factory {
         static lrt::work<lrt::mpi_thread_context>
-        create(lrt::communication_tag tag, std::vector<std::byte>&& payload, lrt::runtime& runtime);
+        create(lrt::communication_tag tag,
+               std::vector<std::byte>&& payload,
+               lrt::runtime& runtime,
+               MPI_Comm sender_comm);
     };
 }
 

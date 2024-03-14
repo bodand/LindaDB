@@ -57,14 +57,14 @@ namespace {
     };
 }
 
-ldb::broadcast_msg
+ldb::broadcast_msg<lrt::multi_thread_broadcast::context_type>
 lrt::multi_thread_broadcast::thread_local_receiver::recv(int source) {
     auto payload = recv_payload(_bcast_init_payload[0], source);
     return ldb::broadcast_msg{
            .from = source,
            .tag = _bcast_init_payload[1],
            .buffer = payload,
-    };
+           .context = std::get<0>(*_context).thread_communicator};
 }
 
 std::vector<std::byte>
@@ -124,7 +124,7 @@ lrt::multi_thread_broadcast::multi_thread_broadcast(std::span<std::tuple<mpi_thr
     }
 }
 
-std::vector<ldb::broadcast_msg>
+std::vector<ldb::broadcast_msg<typename lrt::multi_thread_broadcast::context_type>>
 lrt::multi_thread_broadcast::recv_any() {
     MPI_Startall(static_cast<int>(_wait_handles.size()),
                  _wait_handles.data());
@@ -136,7 +136,7 @@ lrt::multi_thread_broadcast::recv_any() {
                 &recv_index,
                 &stat);
 
-    std::vector<ldb::broadcast_msg> recv_buffer;
+    std::vector<ldb::broadcast_msg<context_type>> recv_buffer;
     std::ofstream("_msg.log", std::ios::app) << mpi_thread_context::current().rank() << ": RECEIVING MESSAGE"
                                              << " FROM " << stat.MPI_SOURCE
                                              << std::endl;
@@ -222,7 +222,7 @@ lrt::broadcast_terminate(lrt::multi_thread_broadcast& /* dispatch tag */) {
     return mpi_request_vector_awaiter(std::move(reqs), nullptr);
 }
 
-ldb::null_awaiter
+ldb::null_awaiter<void>
 lrt::send_eval(lrt::multi_thread_broadcast& bcast, int to, const ldb::lv::linda_tuple& tuple) {
     auto& context = mpi_thread_context::current();
     auto [val, val_sz] = lrt::serialize(tuple);
@@ -248,7 +248,7 @@ lrt::send_eval(lrt::multi_thread_broadcast& bcast, int to, const ldb::lv::linda_
              static_cast<int>(communication_tag::Eval),
              context.thread_communicator);
 
-    return ldb::null_awaiter{};
+    return ldb::null_awaiter<void>{};
 }
 
 ldb::null_awaiter<bool>
@@ -291,10 +291,10 @@ lrt::broadcast_insert(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_t
                   MPI_LAND,
                   context.thread_communicator);
 
-    return ldb::null_awaiter{};
+    return ldb::null_awaiter<bool>{};
 }
 
-ldb::null_awaiter
+ldb::null_awaiter<bool>
 lrt::broadcast_delete(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple) {
     auto [val, val_sz] = lrt::serialize(tuple);
 
@@ -334,5 +334,5 @@ lrt::broadcast_delete(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_t
                   MPI_LAND,
                   context.thread_communicator);
 
-    return ldb::null_awaiter{};
+    return ldb::null_awaiter<bool>{};
 }

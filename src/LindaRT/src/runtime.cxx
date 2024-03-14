@@ -123,7 +123,8 @@ lrt::runtime::recv_thread_worker() {
             }
             auto work = lrt::work_factory::create(command,
                                                   std::move(msg.buffer),
-                                                  *this);
+                                                  *this,
+                                                  msg.context);
             _work_pool.enqueue(std::move(work));
         }
     }

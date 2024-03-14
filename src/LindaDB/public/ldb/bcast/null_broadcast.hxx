@@ -51,22 +51,25 @@ namespace ldb {
         return R{};
     }
 
-    void
+    inline void
     await(null_awaiter<void>) { }
 
     template<class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
+             class RDelete,
+             class TContext>
     struct null_broadcast {
+        using context_type = int;
     };
 
     template<class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
+             class RDelete,
+             class TContext>
     null_awaiter<RInsert>
-    broadcast_insert(null_broadcast<RTerminate, REval, RInsert, RDelete>, const lv::linda_tuple& tuple) {
+    broadcast_insert(null_broadcast<RTerminate, REval, RInsert, RDelete, TContext>, const lv::linda_tuple& tuple) {
         std::ignore = tuple;
         return null_awaiter<RInsert>{};
     }
@@ -74,9 +77,10 @@ namespace ldb {
     template<class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
+             class RDelete,
+             class TContext>
     null_awaiter<RDelete>
-    broadcast_delete(null_broadcast<RTerminate, REval, RInsert, RDelete>, const lv::linda_tuple& tuple) {
+    broadcast_delete(null_broadcast<RTerminate, REval, RInsert, RDelete, TContext>, const lv::linda_tuple& tuple) {
         std::ignore = tuple;
         return null_awaiter<RDelete>{};
     }
@@ -84,18 +88,20 @@ namespace ldb {
     template<class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
-    std::vector<broadcast_msg>
-    broadcast_recv(null_broadcast<RTerminate, REval, RInsert, RDelete>) {
+             class RDelete,
+             class TContext>
+    std::vector<broadcast_msg<TContext>>
+    broadcast_recv(null_broadcast<RTerminate, REval, RInsert, RDelete, TContext>) {
         return {};
     }
 
     template<class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
+             class RDelete,
+             class TContext>
     null_awaiter<REval>
-    send_eval(null_broadcast<RTerminate, REval, RInsert, RDelete>, int target, const lv::linda_tuple& tuple) {
+    send_eval(null_broadcast<RTerminate, REval, RInsert, RDelete, TContext>, int target, const lv::linda_tuple& tuple) {
         std::ignore = target;
         std::ignore = tuple;
         return null_awaiter<REval>{};
@@ -104,9 +110,10 @@ namespace ldb {
     template<class RTerminate,
              class REval,
              class RInsert,
-             class RDelete>
+             class RDelete,
+             class TContext>
     null_awaiter<RTerminate>
-    broadcast_terminate(null_broadcast<RTerminate, REval, RInsert, RDelete>) {
+    broadcast_terminate(null_broadcast<RTerminate, REval, RInsert, RDelete, TContext>) {
         return null_awaiter<RTerminate>{};
     }
 }

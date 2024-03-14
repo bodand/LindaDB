@@ -128,7 +128,6 @@
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-windows-msvc.cmake",
         "BUILD_SYS_ARCH": "x64"
       },
-      "generator": "Ninja",
       "binaryDir": "${sourceDir}/_build-debug-x64-msvc"
     },
     {
@@ -144,14 +143,12 @@
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/x64-windows-msvc.cmake",
         "BUILD_SYS_ARCH": "x64"
       },
-      "generator": "Ninja",
       "binaryDir": "${sourceDir}/_build-release-x64-msvc"
     },
     {
       "name": "win-clang-x64-dbg",
       "displayName": "LLVM/Clang x64 Debug",
       "description": "Debug build of cg3 for x86_64 using LLVM/Clang on Windows",
-      "generator": "Ninja",
       "inherits": [
         "win32-build",
         "cmake-debug-type"
@@ -166,7 +163,6 @@
       "name": "win-clang-x64-rel",
       "displayName": "LLVM/Clang x64 Release",
       "description": "Release build of cg3 for x86_64 using LLVM/Clang on Windows",
-      "generator": "Ninja",
       "inherits": [
         "vcpkg-rel-no-dbg",
         "win32-build",

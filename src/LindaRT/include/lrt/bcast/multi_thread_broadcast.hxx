@@ -49,6 +49,8 @@
 
 namespace lrt {
     struct multi_thread_broadcast {
+        using context_type = MPI_Comm;
+
         explicit multi_thread_broadcast(std::span<std::tuple<mpi_thread_context>*> receivers);
 
     private:
@@ -56,7 +58,7 @@ namespace lrt {
             thread_local_receiver(MPI_Request* recv_req,
                                   std::tuple<mpi_thread_context>* context) noexcept;
 
-            ldb::broadcast_msg
+            ldb::broadcast_msg<context_type>
             recv(int source);
 
         private:
@@ -71,16 +73,16 @@ namespace lrt {
 
             std::tuple<mpi_thread_context>* _context;
             int _bcast_init_payload[2]{};
-//            std::array<int, 2> _bcast_init_payload{};
+            //            std::array<int, 2> _bcast_init_payload{};
         };
 
-        std::vector<ldb::broadcast_msg>
+        std::vector<ldb::broadcast_msg<context_type>>
         recv_any();
 
         std::vector<MPI_Request> _wait_handles;
         std::vector<thread_local_receiver> _receivers;
 
-        friend std::vector<ldb::broadcast_msg>
+        friend std::vector<ldb::broadcast_msg<context_type>>
         broadcast_recv(multi_thread_broadcast& bcast) {
             return bcast.recv_any();
         }

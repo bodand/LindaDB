@@ -48,9 +48,11 @@
 namespace lrt {
     struct eval_work {
         explicit eval_work(std::vector<std::byte>&& payload,
-                           runtime& runtime)
+                           runtime& runtime,
+                           MPI_Comm statusResponseComm)
              : _bytes(std::move(payload)),
-               _runtime(&runtime) { }
+               _runtime(&runtime),
+               _status_response_comm(statusResponseComm) { }
 
         void
         perform(const mpi_thread_context& context);
@@ -61,6 +63,7 @@ namespace lrt {
 
         std::vector<std::byte> _bytes;
         lrt::runtime* _runtime;
+        MPI_Comm _status_response_comm;
     };
 }
 

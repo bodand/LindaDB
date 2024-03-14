@@ -50,6 +50,7 @@
 namespace lrt {
     struct manual_broadcast_handler final {
         using await_type = lrt::mpi_request_vector_awaiter;
+        using context_type = int;
 
         static manual_broadcast_handler
         for_communicator(MPI_Comm comm) {
@@ -97,7 +98,7 @@ namespace lrt {
             return {std::move(reqs), std::move(val)};
         }
 
-        friend ldb::broadcast_msg
+        friend ldb::broadcast_msg<int>
         broadcast_recv(const manual_broadcast_handler& handler) {
             MPI_Status stat{};
             MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &stat);
@@ -117,7 +118,8 @@ namespace lrt {
             return ldb::broadcast_msg{
                    .from = stat.MPI_SOURCE,
                    .tag = stat.MPI_TAG,
-                   .buffer = std::move(buf)};
+                   .buffer = std::move(buf),
+                   .context = 0};
         }
 
         int _myrank;

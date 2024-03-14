@@ -90,7 +90,7 @@ namespace lrt {
         std::thread _recv_thr;
 
         std::tuple<mpi_thread_context> _main_thread_context;
-        ldb::broadcast _broadcast;
+        ldb::broadcast<void, void, bool, bool, MPI_Comm> _broadcast;
 
         std::optional<balancer> _balancer{std::nullopt};
 
