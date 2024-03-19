@@ -54,8 +54,11 @@ namespace {
 
         std::pair<bool, continuation_command>
         operator()(ldb::field_found<ldb::store::pointer_type> found) const noexcept {
+            std::ofstream("a.log", std::ios::app) << "AAAAA:" << found.value << "\n";
             auto commit = await(broadcast_delete(bcast, *found.value));
+            std::ofstream("a.log", std::ios::app) << "BBBBB:" << found.value << "\n";
             if (!commit) return std::make_pair(false, continuation_command{});
+            std::ofstream("a.log", std::ios::app) << "CCCCC:" << found.value << "\n";
             auto index_pointers = std::views::transform(indices, [](const index_type& idx) {
                 return const_cast<index_type*>(std::addressof(idx));
             });

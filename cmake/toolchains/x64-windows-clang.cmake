@@ -43,4 +43,7 @@ endif ()
 
 cmake_policy(POP)
 
-include("${project_root_path}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+if (EXISTS "${project_root_path}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    include("${project_root_path}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+endif() 
+

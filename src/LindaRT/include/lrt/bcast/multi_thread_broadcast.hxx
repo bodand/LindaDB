@@ -40,12 +40,12 @@
 
 #include <ldb/bcast/broadcaster.hxx>
 #include <ldb/bcast/null_broadcast.hxx>
+#include <lrt/bcast/mpi_request_vector_awaiter.hxx>
+#include <lrt/bcast/reduce_awaiter.hxx>
 #include <lrt/communication_tags.hxx>
 #include <lrt/mpi_thread_context.hxx>
 
 #include <mpi.h>
-
-#include "mpi_request_vector_awaiter.hxx"
 
 namespace lrt {
     struct multi_thread_broadcast {
@@ -96,7 +96,7 @@ namespace lrt {
         friend ldb::null_awaiter<bool>
         broadcast_insert(multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple);
 
-        friend ldb::null_awaiter<bool>
+        friend lrt::reduce_awaiter
         broadcast_delete(multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple);
     };
 }

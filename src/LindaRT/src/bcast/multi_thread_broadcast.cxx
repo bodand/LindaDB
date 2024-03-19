@@ -60,7 +60,7 @@ namespace {
 ldb::broadcast_msg<lrt::multi_thread_broadcast::context_type>
 lrt::multi_thread_broadcast::thread_local_receiver::recv(int source) {
     auto payload = recv_payload(_bcast_init_payload[0], source);
-    return ldb::broadcast_msg{
+    return ldb::broadcast_msg<MPI_Comm>{
            .from = source,
            .tag = _bcast_init_payload[1],
            .buffer = payload,
@@ -294,14 +294,14 @@ lrt::broadcast_insert(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_t
     return ldb::null_awaiter<bool>{};
 }
 
-ldb::null_awaiter<bool>
-lrt::broadcast_delete(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple) {
+lrt::reduce_awaiter
+lrt::broadcast_delete(lrt::multi_thread_broadcast&, const ldb::lv::linda_tuple& tuple) {
     auto [val, val_sz] = lrt::serialize(tuple);
 
     std::array<int, 2> meta_payload{static_cast<int>(val_sz),
                                     static_cast<int>(communication_tag::SyncDelete)};
 
-    auto& context = mpi_thread_context::current();
+    const auto& context = mpi_thread_context::current();
     std::ofstream("_msg.log", std::ios::app) << context.rank() << " -> *: DELETE: " << tuple
                                              << " ON COMM: " << std::hex << context.thread_communicator
                                              << std::endl;
@@ -325,14 +325,5 @@ lrt::broadcast_delete(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_t
               context.rank(),
               context.thread_communicator);
 
-    int sender_yes = true; // initiator always agrees on commit
-    int recv = false;      // abort by default
-    MPI_Allreduce(&sender_yes,
-                  &recv,
-                  1,
-                  MPI_INT,
-                  MPI_LAND,
-                  context.thread_communicator);
-
-    return ldb::null_awaiter<bool>{};
+    return {context.thread_communicator, true};
 }

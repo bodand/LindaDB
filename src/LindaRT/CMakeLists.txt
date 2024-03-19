@@ -39,6 +39,7 @@ find_package(MPI REQUIRED)
 add_library(LindaRT STATIC
             include/lrt/bcast/manual_broadcast_handler.hxx
             include/lrt/bcast/mpi_request_vector_awaiter.hxx
+        include/lrt/bcast/reduce_awaiter.hxx
             include/lrt/work_pool/work_factory.hxx
             include/lrt/communication_tags.hxx
             public/lrt/balancer/balancer.hxx

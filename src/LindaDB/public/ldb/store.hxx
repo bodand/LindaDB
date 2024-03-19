@@ -223,10 +223,9 @@ namespace ldb {
         {
             for (;;) {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
+                std::ofstream("_msg.log", std::ios::app) << "?: FAILED RETRIEVE" << std::endl;
                 if (check_and_reset_sync_need()) continue;
-                int rank{};
-                //                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-                std::ofstream("_log.txt", std::ios::app) << rank << ": WAITING ON INSERT" << std::endl;
+                std::ofstream("_msg.log", std::ios::app) << "?: WAITING ON INSERT" << std::endl;
                 wait_for_sync();
             }
         }
@@ -239,10 +238,9 @@ namespace ldb {
         {
             for (;;) {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
+                std::ofstream("_msg.log", std::ios::app) << "?: FAILED RETRIEVE" << std::endl;
                 if (check_and_reset_sync_need()) continue;
-                int rank{};
-                //                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-                std::ofstream("_log.txt", std::ios::app) << rank << ": WAITING ON INSERT" << std::endl;
+                std::ofstream("_msg.log", std::ios::app) << "?: WAITING ON INSERT" << std::endl;
                 wait_for_sync();
             }
         }

@@ -30,56 +30,38 @@
  *
  * Originally created: 2024-03-03.
  *
- * src/LindaRT/include/lrt/work_pool/work/insert_work --
+ * src/LindaRT/include/lrt/bcast/reduce_awaiter --
  *   
  */
-#ifndef LINDADB_INSERT_WORK_HXX
-#define LINDADB_INSERT_WORK_HXX
+#ifndef LINDADB_REDUCE_AWAITER_HXX
+#define LINDADB_REDUCE_AWAITER_HXX
 
-#include <fstream>
-#include <ostream>
-#include <ranges>
-#include <span>
-
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
+#include <mpi.h>
 
 namespace lrt {
-    struct insert_work {
-        explicit insert_work(std::vector<std::byte>&& payload,
-                             runtime& runtime,
-                             MPI_Comm statusResponseComm)
-             : _bytes(std::move(payload)),
-               _runtime(&runtime),
-               _status_response_comm(statusResponseComm) { }
+    struct reduce_awaiter {
+        reduce_awaiter(MPI_Comm comm,
+                       bool sender_vote = true)
+             : _comm(comm),
+               _sender_vote(static_cast<int>(sender_vote)) { }
 
-        void
-        perform(const mpi_thread_context& context) {
-            const auto tuple = deserialize(_bytes);
-            mpi_thread_context::set_current(context);
-            int commit_vote = static_cast<int>(true); // insert is always OK
-            int commit_consensus = 0;
-            MPI_Allreduce(&commit_vote,
-                          &commit_consensus,
+    private:
+        friend bool
+        await(const reduce_awaiter& awaiter) {
+            int consesus = static_cast<int>(false);
+            MPI_Allreduce(&awaiter._sender_vote,
+                          &consesus,
                           1,
                           MPI_INT,
                           MPI_LAND,
-                          _status_response_comm);
-            if (commit_consensus) _runtime->store().insert_nosignal(tuple);
+                          awaiter._comm);
+
+            return static_cast<bool>(consesus);
         }
 
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const insert_work& work) {
-            std::ignore = work;
-            return os << "[insert work] on thread " << lrt::deserialize(work._bytes)
-                      << " on thread " << std::this_thread::get_id();
-        }
-
-        mutable std::vector<std::byte> _bytes;
-        lrt::runtime* _runtime;
-        MPI_Comm _status_response_comm;
+        MPI_Comm _comm;
+        int _sender_vote;
     };
 }
 
-#endif
+#endif //LINDADB_REDUCE_AWAITER_HXX
