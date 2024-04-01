@@ -46,6 +46,7 @@
 #include <functional>
 #include <mutex>
 #include <optional>
+#include <random>
 #include <ranges>
 #include <shared_mutex>
 #include <span>
@@ -199,7 +200,7 @@ namespace ldb {
         }
 
         void
-        dump_indices(std::ostream& os) {
+        dump_indices(std::ostream& os) const {
             std::ranges::for_each(_header_indices, [&os](auto& index) {
                 index.apply([&os](const auto& value) {
                     os << value << "\n";
@@ -226,6 +227,10 @@ namespace ldb {
                 std::ofstream("_msg.log", std::ios::app) << "?: FAILED RETRIEVE" << std::endl;
                 if (check_and_reset_sync_need()) continue;
                 std::ofstream("_msg.log", std::ios::app) << "?: WAITING ON INSERT" << std::endl;
+                {
+                    std::ofstream dump("_dump.log", std::ios::app);
+                    dump_indices(dump);
+                }
                 wait_for_sync();
             }
         }
@@ -241,6 +246,10 @@ namespace ldb {
                 std::ofstream("_msg.log", std::ios::app) << "?: FAILED RETRIEVE" << std::endl;
                 if (check_and_reset_sync_need()) continue;
                 std::ofstream("_msg.log", std::ios::app) << "?: WAITING ON INSERT" << std::endl;
+                {
+                    std::ofstream dump("_dump.log", std::ios::app);
+                    dump_indices(dump);
+                }
                 wait_for_sync();
             }
         }
@@ -263,14 +272,17 @@ namespace ldb {
             return std::forward<Extractor>(extractor)(this, query);
         }
 
+        mutable std::mt19937 _rng{std::random_device()()};
+
         void
         wait_for_sync() const {
+            std::uniform_int_distribution dist(100, 100'000);
             std::unique_lock<std::mutex> lck(_read_mtx);
             auto sync_check_over_this = [this]() noexcept {
                 return check_sync_need();
             };
             using namespace std::literals;
-            _wait_read.wait(lck, sync_check_over_this);
+            _wait_read.wait_for(lck, std::chrono::milliseconds(dist(_rng)), sync_check_over_this);
         }
 
         void

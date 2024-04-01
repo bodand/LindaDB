@@ -349,7 +349,7 @@ namespace ldb::index::tree {
 
         template<class Fn>
         void
-        apply(const Fn& fn) {
+        apply(const Fn& fn) const {
             if (_left) _left->apply(fn);
             data.apply(fn);
             if (_right) _right->apply(fn);
@@ -585,7 +585,7 @@ namespace ldb::index::tree {
 
         template<class Fn>
         void
-        apply(const Fn& fn) {
+        apply(const Fn& fn) const {
             if (root) root->apply(fn);
         }
 

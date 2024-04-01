@@ -93,7 +93,7 @@ namespace lrt {
         friend ldb::null_awaiter<void>
         send_eval(multi_thread_broadcast& bcast, int to, const ldb::lv::linda_tuple& tuple);
 
-        friend ldb::null_awaiter<bool>
+        friend lrt::reduce_awaiter
         broadcast_insert(multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple);
 
         friend lrt::reduce_awaiter

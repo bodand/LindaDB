@@ -30,43 +30,50 @@
  *
  * Originally created: 2024-03-03.
  *
- * src/LindaRT/include/lrt/work_pool/work/insert_work --
+ * src/LindaRT/src/work_pool/work/insert_work --
  *   
  */
-#ifndef LINDADB_REMOVE_WORK_HXX
-#define LINDADB_REMOVE_WORK_HXX
 
-#include <fstream>
-#include <ostream>
-#include <ranges>
+#include <chrono>
+#include <thread>
 
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
+#include <lrt/work_pool/work/insert_work.hxx>
 
-namespace lrt {
-    struct remove_work {
-        explicit remove_work(std::vector<std::byte>&& payload,
-                             runtime& runtime,
-                             MPI_Comm statusResponseComm)
-             : _bytes(std::move(payload)),
-               _runtime(&runtime),
-               _status_response_comm(statusResponseComm) { }
+using namespace std::literals;
 
-        void
-        perform(const mpi_thread_context& context);
+void
+lrt::insert_work::perform(const lrt::mpi_thread_context& context) {
+    const auto tuple = deserialize(_bytes);
+    mpi_thread_context::set_current(context);
+    std::ofstream("_wp.log", std::ios::app) << "WORKING ON INSERT(" << context.rank() << "): " << (*this) << ": " << tuple << "\n";
 
-    private:
-        friend std::ostream&
-        operator<<(std::ostream& os, const remove_work& work) {
-            std::ignore = work;
-            return os << "[remove work]: " << lrt::deserialize(work._bytes)
-                      << " on thread " << std::this_thread::get_id();
-        }
+    int commit_vote = static_cast<int>(true); // insert is always OK
+    int commit_consensus = 0;
+    MPI_Request req = MPI_REQUEST_NULL;
+    MPI_Iallreduce(&commit_vote,
+                   &commit_consensus,
+                   1,
+                   MPI_INT,
+                   MPI_LAND,
+                   _status_response_comm,
+                   &req);
+    //            MPI_Wait(&req, MPI_STATUS_IGNORE);
+    std::this_thread::sleep_for(50ns);
 
-        mutable std::vector<std::byte> _bytes;
-        lrt::runtime* _runtime;
-        MPI_Comm _status_response_comm;
-    };
+    int finished = false;
+    int cancelled = false;
+    MPI_Status stat{};
+    for (int i = 0; i < 3; ++i) {
+        MPI_Test(&req, &finished, &stat);
+        if (finished) break;
+        std::this_thread::sleep_for(1ms);
+    }
+    if (!finished) {
+//        MPI_Cancel(&req);
+        std::ofstream("_await.log", std::ios::app) << "FAILED REDUCE ON COMM: " <<  std::hex <<_status_response_comm << " RANK: " << context.rank() << "\n";
+    }
+
+    MPI_Test_cancelled(&stat, &cancelled);
+    if (commit_consensus && finished && !cancelled) _runtime->store().insert_nosignal(tuple);
+    std::ofstream("_wp.log", std::ios::app) << "WORKED ON INSERT(" << context.rank() << "): " << (*this) << ": " << tuple << "\n";
 }
-
-#endif

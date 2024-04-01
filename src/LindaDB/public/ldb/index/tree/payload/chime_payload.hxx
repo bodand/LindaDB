@@ -270,7 +270,7 @@ namespace ldb::index::tree::payloads {
 
         template<class Fn>
         void
-        apply(Fn&& fn) {
+        apply(Fn&& fn) const {
             std::ranges::for_each_n(_sets.begin(), _data_sz, [fun = std::forward<Fn>(fn)](const auto& set) {
                 set.apply(fun);
             });

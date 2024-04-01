@@ -251,7 +251,7 @@ lrt::send_eval(lrt::multi_thread_broadcast& bcast, int to, const ldb::lv::linda_
     return ldb::null_awaiter<void>{};
 }
 
-ldb::null_awaiter<bool>
+lrt::reduce_awaiter
 lrt::broadcast_insert(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_tuple& tuple) {
     auto [val, val_sz] = lrt::serialize(tuple);
 
@@ -282,16 +282,7 @@ lrt::broadcast_insert(lrt::multi_thread_broadcast& bcast, const ldb::lv::linda_t
               context.rank(),
               context.thread_communicator);
 
-    int sender_yes = true; // initiator always agrees on commit
-    int recv = false;      // abort by default
-    MPI_Allreduce(&sender_yes,
-                  &recv,
-                  1,
-                  MPI_INT,
-                  MPI_LAND,
-                  context.thread_communicator);
-
-    return ldb::null_awaiter<bool>{};
+    return {context.thread_communicator, true};
 }
 
 lrt::reduce_awaiter

@@ -36,6 +36,9 @@
 #ifndef LINDADB_REDUCE_AWAITER_HXX
 #define LINDADB_REDUCE_AWAITER_HXX
 
+#include <chrono>
+#include <thread>
+
 #include <mpi.h>
 
 namespace lrt {
@@ -48,15 +51,45 @@ namespace lrt {
     private:
         friend bool
         await(const reduce_awaiter& awaiter) {
-            int consesus = static_cast<int>(false);
-            MPI_Allreduce(&awaiter._sender_vote,
-                          &consesus,
-                          1,
-                          MPI_INT,
-                          MPI_LAND,
-                          awaiter._comm);
+            using namespace std::literals;
 
-            return static_cast<bool>(consesus);
+            int consesus = static_cast<int>(false);
+            //            MPI_Allreduce(&awaiter._sender_vote,
+            //                          &consesus,
+            //                          1,
+            //                          MPI_INT,
+            //                          MPI_LAND,
+            //                          awaiter._comm);
+            //            return consesus;
+            MPI_Request req = MPI_REQUEST_NULL;
+            MPI_Iallreduce(&awaiter._sender_vote,
+                           &consesus,
+                           1,
+                           MPI_INT,
+                           MPI_LAND,
+                           awaiter._comm,
+                           &req);
+            //
+            ////                        MPI_Wait(&req, MPI_STATUS_IGNORE);
+            ////                        return consesus;
+            std::this_thread::sleep_for(50ns);
+
+            int finished = false;
+            int cancelled = false;
+            MPI_Status stat{};
+            for (int i = 0; i < 3; ++i) {
+                MPI_Test(&req, &finished, &stat);
+                if (finished) break;
+                std::this_thread::sleep_for(1ms);
+            }
+            if (!finished) {
+//                                MPI_Cancel(&req);
+                std::ofstream("_await.log", std::ios::app) << "FAILED REDUCE ON COMM: " << std::hex << awaiter._comm << " RANK: ?";
+                return false;
+            }
+
+            MPI_Test_cancelled(&stat, &cancelled);
+            return consesus && finished && !cancelled;
         }
 
         MPI_Comm _comm;

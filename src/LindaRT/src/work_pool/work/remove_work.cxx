@@ -30,51 +30,54 @@
  *
  * Originally created: 2024-03-03.
  *
- * src/LindaRT/src/work_pool/work/eval_work --
+ * src/LindaRT/src/work_pool/work/remove_work --
  *   
  */
 
-#include <ldb/lv/fn_call_holder.hxx>
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/linda_value.hxx>
-#include <lrt/work_pool/work/eval_work.hxx>
 
-namespace {
-    struct executing_transform {
-        template<class T>
-        ldb::lv::linda_value
-        operator()(T&& val) const {
-            return val;
-        }
+#include <chrono>
+#include <thread>
 
-        ldb::lv::linda_value
-        operator()(const ldb::lv::fn_call_holder& fn_call_holder) const {
-            return fn_call_holder.execute()[0];
-        }
-    };
-}
+#include <lrt/work_pool/work/remove_work.hxx>
+
+using namespace std::literals;
 
 void
-lrt::eval_work::perform(const mpi_thread_context& context) {
+lrt::remove_work::perform(const lrt::mpi_thread_context& context) {
     const auto tuple = deserialize(_bytes);
-    std::vector<ldb::lv::linda_value> result_values;
-    result_values.reserve(tuple.size());
-    std::ofstream("_wp.log", std::ios::app) << "WORKING ON EVAL: " << (*this) << ": " << tuple << "\n";
-
-    std::transform(tuple.begin(), tuple.end(), std::back_inserter(result_values), [](const ldb::lv::linda_value& lv) {
-        return std::visit(executing_transform{}, lv);
-    });
-
-    std::ofstream("_wp.log", std::ios::app) << "WORKED ON EVAL: " << (*this) << "\n";
-
-    const ldb::lv::linda_tuple& result_tuple = ldb::lv::linda_tuple(result_values);
-
     mpi_thread_context::set_current(context);
-    _runtime->store().out(result_tuple);
-}
+    std::ofstream("_wp.log", std::ios::app) << "WORKING ON REMOVE(" << context.rank() << "): " << (*this) << ": " << tuple << "\n";
+    auto op = _runtime->store().remove_nosignal(tuple);
+    int commit_vote = static_cast<int>(op.has_value());
+    int commit_consensus = 0;
+    MPI_Request req = MPI_REQUEST_NULL;
+    MPI_Iallreduce(&commit_vote,
+                   &commit_consensus,
+                   1,
+                   MPI_INT,
+                   MPI_LAND,
+                   _status_response_comm,
+                   &req);
+    //            MPI_Wait(&req, MPI_STATUS_IGNORE);
 
-std::ostream&
-lrt::operator<<(std::ostream& os, const lrt::eval_work& work) {
-    std::ignore = work;
-    return os << "[eval work] on thread " << std::this_thread::get_id();
+    std::this_thread::sleep_for(50ns);
+
+    int finished = false;
+    int cancelled = false;
+    MPI_Status stat{};
+    for (int i = 0; i < 3; ++i) {
+        MPI_Test(&req, &finished, &stat);
+        if (finished) break;
+        std::this_thread::sleep_for(1ms);
+    }
+    if (!finished) {
+        //        MPI_Cancel(&req);
+        std::ofstream("_await.log", std::ios::app) << "FAILED REDUCE ON COMM: " << std::hex << _status_response_comm << " RANK: " << context.rank() << "\n";
+    }
+
+    MPI_Test_cancelled(&stat, &cancelled);
+    if (commit_consensus && finished && !cancelled) _runtime->store().insert_nosignal(tuple);
+
+    if (commit_consensus) op->commit();
+    std::ofstream("_wp.log", std::ios::app) << "WORKED ON REMOVE(" << context.rank() << "): " << (*this) << ": " << tuple << "\n";
 }

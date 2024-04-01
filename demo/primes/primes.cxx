@@ -47,7 +47,7 @@ initialize_values(int n) {
     out("m", 2);
 }
 
-constexpr static auto checked_range_end = 1000;
+constexpr static auto checked_range_end = 300;
 
 int
 eliminate_multiples(int p) {

@@ -54,19 +54,7 @@ namespace lrt {
                _status_response_comm(statusResponseComm) { }
 
         void
-        perform(const mpi_thread_context& context) {
-            const auto tuple = deserialize(_bytes);
-            mpi_thread_context::set_current(context);
-            int commit_vote = static_cast<int>(true); // insert is always OK
-            int commit_consensus = 0;
-            MPI_Allreduce(&commit_vote,
-                          &commit_consensus,
-                          1,
-                          MPI_INT,
-                          MPI_LAND,
-                          _status_response_comm);
-            if (commit_consensus) _runtime->store().insert_nosignal(tuple);
-        }
+        perform(const mpi_thread_context& context);
 
     private:
         friend std::ostream&
