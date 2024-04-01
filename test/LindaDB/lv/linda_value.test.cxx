@@ -57,7 +57,7 @@ TEMPLATE_TEST_CASE("linda_value prints as integer value",
     const lv::linda_value val = static_cast<TestType>(42);
     std::ostringstream oss;
     oss << val;
-    CHECK(oss.str() == "(42::"s + typeid(TestType).name() + ")");
+    CHECK(oss.str() == "(lv: 42::"s + typeid(TestType).name() + ")");
 }
 
 TEMPLATE_TEST_CASE("linda_value prints as float value",
@@ -68,7 +68,7 @@ TEMPLATE_TEST_CASE("linda_value prints as float value",
     const lv::linda_value val = static_cast<TestType>(42.12);
     std::ostringstream oss;
     oss << val;
-    CHECK(oss.str().substr(1, 5) == "42.12");
+    CHECK(oss.str().substr(5, 5) == "42.12");
 }
 
 TEST_CASE("linda_value prints as string value",
@@ -76,7 +76,7 @@ TEST_CASE("linda_value prints as string value",
     using namespace lv::io;
     using namespace std::literals;
     const auto string_value = "some string"s;
-    const auto string_lv_value = "(some string::"s + typeid(std::string).name() + ")";
+    constexpr static const auto *const string_lv_value = "(lv: some string@11::string)";
 
     const lv::linda_value val = string_value;
     std::ostringstream oss;

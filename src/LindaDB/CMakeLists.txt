@@ -35,7 +35,6 @@
 #   components.
 
 set(LDB_COMMON_SOURCES
-    public/ldb/bcast/null_broadcast.hxx
     public/ldb/data/chunked_list.hxx
     public/ldb/data/locked_list.hxx
     public/ldb/index/tree/payload/chime_payload.hxx

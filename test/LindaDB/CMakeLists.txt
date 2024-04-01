@@ -35,7 +35,6 @@
 
 add_covered_test(NAME LindaDB.Test CATCH
                  SOURCES
-                 bcast/broadcast.test.cxx
                  data/chunked_list.test.cxx
                  lv/dyn_function_adapter.test.cxx
                  lv/fn_call_holder.test.cxx

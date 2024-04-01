@@ -237,7 +237,7 @@ TEST_CASE("full chime_payload stores all values for the same key") {
     CHECK(succ);
     std::ostringstream ss;
     ss << sut;
-    CHECK(ss.str() == R"__((2 2 (42 (42 43)) (420 (42))))__");
+    CHECK(ss.str() == R"__((chime: 2 2 (42) (420)))__");
 }
 
 // NOLINTNEXTLINE

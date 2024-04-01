@@ -55,9 +55,6 @@
 #include <unordered_set>
 #include <variant>
 
-#include <ldb/bcast/broadcast.hxx>
-#include <ldb/bcast/broadcaster.hxx>
-#include <ldb/bcast/null_broadcast.hxx>
 #include <ldb/data/chunked_list.hxx>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/index_query.hxx>
@@ -74,7 +71,6 @@
 
 namespace ldb {
     struct store {
-        using broadcast_type = broadcast<void, void, bool, bool, MPI_Comm>;
         using storage_type = data::chunked_list<lv::linda_tuple>;
         using pointer_type = storage_type::iterator;
         using query_type = tuple_query<index::tree::avl2_tree<lv::linda_value,
@@ -84,7 +80,6 @@ namespace ldb {
         void
         out(const lv::linda_tuple& tuple) {
             std::scoped_lock<std::shared_mutex> lck(_header_mtx);
-            const auto await_handle = broadcast_insert(_broadcast, tuple);
             auto new_it = _data.push_back(tuple);
 
             {
@@ -96,7 +91,6 @@ namespace ldb {
                 }
             }
 
-            await(await_handle);
             notify_readers();
         }
 
@@ -167,12 +161,6 @@ namespace ldb {
                    && ...))
         {
             return rd(make_query(over_index<index_type>, std::forward<Args>(args)...));
-        }
-
-        template<broadcast_if<void, void, bool, bool, MPI_Comm> Bcast>
-        void
-        set_broadcast(const Bcast& bcast) {
-            _broadcast = bcast;
         }
 
         auto
@@ -311,20 +299,20 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         read_and_remove(const query_type& query) {
-            return remove_impl(query, _broadcast);
+            return remove_impl(query);
         }
 
         std::optional<my_remove_command>
         prepare_remove(const query_type& query);
 
         std::optional<lv::linda_tuple>
-        remove_impl(const query_type& query, broadcast_type& bcast);
+        remove_impl(const query_type& query);
 
         std::pair<bool, std::optional<my_remove_command>>
-        remove_one(std::size_t i, const query_type& query, broadcast_type& bcast);
+        remove_one(std::size_t i, const query_type& query);
 
         std::optional<lv::linda_tuple>
-        remove_directly(const query_type& query, broadcast_type& bcast);
+        remove_directly(const query_type& query);
 
         [[gnu::always_inline]] [[nodiscard]] bool
         check_and_reset_sync_need() const noexcept {
@@ -347,7 +335,6 @@ namespace ldb {
 
         mutable std::shared_mutex _header_mtx;
         std::array<index_type, 1> _header_indices{};
-        broadcast_type _broadcast = null_broadcast<void, void, bool, bool, MPI_Comm>{};
         storage_type _data{};
     };
 }

@@ -948,7 +948,7 @@ TEST_CASE("1-tuple prints as with singular value") {
     const std::string int_name = typeid(int).name();
     std::ostringstream oss;
     oss << scalar;
-    CHECK(oss.str() == "((42::" + int_name + "))");
+    CHECK(oss.str() == "((lv: 42::" + int_name + "))");
 }
 
 TEST_CASE("4-tuple prints as with ,-separated value") {
@@ -956,5 +956,5 @@ TEST_CASE("4-tuple prints as with ,-separated value") {
     const std::string int_name = typeid(int).name();
     std::ostringstream oss;
     oss << scalar;
-    CHECK(oss.str() == "((1::" + int_name + "), (2::" + int_name + "), (3::" + int_name + "), (4::" + int_name + "))");
+    CHECK(oss.str() == "((lv: 1::" + int_name + "), (lv: 2::" + int_name + "), (lv: 3::" + int_name + "), (lv: 4::" + int_name + "))");
 }
