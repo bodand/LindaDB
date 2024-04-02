@@ -78,6 +78,37 @@ namespace lrt {
         world_size() const noexcept { return _mpi.world_size(); }
 
         void
+        out(const ldb::lv::linda_tuple& tuple) {
+            // if (_mpi.rank() == 0) return _store.insert(tuple);
+            // remote_insert(tuple);
+            // todo
+        }
+
+        template<class... Args>
+        void
+        in(Args&&... args) {
+            // todo
+        }
+
+        template<class... Args>
+        bool
+        inp(Args&&... args) {
+            // todo
+        }
+
+        template<class... Args>
+        void
+        rd(Args&&... args) {
+            // todo
+        }
+
+        template<class... Args>
+        bool
+        rdp(Args&&... args) {
+            // todo
+        }
+
+        void
         ack(int to, int ack, std::span<std::byte> data = std::span<std::byte>());
 
         void

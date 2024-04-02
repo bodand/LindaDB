@@ -73,7 +73,7 @@ lrt::eval_work::perform() {
 
     const ldb::lv::linda_tuple& result_tuple = ldb::lv::linda_tuple(result_values);
 
-    _runtime->store().out(result_tuple);
+    _runtime->store().insert(result_tuple);
 }
 
 std::ostream&

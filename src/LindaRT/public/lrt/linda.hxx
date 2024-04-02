@@ -36,43 +36,37 @@
 #ifndef LINDADB_LINDA_HXX
 #define LINDADB_LINDA_HXX
 
-#include <ldb/store.hxx>
 #include <lrt/runtime.hxx>
 #include <lrt/runtime_storage.hxx>
 
 template<class... Args>
-void
+inline void
 out(Args&&... args) {
-    if (lrt::this_runtime().rank() == 0) lrt::this_store().out(std::forward<Args>(args)...);
-    else lrt::this_runtime().remote_insert(std::forward<Args>(args)...);
+    lrt::this_runtime().out(std::forward<Args>(args)...);
 }
 
 template<class... Args>
 void
 in(Args&&... args) {
-    if (lrt::this_runtime().rank() == 0) lrt::this_store().in(std::forward<Args>(args)...);
-    else lrt::this_runtime().remote_remove(std::forward<Args>(args)...);
+    lrt::this_runtime().in(std::forward<Args>(args)...);
 }
 
 template<class... Args>
 bool
 inp(Args&&... args) {
-    if (lrt::this_runtime().rank() == 0) return lrt::this_store().inp(std::forward<Args>(args)...);
-    return lrt::this_runtime().remote_try_remove(std::forward<Args>(args)...);
+    return lrt::this_runtime().inp(std::forward<Args>(args)...);
 }
 
 template<class... Args>
 void
 rd(Args&&... args) {
-    if (lrt::this_runtime().rank() == 0) lrt::this_store().in(std::forward<Args>(args)...);
-    else lrt::this_runtime().remote_search(std::forward<Args>(args)...);
+    lrt::this_runtime().rd(std::forward<Args>(args)...);
 }
 
 template<class... Args>
 bool
 rdp(Args&&... args) {
-    if (lrt::this_runtime().rank() == 0) return lrt::this_store().inp(std::forward<Args>(args)...);
-    return lrt::this_runtime().remote_try_search(std::forward<Args>(args)...);
+    return lrt::this_runtime().rdp(std::forward<Args>(args)...);
 }
 
 #endif

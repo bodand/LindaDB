@@ -36,65 +36,23 @@
 #include <ldb/store.hxx>
 
 namespace {
-    template<class TCommand>
-    struct query_result_visitor {
-        using continuation_command = std::optional<TCommand>;
-        using index_type = std::remove_const_t<typename TCommand::index_type>;
-
-        std::pair<bool, continuation_command>
-        operator()(ldb::field_incomparable) const noexcept {
-            return std::make_pair(true, continuation_command{});
+    template<class It>
+    struct query_result_dispatcher {
+        std::pair<bool, std::optional<It>>
+        operator()(ldb::field_incomparable /*unused*/) const noexcept {
+            return std::make_pair(true, std::nullopt);
         }
 
-        std::pair<bool, continuation_command>
-        operator()(ldb::field_not_found) const noexcept {
-            return std::make_pair(false, continuation_command{});
+        std::pair<bool, std::optional<It>>
+        operator()(ldb::field_not_found /*unused*/) const noexcept {
+            return std::make_pair(false, std::nullopt);
         }
 
-        std::pair<bool, continuation_command>
+        std::pair<bool, std::optional<It>>
         operator()(ldb::field_found<ldb::store::pointer_type> found) const noexcept {
-            auto index_pointers = std::views::transform(indices, [](const index_type& idx) {
-                return const_cast<index_type*>(std::addressof(idx));
-            });
-
-            return std::make_pair(false,
-                                  continuation_command(TCommand{ldb::over_index<index_type>,
-                                                                found.value,
-                                                                index_pointers}));
+            return std::make_pair(false, std::optional(found.value));
         }
-
-        mutable std::span<typename TCommand::index_type> indices;
     };
-}
-
-std::optional<ldb::store::my_remove_command>
-ldb::store::prepare_remove(const query_type& query) {
-    std::unique_lock<std::shared_mutex> lck(_header_mtx);
-    for (std::size_t i = 0; i < _header_indices.size(); ++i) {
-        auto [cont, command] = remove_one(i, query);
-        if (cont) continue;
-        return command;
-    }
-    return {}; // todo: remove_directly(query, yes);
-}
-
-std::optional<ldb::lv::linda_tuple>
-ldb::store::remove_impl(const query_type& query) {
-    std::unique_lock<std::shared_mutex> lck(_header_mtx);
-    for (std::size_t i = 0; i < _header_indices.size(); ++i) {
-        auto [cont, command] = remove_one(i, query);
-        if (cont) continue;
-        if (!command) return {};
-        return command->commit();
-    }
-    return remove_directly(query);
-}
-
-std::pair<bool, std::optional<ldb::store::my_remove_command>>
-ldb::store::remove_one(std::size_t i, const query_type& query) {
-    const auto result = query.search_on_index(i, _header_indices[i]);
-    return std::visit(query_result_visitor<my_remove_command>{_header_indices},
-                      result);
 }
 
 std::optional<ldb::lv::linda_tuple>
@@ -103,25 +61,39 @@ ldb::store::remove_directly(const query_type& query) {
 }
 
 std::optional<ldb::lv::linda_tuple>
-ldb::store::read(const query_type& query) const {
+ldb::store::read_directly(const query_type& query) const {
+    return _data.locked_find(query);
+}
+
+std::optional<ldb::lv::linda_tuple>
+ldb::store::perform_indexed_read(const query_type& query) const {
     std::unique_lock<std::shared_mutex> lck(_header_mtx);
     for (std::size_t i = 0; i < _header_indices.size(); ++i) {
-        auto [cont, command] = read_one(i, query);
+        const auto result = query.search_on_index(i, _header_indices[i]);
+        const auto [cont, maybe_it] = std::visit(query_result_dispatcher<pointer_type>{}, result);
         if (cont) continue;
-        if (!command) return {};
-        return command->commit();
+        if (!maybe_it) return {};
+        return {**maybe_it};
     }
     return read_directly(query);
 }
 
-std::pair<bool, std::optional<ldb::store::my_read_command>>
-ldb::store::read_one(std::size_t i, const query_type& query) const {
-    const auto result = query.search_on_index(i, _header_indices[i]);
-    return std::visit(query_result_visitor<my_read_command>{_header_indices},
-                      result);
-}
-
 std::optional<ldb::lv::linda_tuple>
-ldb::store::read_directly(const query_type& query) const {
-    return _data.locked_find(query);
+ldb::store::perform_indexed_remove(const ldb::store::query_type& query) {
+    std::unique_lock<std::shared_mutex> lck(_header_mtx);
+    for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+        const auto result = query.remove_on_index(i, _header_indices[i]);
+        const auto [cont, maybe_it] = std::visit(query_result_dispatcher<pointer_type>{}, result);
+        if (cont) continue;
+        if (!maybe_it) return {};
+
+        auto it = *maybe_it;
+        std::ranges::for_each(std::views::iota(std::size_t{}, _header_indices.size()),
+                              [it, this](std::size_t idx) {
+                                  std::ignore = _header_indices[idx].remove(
+                                         index::tree::value_lookup((*it)[idx], it));
+                              });
+        return *it;
+    }
+    return remove_directly(query);
 }
