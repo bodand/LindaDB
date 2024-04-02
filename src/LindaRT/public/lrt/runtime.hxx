@@ -78,6 +78,9 @@ namespace lrt {
         world_size() const noexcept { return _mpi.world_size(); }
 
         void
+        ack(int to, int ack, std::span<std::byte> data = std::span<std::byte>());
+
+        void
         loop();
 
     private:
@@ -89,15 +92,9 @@ namespace lrt {
         std::atomic_flag _recv_start = ATOMIC_FLAG_INIT;
         std::thread _recv_thr;
 
-        std::tuple<mpi_thread_context> _main_thread_context;
-        ldb::broadcast<void, void, bool, bool, MPI_Comm> _broadcast;
-
         std::optional<balancer> _balancer{std::nullopt};
 
-        lrt::work_pool<std::dynamic_extent,
-                       class work<mpi_thread_context>,
-                       mpi_thread_context>
-               _work_pool;
+        lrt::work_pool<std::dynamic_extent, work<>> _work_pool;
 
         ldb::store _store{};
     };

@@ -40,32 +40,27 @@
 #include <ostream>
 #include <ranges>
 
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
-
 namespace lrt {
+    struct runtime;
+
     struct remove_work {
-        explicit remove_work(std::vector<std::byte>&& payload,
-                             runtime& runtime,
-                             MPI_Comm statusResponseComm)
+        explicit remove_work(std::vector<std::byte>&& payload, runtime& runtime, int sender, int ack_with)
              : _bytes(std::move(payload)),
                _runtime(&runtime),
-               _status_response_comm(statusResponseComm) { }
+               _sender(sender),
+               _ack_with(ack_with) { }
 
         void
-        perform(const mpi_thread_context& context);
+        perform();
 
     private:
         friend std::ostream&
-        operator<<(std::ostream& os, const remove_work& work) {
-            std::ignore = work;
-            return os << "[remove work]: " << lrt::deserialize(work._bytes)
-                      << " on thread " << std::this_thread::get_id();
-        }
+        operator<<(std::ostream& os, const remove_work& work);
 
         mutable std::vector<std::byte> _bytes;
         lrt::runtime* _runtime;
-        MPI_Comm _status_response_comm;
+        int _sender;
+        int _ack_with;
     };
 }
 

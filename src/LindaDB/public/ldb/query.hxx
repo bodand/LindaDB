@@ -28,48 +28,50 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-07.
+ * Originally created: 2024-04-04.
  *
- * src/LindaRT/include/lrt/bcast/mpi_request_vector_awaiter --
- *   
+ * src/LindaDB/public/ldb/query --
+ *   Collective header for the query API.
  */
-#ifndef LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
-#define LINDADB_MPI_REQUEST_VECTOR_AWAITER_HXX
+#ifndef LINDADB_QUERY_HXX
+#define LINDADB_QUERY_HXX
 
-#include <cstddef>
-#include <memory>
-#include <utility>
-#include <vector>
+#include <ldb/query/concrete_tuple_query.hxx>
+#include <ldb/query/manual_fields_query.hxx>
+#include <ldb/query/tuple_query.hxx>
+#include <ldb/query/tuple_query_if.hxx>
+#include <ldb/query/type_stubbed_tuple_query.hxx>
 
-#include <ldb/bcast/broadcaster.hxx>
-#include <ldb/common.hxx>
+namespace ldb {
+    namespace helper {
+        template<class T>
+        struct over_index_impl { };
+    }
 
-#include <mpi.h>
+    template<class T>
+    constexpr const static auto over_index = helper::over_index_impl<T>{};
 
-namespace lrt {
-    struct mpi_request_vector_awaiter final {
-        mpi_request_vector_awaiter(std::vector<MPI_Request>&& reqs,
-                                   std::unique_ptr<std::byte[]>&& buf)
-             : _reqs(std::move(reqs)),
-               _buf(std::move(buf)) { }
+    template<class Index, class... Args>
+    auto
+    make_piecewise_query(helper::over_index_impl<Index> /* type-deduction */,
+                         Args&&... args) {
+        return manual_fields_query<Index, std::remove_cvref_t<Args>...>(
+               std::forward<Args>(args)...);
+    }
 
-    private:
-        friend void
-        await(mpi_request_vector_awaiter& awaiter) {
-            assert_that(!awaiter._finished);
-            MPI_Waitall(static_cast<int>(awaiter._reqs.size()),
-                        awaiter._reqs.data(),
-                        MPI_STATUS_IGNORE);
-            awaiter._finished = true;
-            awaiter._buf.reset();
-        }
+    template<class Index>
+    auto
+    make_concrete_query(helper::over_index_impl<Index> /* type-deduction */,
+                        const lv::linda_tuple& tuple) {
+        return concrete_tuple_query<Index>(tuple);
+    }
 
-        bool _finished{};
-        std::vector<MPI_Request> _reqs;
-        std::unique_ptr<std::byte[]> _buf;
-    };
-
-    static_assert(ldb::await_if<mpi_request_vector_awaiter, void>);
+    template<class Index>
+    auto
+    make_type_aware_query(helper::over_index_impl<Index> /* type-deduction */,
+                          const lv::linda_tuple& tuple) {
+        return type_stubbed_tuple_query<Index>(tuple);
+    }
 }
 
 #endif

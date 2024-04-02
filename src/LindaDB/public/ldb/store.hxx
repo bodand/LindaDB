@@ -60,10 +60,7 @@
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
-#include <ldb/query/concrete_tuple_query.hxx>
-#include <ldb/query/make_matcher.hxx>
-#include <ldb/query/manual_fields_query.hxx>
-#include <ldb/query/tuple_query.hxx>
+#include <ldb/query.hxx>
 #include <ldb/store_command/read_store_command.hxx>
 #include <ldb/store_command/remove_store_command.hxx>
 
@@ -76,6 +73,11 @@ namespace ldb {
         using query_type = tuple_query<index::tree::avl2_tree<lv::linda_value,
                                                               pointer_type>>;
         using index_type = index::tree::avl2_tree<lv::linda_value, pointer_type>;
+
+        static auto
+        indices() noexcept {
+            return ::ldb::over_index<index_type>;
+        }
 
         void
         out(const lv::linda_tuple& tuple) {
@@ -127,7 +129,7 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            return inp(make_query(over_index<index_type>, std::forward<Args>(args)...));
+            return inp(make_piecewise_query(indices(), std::forward<Args>(args)...));
         }
 
         template<class... Args>
@@ -138,7 +140,7 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            return in(make_query(over_index<index_type>, std::forward<Args>(args)...));
+            return in(make_piecewise_query(indices(), std::forward<Args>(args)...));
         }
 
         template<class... Args>
@@ -149,7 +151,7 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            return rdp(make_query(over_index<index_type>, std::forward<Args>(args)...));
+            return rdp(make_piecewise_query(indices(), std::forward<Args>(args)...));
         }
 
         template<class... Args>
@@ -160,7 +162,7 @@ namespace ldb {
                     || meta::is_matcher_type_v<Args>)
                    && ...))
         {
-            return rd(make_query(over_index<index_type>, std::forward<Args>(args)...));
+            return rd(make_piecewise_query(indices(), std::forward<Args>(args)...));
         }
 
         auto

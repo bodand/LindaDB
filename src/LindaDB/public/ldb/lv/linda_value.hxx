@@ -37,16 +37,17 @@
 #define LINDADB_LINDA_VALUE_HXX
 
 #include <concepts>
-#include <typeinfo>
 #include <cstdint>
 #include <ostream>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <typeinfo>
 #include <variant>
 
 #include <ldb/lv/fn_call_holder.hxx>
 #include <ldb/lv/fn_call_tag.hxx>
+#include <ldb/lv/ref_type.hxx>
 
 namespace ldb::lv {
     using linda_value = std::variant<
@@ -60,7 +61,13 @@ namespace ldb::lv {
            float,
            double,
            fn_call_holder,
-           fn_call_tag>;
+           fn_call_tag,
+           ref_type>;
+
+    constexpr auto
+    operator<=>(const linda_value& a, ref_type b) {
+        return a.index() <=> b;
+    }
 
     template<class T>
     inline linda_value
@@ -88,8 +95,10 @@ namespace ldb::lv {
             { _os << "(lv: " << val << "::" << typeid(T).name() << ")"; }
 
             void
-            operator()(const std::string& val)
-            { _os << "(lv: " << val << "@" << val.size() << "::string)"; }
+            operator()(const std::string& val) { _os << "(lv: " << val << "@" << val.size() << "::string)"; }
+
+            void
+            operator()(ref_type val) { _os << "(lv: " << val << "::*)"; }
 
         private:
             std::ostream& _os;

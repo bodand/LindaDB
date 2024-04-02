@@ -58,6 +58,8 @@
 #include <lrt/serialize/tuple.hxx>
 
 #include "ldb/lv/fn_call_holder.hxx"
+#include "lrt/serialize/int.hxx"
+
 
 namespace {
     template<class T>
@@ -143,6 +145,8 @@ namespace {
         }
         void
         operator()(ldb::lv::fn_call_tag /*ignore*/) { buf = 0; }
+        void
+        operator()(ldb::lv::ref_type /*ignore*/) { buf = sizeof(std::int8_t); }
     };
 
     enum class typemap : std::uint8_t {
@@ -157,6 +161,7 @@ namespace {
         LRT_DOUBLE = 8,
         LRT_FNCALL = 9,
         LRT_CALLTAG = 10,
+        LRT_REFTYPE = 11,
     };
 
     template<class>
@@ -204,6 +209,10 @@ namespace {
     template<>
     struct to_typemap<ldb::lv::fn_call_tag> {
         constexpr const static auto value = static_cast<std::byte>(typemap::LRT_CALLTAG);
+    };
+    template<>
+    struct to_typemap<ldb::lv::ref_type> {
+        constexpr const static auto value = static_cast<std::byte>(typemap::LRT_REFTYPE);
     };
 
     std::size_t
@@ -254,6 +263,14 @@ namespace {
         operator()(ldb::lv::fn_call_tag /*ignore*/) const {
             buf[0] = to_typemap<ldb::lv::fn_call_tag>::value;
             return 1;
+        }
+
+        std::size_t
+        operator()(ldb::lv::ref_type ref) const {
+            auto my_buf = buf;
+            *(my_buf++) = to_typemap<ldb::lv::ref_type>::value;
+            my_buf += write_int_raw(ref.type_idx(), my_buf);
+            return static_cast<std::size_t>(my_buf - buf);
         }
 
         template<std::integral T>
@@ -404,6 +421,9 @@ namespace {
         case LRT_CALLTAG: {
             return ldb::lv::fn_call_tag{};
         }
+        case LRT_REFTYPE: {
+            return ldb::lv::ref_type(deserialize_numeric<std::int8_t>(buf, len));
+        }
         }
         LDB_UNREACHABLE;
     }
@@ -432,4 +452,14 @@ lrt::deserialize(std::span<std::byte> buf) {
     auto tuple_sz = buf.size() - 1;
     auto tuple_payload_start = buf.data() + 1;
     return tuple_deserialize(tuple_payload_start, tuple_sz);
+}
+
+int
+lrt::to_communication_endian(int system_endian_input) {
+    return swap_unless_comm_endian(system_endian_input);
+}
+
+int
+lrt::from_communication_endian(int communication_endian_input) {
+    return swap_unless_comm_endian(communication_endian_input);
 }

@@ -37,6 +37,8 @@
 #include <ldb/lv/fn_call_holder.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
+#include <lrt/runtime.hxx>
+#include <lrt/serialize/tuple.hxx>
 #include <lrt/work_pool/work/eval_work.hxx>
 
 namespace {
@@ -55,8 +57,10 @@ namespace {
 }
 
 void
-lrt::eval_work::perform(const mpi_thread_context& context) {
+lrt::eval_work::perform() {
     const auto tuple = deserialize(_bytes);
+    _runtime->ack(_sender, _ack_with); // eval ACK designates receiving the job
+
     std::vector<ldb::lv::linda_value> result_values;
     result_values.reserve(tuple.size());
     std::ofstream("_wp.log", std::ios::app) << "WORKING ON EVAL: " << (*this) << ": " << tuple << "\n";
@@ -69,7 +73,6 @@ lrt::eval_work::perform(const mpi_thread_context& context) {
 
     const ldb::lv::linda_tuple& result_tuple = ldb::lv::linda_tuple(result_values);
 
-    mpi_thread_context::set_current(context);
     _runtime->store().out(result_tuple);
 }
 

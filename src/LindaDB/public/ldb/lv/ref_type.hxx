@@ -28,34 +28,63 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-03.
+ * Originally created: 2024-04-04.
  *
- * src/LindaRT/src/work_pool/work/remove_work --
+ * src/LindaDB/public/ldb/lv/ref_type --
  *   
  */
+#ifndef LINDADB_REF_TYPE_HXX
+#define LINDADB_REF_TYPE_HXX
 
+#include <compare>
+#include <cstdint>
+#include <ostream>
 
-#include <chrono>
-#include <thread>
+namespace ldb::lv {
+    struct ref_type {
+        using value_type = std::int8_t;
 
-#include <ldb/query.hxx>
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
-#include <lrt/work_pool/work/remove_work.hxx>
+        constexpr explicit ref_type(std::size_t type_idx)
+             : ref_type(static_cast<value_type>(type_idx)) { }
+        constexpr explicit ref_type(int type_idx)
+             : ref_type(static_cast<value_type>(type_idx)) { }
+        constexpr explicit ref_type(value_type type_idx)
+             : _type_idx(type_idx) { }
 
-using namespace std::literals;
+        [[nodiscard]] value_type
+        type_idx() const noexcept {
+            return _type_idx;
+        }
 
-void
-lrt::remove_work::perform() {
-    const auto tuple = deserialize(_bytes);
-    const auto result = _runtime->store().in(ldb::make_type_aware_query(_runtime->store().indices(), tuple));
-    const auto [buf, buf_sz] = serialize(result);
-    _runtime->ack(_sender, _ack_with, std::span(buf.get(), buf_sz));
+    private:
+        value_type _type_idx;
+
+        friend constexpr auto
+        operator<=>(ref_type a, ref_type b) = default;
+
+        friend constexpr auto
+        operator<=>(std::size_t idx, ref_type b) {
+            return idx <=> static_cast<std::size_t>(b._type_idx);
+        }
+
+        friend constexpr bool
+        operator==(ref_type a, ref_type b) = default;
+
+        friend std::ostream&
+        operator<<(std::ostream& os, ref_type t) {
+            return os << "(type: " << static_cast<int>(t._type_idx) << ")";
+        }
+    };
 }
 
-std::ostream&
-lrt::operator<<(std::ostream& os, const lrt::remove_work& work) {
-    std::ignore = work;
-    return os << "[remove work]: " << lrt::deserialize(work._bytes)
-              << " on thread " << std::this_thread::get_id();
+namespace std {
+    template<>
+    struct hash<ldb::lv::ref_type> {
+        std::size_t
+        operator()(const ldb::lv::ref_type& ref) const noexcept {
+            return hash<int>{}(ref.type_idx());
+        }
+    };
 }
+
+#endif

@@ -28,34 +28,24 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-03.
+ * Originally created: 2024-04-04.
  *
- * src/LindaRT/src/work_pool/work/remove_work --
+ * src/LindaRT/public/lrt/serialize/query --
  *   
  */
+#ifndef LINDADB_QUERY_HXX
+#define LINDADB_QUERY_HXX
 
+#include <memory>
+#include <utility>
+#include <cstddef>
 
-#include <chrono>
-#include <thread>
+namespace lrt {
+    template<class Query>
+    std::pair<std::unique_ptr<std::byte[]>, std::size_t>
+    serialize(const Query& query) {
 
-#include <ldb/query.hxx>
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
-#include <lrt/work_pool/work/remove_work.hxx>
-
-using namespace std::literals;
-
-void
-lrt::remove_work::perform() {
-    const auto tuple = deserialize(_bytes);
-    const auto result = _runtime->store().in(ldb::make_type_aware_query(_runtime->store().indices(), tuple));
-    const auto [buf, buf_sz] = serialize(result);
-    _runtime->ack(_sender, _ack_with, std::span(buf.get(), buf_sz));
+    }
 }
 
-std::ostream&
-lrt::operator<<(std::ostream& os, const lrt::remove_work& work) {
-    std::ignore = work;
-    return os << "[remove work]: " << lrt::deserialize(work._bytes)
-              << " on thread " << std::this_thread::get_id();
-}
+#endif

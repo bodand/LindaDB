@@ -128,6 +128,14 @@ namespace ldb::index::tree {
 
     template<class K, class V>
     value_lookup(const K&, const V&) -> value_lookup<K, V>;
+
+    template<class K>
+    auto
+    make_lookup(const K& key) { return any_value_lookup(key); }
+
+    template<class K, class V>
+    auto
+    make_lookup(const K& key, const V& value) { return value_lookup(key, value); }
 }
 
 #endif

@@ -44,8 +44,7 @@
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
-
-#include "ldb/query/manual_fields_query.hxx"
+#include <ldb/query.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
@@ -288,10 +287,10 @@ TEST_CASE("new chime AVL-tree removes correct element") {
     std::string data;
     auto res = sut.remove(ldb::index::tree::value_lookup(
            ldb::lv::linda_value("asd"),
-           ldb::make_query(ldb::over_index<decltype(sut)>,
-                           "asd",
-                           3,
-                           ldb::ref(&data))));
+           ldb::make_piecewise_query(ldb::over_index<decltype(sut)>,
+                                     "asd",
+                                     3,
+                                     ldb::ref(&data))));
     REQUIRE(res.has_value());
     CHECK(*res == &buf[2]);
 }
@@ -340,9 +339,9 @@ TEST_CASE("chime AVL-tree can find elems through query") {
     }
 
     int data{};
-    auto querym = ldb::make_query(ldb::over_index<index_type>, "m", ldb::ref(&data));
+    auto querym = ldb::make_piecewise_query(ldb::over_index<index_type>, "m", ldb::ref(&data));
     std::ignore = querym.remove_via_field(0, sut);
 
-    auto query1 = ldb::make_query(ldb::over_index<index_type>, 1);
+    auto query1 = ldb::make_piecewise_query(ldb::over_index<index_type>, 1);
     auto res = query1.remove_via_field(0, sut);
 }

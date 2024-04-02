@@ -58,7 +58,7 @@ namespace ldb {
         {
             if (auto found = std::get_if<T>(&value);
                 found) {
-                *_ref = *found;
+                if (_ref) *_ref = *found;
                 return std::strong_ordering::equal;
             }
 
@@ -87,6 +87,9 @@ namespace ldb {
 
         T* _ref;
     };
+
+    template<class T>
+    constexpr const static auto type_checker = match_type<T>{nullptr};
 
     template<class T>
     auto

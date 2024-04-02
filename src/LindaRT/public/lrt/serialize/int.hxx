@@ -28,34 +28,19 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-03.
+ * Originally created: 2024-04-04.
  *
- * src/LindaRT/src/work_pool/work/remove_work --
+ * src/LindaRT/public/lrt/serialize/int --
  *   
  */
+#ifndef LINDADB_INT_HXX
+#define LINDADB_INT_HXX
 
-
-#include <chrono>
-#include <thread>
-
-#include <ldb/query.hxx>
-#include <lrt/runtime.hxx>
-#include <lrt/serialize/tuple.hxx>
-#include <lrt/work_pool/work/remove_work.hxx>
-
-using namespace std::literals;
-
-void
-lrt::remove_work::perform() {
-    const auto tuple = deserialize(_bytes);
-    const auto result = _runtime->store().in(ldb::make_type_aware_query(_runtime->store().indices(), tuple));
-    const auto [buf, buf_sz] = serialize(result);
-    _runtime->ack(_sender, _ack_with, std::span(buf.get(), buf_sz));
+namespace lrt {
+    int
+    to_communication_endian(int system_endian_input);
+    int
+    from_communication_endian(int communication_endian_input);
 }
 
-std::ostream&
-lrt::operator<<(std::ostream& os, const lrt::remove_work& work) {
-    std::ignore = work;
-    return os << "[remove work]: " << lrt::deserialize(work._bytes)
-              << " on thread " << std::this_thread::get_id();
-}
+#endif

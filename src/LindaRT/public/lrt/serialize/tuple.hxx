@@ -42,6 +42,11 @@
 #include <ldb/lv/linda_value.hxx>
 
 namespace lrt {
+    int
+    to_communication_endian(int system_endian_input);
+    int
+    from_communication_endian(int communication_endian_input);
+
     std::pair<std::unique_ptr<std::byte[]>, std::size_t>
     serialize(const ldb::lv::linda_tuple& tuple);
 

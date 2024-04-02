@@ -43,61 +43,31 @@
 #define LRT_NOINCLUDE_EVAL
 
 #include <ldb/lv/linda_tuple.hxx>
-#include <lrt/bcast/multi_thread_broadcast.hxx>
-#include <lrt/bcast/manual_broadcast_handler.hxx>
 #include <lrt/communication_tags.hxx>
 #include <lrt/runtime.hxx>
 #include <lrt/work_pool/work_factory.hxx>
 
 #include <mpi.h>
 
+#include "lrt/serialize/tuple.hxx"
+
 lrt::runtime::runtime(int* argc,
                       char*** argv,
                       std::function<balancer(const runtime&)> load_balancer)
      : _mpi(argc, argv),
        _recv_thr(&lrt::runtime::recv_thread_worker, this),
-       _work_pool([this]() {
-           mpi_thread_context ctx{};
-           MPI_Comm_dup(MPI_COMM_WORLD, &ctx.thread_communicator);
-           std::ofstream("_comm.log", std::ios::app) << rank() << ": DUPING WORLD: " << std::hex << ctx.thread_communicator << std::endl;
-           return std::make_tuple(ctx);
-       }, 4) {
-    mpi_thread_context main_ctx{};
-    MPI_Comm_dup(MPI_COMM_WORLD, &main_ctx.thread_communicator);
-    mpi_thread_context::set_current(main_ctx);
-    std::ofstream("_comm.log", std::ios::app) << rank() << ": DUPING WORLD: " << std::hex << main_ctx.thread_communicator << std::endl;
-    _main_thread_context = std::make_tuple(main_ctx);
-
-    std::vector<std::tuple<mpi_thread_context>*> contexts;
-    contexts.reserve(_work_pool.thread_contexts().size() + 1);
-    contexts.push_back(&_main_thread_context);
-
-    std::ranges::copy(_work_pool.thread_contexts(), std::back_inserter(contexts));
-
-    {
-        std::ofstream os("_comm.log", std::ios::app);
-        os << rank() << ": " << std::hex;
-        std::ranges::transform(contexts,
-                               std::ostream_iterator<int>(os, " "),
-                               [](std::tuple<mpi_thread_context>* ptr) {
-                                   return std::get<0>(*ptr).thread_communicator;
-                               });
-        os << std::endl;
-    }
-
-    _broadcast = lrt::multi_thread_broadcast(contexts);
+       _work_pool([]() { return std::make_tuple(); },
+                  4) {
     _balancer = load_balancer(*this);
 
-    _store.set_broadcast(_broadcast);
     _recv_start.test_and_set();
     _recv_start.notify_all();
 }
 
 lrt::runtime::~runtime() noexcept {
-    std::ofstream("_runtime.log") << "RUNTIME ENDING 0: "
-                                  << mpi_thread_context::current().thread_communicator << " =?= "
-                                  << std::get<0>(_main_thread_context).thread_communicator << std::endl;
-    await(broadcast_terminate(_broadcast));
+    std::ignore = _mpi.send_with_ack(_mpi.rank(),
+                                     static_cast<int>(communication_tag::Terminate),
+                                     std::span<std::byte>());
     std::ofstream("_runtime.log") << "RUNTIME ENDING 1" << std::endl;
     _recv_thr.join();
     std::ofstream("_runtime.log") << "RUNTIME ENDING 2" << std::endl;
@@ -110,23 +80,17 @@ lrt::runtime::~runtime() noexcept {
 void
 lrt::runtime::recv_thread_worker() {
     _recv_start.wait(false);
-    bool do_spin = true;
-    while (do_spin) {
-        auto msgs = broadcast_recv(_broadcast);
-        for (auto& msg : msgs) {
-            const auto command = static_cast<communication_tag>(msg.tag);
-            std::ofstream("_cmd.log", std::ios::app) << rank() << ": RECEIVED COMMAND: " << std::hex << msg.tag << std::endl;
+    for (;;) {
+        auto [from, tag, ack, payload] = _mpi.recv();
+        const auto command = static_cast<communication_tag>(tag);
 
-            if (command == communication_tag::Terminate) {
-                do_spin = false;
-                break;
-            }
-            auto work = lrt::work_factory::create(command,
-                                                  std::move(msg.buffer),
-                                                  *this,
-                                                  msg.context);
-            _work_pool.enqueue(std::move(work));
-        }
+        if (command == communication_tag::Terminate) break;
+        auto work = lrt::work_factory::create(command,
+                                              std::move(payload),
+                                              *this,
+                                              from,
+                                              0);
+        _work_pool.enqueue(std::move(work));
     }
     _work_pool.terminate();
 }
@@ -135,10 +99,19 @@ void
 lrt::runtime::eval(const ldb::lv::linda_tuple& call_tuple) {
     assert_that(_balancer);
     const auto dest = _balancer->send_to_rank(call_tuple);
-    await(send_eval(_broadcast, dest, call_tuple));
+    const auto [buf, buf_sz] = serialize(call_tuple);
+    std::ignore = _mpi.send_and_wait_ack(dest,
+                                         static_cast<int>(communication_tag::Eval),
+                                         std::span(buf.get(), buf_sz));
 }
 
 void
 lrt::runtime::loop() {
+    assert_that(_mpi.world_size() > 0);
     MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void
+lrt::runtime::ack(int to, int ack, std::span<std::byte> data) {
+    _mpi.send_ack(to, ack, data);
 }

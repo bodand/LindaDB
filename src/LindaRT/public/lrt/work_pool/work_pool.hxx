@@ -126,7 +126,7 @@ namespace lrt {
                     auto work = work_queue.dequeue();
                     std::ofstream("_wp.log", std::ios::app) << "RETRIEVED WORK: " << work << std::endl;
                     std::apply([&work]<class... CallCtx>(CallCtx&&... context) {
-                        work.perform(std::forward<CallCtx>(context)...);
+                        work.perform();
                     },
                                thread_context);
                 }
@@ -138,7 +138,8 @@ namespace lrt {
             pool_storage(const context_builder_type& builder,
                          std::size_t size,
                          queue_type& work_queue) {
-                std::latch start_latch(static_cast<std::ptrdiff_t>(size) + 1);
+                std::ignore = size;
+                std::latch start_latch(static_cast<std::ptrdiff_t>(Size) + 1);
                 std::ranges::generate(_threads,
                                       [n = 0ull, this, &start_latch, &builder, &work_queue]() mutable {
                                           return std::thread(worker_thread_job(), &_context_pointers[n++], &builder, &work_queue, &start_latch);

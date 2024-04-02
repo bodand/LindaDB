@@ -37,19 +37,22 @@
 #define LINDADB_WORK_FACTORY_HXX
 
 #include <cstddef>
-#include <span>
+#include <utility>
+#include <vector>
 
 #include <lrt/communication_tags.hxx>
-#include <lrt/runtime.hxx>
 #include <lrt/work_pool/work.hxx>
 
 namespace lrt {
+    struct runtime;
+
     struct work_factory {
-        static lrt::work<lrt::mpi_thread_context>
+        static lrt::work<>
         create(lrt::communication_tag tag,
                std::vector<std::byte>&& payload,
                lrt::runtime& runtime,
-               MPI_Comm sender_comm);
+               int sender,
+               int ack);
     };
 }
 

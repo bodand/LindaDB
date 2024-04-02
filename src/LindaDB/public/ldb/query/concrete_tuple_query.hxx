@@ -91,9 +91,7 @@ namespace ldb {
 
         friend constexpr bool
         operator!=(const concrete_tuple_query& lhs,
-                   const concrete_tuple_query& rhs) {
-            return !(lhs == rhs);
-        }
+                   const concrete_tuple_query& rhs) = default;
 
         friend constexpr std::partial_ordering
         operator<=>(const lv::linda_tuple& lhs, const concrete_tuple_query& query) {

@@ -47,7 +47,7 @@ namespace lrt {
                        std::ostream& os,
                        Context&&... context) {
                   { os << work } -> std::same_as<std::ostream&>;
-                  { work.perform(context...) };
+                  { work.perform() };
               };
 }
 

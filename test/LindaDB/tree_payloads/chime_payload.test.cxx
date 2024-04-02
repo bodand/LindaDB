@@ -43,9 +43,7 @@
 #include <ldb/index/tree/payload.hxx>
 #include <ldb/index/tree/payload/chime_payload.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-
-#include "ldb/query/manual_fields_query.hxx"
-#include "ldb/query/match_type.hxx"
+#include <ldb/query.hxx>
 
 namespace lit = ldb::index::tree;
 namespace lps = lit::payloads;
@@ -378,7 +376,7 @@ TEST_CASE("multi-element chime_payload remains sorted after insert") {
 //    int data{};
 //    auto val_lookup = ldb::index::tree::value_lookup(
 //           ldb::match_value("m"),
-//           ldb::make_query(ldb::over_index<index_type>,
+//           ldb::make_piecewise_query(ldb::indices<index_type>,
 //                           "m",
 //                           ldb::ref(&data)));
 //    CHECK_FALSE(val_lookup.key() == sut);
@@ -407,10 +405,10 @@ TEST_CASE("chime_payload removes correct element") {
     std::string data;
     auto res = sut.remove(ldb::index::tree::value_lookup(
            ldb::lv::linda_value("asd"),
-           ldb::make_query(ldb::over_index<index_type>,
-                           "asd",
-                           3,
-                           ldb::ref(&data))));
+           ldb::make_piecewise_query(ldb::over_index<index_type>,
+                                     "asd",
+                                     3,
+                                     ldb::ref(&data))));
     REQUIRE(res.has_value());
     CHECK(*res == &buf[2]);
 }

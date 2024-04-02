@@ -62,4 +62,5 @@ TEST_CASE("work_pool accepts works") {
         return std::make_tuple();
     });
     pool.enqueue(test_work(pool));
+    pool.terminate();
 }

@@ -198,22 +198,6 @@ namespace ldb {
 
         std::tuple<meta::matcher_type<Matchers>...> _payload;
     };
-
-    namespace helper {
-        template<class T>
-        struct over_index_impl { };
-    }
-
-    template<class T>
-    constexpr const static auto over_index = helper::over_index_impl<T>{};
-
-    template<class Index, class... Args>
-    auto
-    make_query(helper::over_index_impl<Index> /* type-deduction */,
-               Args&&... args) {
-        return manual_fields_query<Index, std::remove_cvref_t<Args>...>(
-               std::forward<Args>(args)...);
-    }
 }
 
 #endif

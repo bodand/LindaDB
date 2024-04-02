@@ -161,6 +161,11 @@ struct instantiate<lv::fn_call_holder> {
     inline static auto value = lv::fn_call_holder{"fn_name", std::make_unique<lv::linda_tuple>(1)};
 };
 
+template<>
+struct instantiate<lv::ref_type> {
+    inline static auto value = lv::ref_type(1ULL);
+};
+
 TEMPLATE_LIST_TEST_CASE("tuple with all fields can round trip serialization",
                         "[serialize][deserialize]",
                         lv::linda_value) {

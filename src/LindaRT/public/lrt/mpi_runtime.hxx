@@ -37,7 +37,12 @@
 #define LINDADB_MPI_RUNTIME_HXX
 
 #include <atomic>
+#include <span>
 #include <stdexcept>
+#include <tuple>
+#include <utility>
+
+#include <mpi.h>
 
 namespace lrt {
     struct incompatible_mpi_exception : std::runtime_error {
@@ -60,17 +65,32 @@ namespace lrt {
 
         ~mpi_runtime();
 
+        void
+        send(int to, int tag, std::span<std::byte> payload) const;
+
+        void
+        send_ack(int to, int tag, std::span<std::byte> payload) const;
+
+        [[nodiscard]] std::tuple<int, int, int, std::vector<std::byte>>
+        recv(int from = MPI_ANY_SOURCE, int tag = MPI_ANY_TAG) const;
+
+        [[nodiscard]] int
+        send_with_ack(int to, int tag, std::span<std::byte> payload) const;
+
+        [[nodiscard]] std::vector<std::byte>
+        send_and_wait_ack(int to, int tag, std::span<std::byte> payload) const;
+
         [[nodiscard]] int
         rank() const noexcept { return _rank; }
 
         [[nodiscard]] int
         world_size() const noexcept { return _world_size; }
-
     private:
-        inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
 
+        inline static std::atomic_flag _mpi_inited = ATOMIC_FLAG_INIT;
         int _rank;
         int _world_size;
+        MPI_Comm _ack_world;
     };
 }
 

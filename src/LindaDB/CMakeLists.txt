@@ -51,6 +51,7 @@ set(LDB_COMMON_SOURCES
     public/ldb/lv/linda_value.hxx
     public/ldb/lv/tuple_builder.hxx
     public/ldb/query/concrete_tuple_query.hxx
+        public/ldb/query/type_stubbed_tuple_query.hxx
     public/ldb/query/make_matcher.hxx
     public/ldb/query/manual_fields_query.hxx
     public/ldb/query/match_type.hxx

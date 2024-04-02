@@ -40,10 +40,39 @@
 #include <lrt/runtime.hxx>
 #include <lrt/runtime_storage.hxx>
 
-#define out(...) lrt::this_store().out(ldb::lv::linda_tuple(__VA_ARGS__))
-#define in(...) lrt::this_store().in(__VA_ARGS__)
-#define inp(...) lrt::this_store().inp(__VA_ARGS__)
-#define rd(...) lrt::this_store().rd(__VA_ARGS__)
-#define rdp(...) lrt::this_store().rdp(__VA_ARGS__)
+template<class... Args>
+void
+out(Args&&... args) {
+    if (lrt::this_runtime().rank() == 0) lrt::this_store().out(std::forward<Args>(args)...);
+    else lrt::this_runtime().remote_insert(std::forward<Args>(args)...);
+}
+
+template<class... Args>
+void
+in(Args&&... args) {
+    if (lrt::this_runtime().rank() == 0) lrt::this_store().in(std::forward<Args>(args)...);
+    else lrt::this_runtime().remote_remove(std::forward<Args>(args)...);
+}
+
+template<class... Args>
+bool
+inp(Args&&... args) {
+    if (lrt::this_runtime().rank() == 0) return lrt::this_store().inp(std::forward<Args>(args)...);
+    return lrt::this_runtime().remote_try_remove(std::forward<Args>(args)...);
+}
+
+template<class... Args>
+void
+rd(Args&&... args) {
+    if (lrt::this_runtime().rank() == 0) lrt::this_store().in(std::forward<Args>(args)...);
+    else lrt::this_runtime().remote_search(std::forward<Args>(args)...);
+}
+
+template<class... Args>
+bool
+rdp(Args&&... args) {
+    if (lrt::this_runtime().rank() == 0) return lrt::this_store().inp(std::forward<Args>(args)...);
+    return lrt::this_runtime().remote_try_search(std::forward<Args>(args)...);
+}
 
 #endif

@@ -37,14 +37,63 @@
 #ifndef LINDADB_COMMUNICATION_TAGS_HXX
 #define LINDADB_COMMUNICATION_TAGS_HXX
 
+#include <atomic>
+
+#include <ldb/common.hxx>
+
 namespace lrt {
-    constexpr const static auto comm_tag_mask = ~0xFF'DB'00'00;
     enum class communication_tag : int {
         Terminate = 0xDB'00'01,
         SyncInsert = 0xDB'00'02,
         SyncDelete = 0xDB'00'03,
         Eval = 0xDB'00'04,
     };
+
+    /*
+     * ACK TAG: Since multiple acks could arrive from the same host,
+     *          and their ordering is not guaranteed to be in the correct
+     *          order, (eval#1r1 sends remove, eval#2r1 sends try_remove,
+     *          neither are in the db, thus we need to make sure eval#1n1
+     *          does not catch the ack of eval#2n1, and since are both on
+     *          rank 1 (*r1), the basic MPI sender, receiver int value does
+     *          not help) so everyone waits a special ack value which they
+     *          send to r0 to reply to their answer with. This is a special
+     *          bitmap, stuffed into an MPI tag, ie. an int.
+     *                      1         2         3
+     *    bits:  |01234567890123456789012345678901|
+     *   value:  |XMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM|
+     *  legend:   X : 1 = 1, the special bit of ack messages, otherwise there
+     *                       could be collisions with other communication_tag
+     *                       tag values
+     *            M : 31, the message differentiator, a monotonically
+     *                    increasing value, per rank, that wraps around
+     *                    when it reached its maximum value.
+     *
+     *          Since each rank gets sent back their own message tag, each
+     *          tag only needs to be unique within a given rank, and not
+     *          globally. As the message differentiator monot
+     */
+    constexpr const static unsigned ack_mask = 0x80000000;
+
+    inline int
+    make_ack_tag() {
+        // this is probably guaranteed, but let's make sure, as I haven't
+        // read the standard recently nor do I want to
+        static_assert(sizeof(signed) == sizeof(unsigned),
+                      "MPI tag packing requires signed and unsigned to be the same size");
+
+        static std::atomic<unsigned> _counter = 0;
+        auto value = _counter.load(std::memory_order::acquire);
+        for (;;) {
+            const auto next_value = (value + 1U) & ~ack_mask;
+            if (_counter.compare_exchange_strong(value,
+                                                 next_value,
+                                                 std::memory_order::release,
+                                                 std::memory_order::acquire))
+                break;
+        }
+        return static_cast<int>(value | ack_mask);
+    }
 
     [[nodiscard]] constexpr auto
     operator<=>(int int_tag, communication_tag tag) noexcept {

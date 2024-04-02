@@ -42,8 +42,10 @@ add_covered_test(NAME LindaDB.Test CATCH
                  lv/global_function_map.cxx
                  lv/linda_tuple.test.cxx
                  lv/linda_value.test.cxx
+                 lv/ref_type.test.cxx
                  lv/tuple_builder.test.cxx
                  query/concrete_tuple_query.test.cxx
+        query/type_stubbed_tuple_query.test.cxx
                  tree/avl/scalar_avl.test.cxx
                  tree/avl/vector_avl.test.cxx
                  tree/avl/chime_avl.test.cxx

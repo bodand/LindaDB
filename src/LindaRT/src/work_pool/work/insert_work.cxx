@@ -37,43 +37,14 @@
 #include <chrono>
 #include <thread>
 
+#include <lrt/runtime.hxx>
 #include <lrt/work_pool/work/insert_work.hxx>
 
 using namespace std::literals;
 
 void
-lrt::insert_work::perform(const lrt::mpi_thread_context& context) {
+lrt::insert_work::perform() {
     const auto tuple = deserialize(_bytes);
-    mpi_thread_context::set_current(context);
-    std::ofstream("_wp.log", std::ios::app) << "WORKING ON INSERT(" << context.rank() << "): " << (*this) << ": " << tuple << "\n";
-
-    int commit_vote = static_cast<int>(true); // insert is always OK
-    int commit_consensus = 0;
-    MPI_Request req = MPI_REQUEST_NULL;
-    MPI_Iallreduce(&commit_vote,
-                   &commit_consensus,
-                   1,
-                   MPI_INT,
-                   MPI_LAND,
-                   _status_response_comm,
-                   &req);
-    //            MPI_Wait(&req, MPI_STATUS_IGNORE);
-    std::this_thread::sleep_for(50ns);
-
-    int finished = false;
-    int cancelled = false;
-    MPI_Status stat{};
-    for (int i = 0; i < 3; ++i) {
-        MPI_Test(&req, &finished, &stat);
-        if (finished) break;
-        std::this_thread::sleep_for(1ms);
-    }
-    if (!finished) {
-//        MPI_Cancel(&req);
-        std::ofstream("_await.log", std::ios::app) << "FAILED REDUCE ON COMM: " <<  std::hex <<_status_response_comm << " RANK: " << context.rank() << "\n";
-    }
-
-    MPI_Test_cancelled(&stat, &cancelled);
-    if (commit_consensus && finished && !cancelled) _runtime->store().insert_nosignal(tuple);
-    std::ofstream("_wp.log", std::ios::app) << "WORKED ON INSERT(" << context.rank() << "): " << (*this) << ": " << tuple << "\n";
+    _runtime->store().insert_nosignal(tuple);
+    _runtime->ack(_sender, _ack_with);
 }
