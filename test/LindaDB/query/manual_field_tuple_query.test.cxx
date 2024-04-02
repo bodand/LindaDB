@@ -28,58 +28,39 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-01-17.
+ * Originally created: 2024-04-04.
  *
- * src/LindaDB/public/ldb/query/tuple_query_if --
- *   Interface for a tuple query type.
+ * test/LindaDB/query/manual_field_tuple_query --
+ *   
  */
-#ifndef LINDADB_TUPLE_QUERY_IF_HXX
-#define LINDADB_TUPLE_QUERY_IF_HXX
+
 
 #include <concepts>
-#include <cstddef>
-#include <variant>
 
+#include <catch2/catch_test_macros.hpp>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/lv/linda_tuple.hxx>
-#include <ldb/lv/linda_value.hxx>
+#include <ldb/query.hxx>
 
-namespace ldb {
-    namespace meta {
-        template<class TW>
-        concept tuple_wrapper = requires(const TW& tw) {
-            { *tw } -> std::same_as<lv::linda_tuple&>;
-        };
-    }
+using index_type = ldb::index::tree::avl2_tree<int, int>;
 
-    struct field_incomparable { };
-    struct field_not_found { };
-    template<class T>
-    struct field_found {
-        T value;
-    };
+TEST_CASE("fully-specified query returns full-tuple as representing tuple") {
+    const auto query = ldb::make_piecewise_query(ldb::over_index<index_type>,
+                                                 1,
+                                                 2,
+                                                 3);
+    const auto expected = ldb::lv::linda_tuple(1, 2, 3);
 
-    template<class T>
-    field_found(T) -> field_found<T>;
-
-    template<class T>
-    using field_match_type =
-           std::variant<field_incomparable,
-                        field_not_found,
-                        field_found<T>>;
-
-    template<class Query>
-    concept tuple_queryable = requires(Query query,
-                                       std::size_t field_index,
-                                       // this is just an example db index
-                                       index::tree::avl2_tree<lv::linda_value,
-                                                              typename Query::value_type>
-                                              db_index) {
-        typename Query::value_type;
-        { query.as_representing_tuple() } -> std::convertible_to<lv::linda_tuple>;
-        { query.search_via_field(field_index, db_index) } -> std::same_as<field_match_type<typename Query::value_type>>;
-        { query.remove_via_field(field_index, db_index) } -> std::same_as<field_match_type<typename Query::value_type>>;
-    };
+    CHECK(query.as_representing_tuple() == expected);
 }
 
-#endif
+TEST_CASE("ref containing query returns ref_type in tuple as representing tuple") {
+    int x = 10;
+    const auto query = ldb::make_piecewise_query(ldb::over_index<index_type>,
+                                                 1,
+                                                 ldb::ref(&x),
+                                                 3);
+    const auto expected = ldb::lv::linda_tuple(1, ldb::lv::ref_type(2), 3);
+
+    CHECK(query.as_representing_tuple() == expected);
+}

@@ -85,6 +85,12 @@ namespace ldb {
         constexpr static std::true_type
         indexable() { return {}; }
 
+        template<class ValueList>
+        [[nodiscard]] std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>
+        get_value() const noexcept {
+            return _field;
+        }
+
     private:
         friend std::ostream&
         operator<<(std::ostream& os, const match_value& val) {

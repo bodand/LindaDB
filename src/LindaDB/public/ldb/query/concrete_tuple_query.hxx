@@ -80,6 +80,11 @@ namespace ldb {
             return field_not_found{};
         }
 
+        [[nodiscard]] const lv::linda_tuple&
+        as_representing_tuple() const noexcept {
+            return _tuple;
+        }
+
     private:
         lv::linda_tuple _tuple;
 

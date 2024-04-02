@@ -61,6 +61,13 @@ TEST_CASE("total stubbed query is copiable") {
 }
 
 // NOLINTNEXTLINE
+TEST_CASE("total stubbed query returns its input tuple as representing tuple") {
+    ldb::lv::linda_tuple tuple(1, 2);
+    ldb::type_stubbed_tuple_query<index_type> query(tuple);
+    CHECK(query.as_representing_tuple() == tuple);
+}
+
+// NOLINTNEXTLINE
 TEST_CASE("total stubbed query is movable") {
     STATIC_CHECK(std::movable<ldb::type_stubbed_tuple_query<index_type>>);
 
@@ -181,6 +188,13 @@ TEST_CASE("stubbed query is copiable") {
     auto copy = orig;
     CHECK(orig == copy);
     CHECK_FALSE(orig != copy);
+}
+
+// NOLINTNEXTLINE
+TEST_CASE("stubbed query returns its input tuple as representing tuple") {
+    ldb::lv::linda_tuple tuple(1, ldb::lv::ref_type(2));
+    ldb::type_stubbed_tuple_query<index_type> query(tuple);
+    CHECK(query.as_representing_tuple() == tuple);
 }
 
 // NOLINTNEXTLINE

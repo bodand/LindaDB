@@ -91,6 +91,11 @@ namespace ldb {
                               _tuple[field_index]);
         }
 
+        [[nodiscard]] const lv::linda_tuple&
+        as_representing_tuple() const noexcept {
+            return _tuple;
+        }
+
     private:
         lv::linda_tuple _tuple;
 

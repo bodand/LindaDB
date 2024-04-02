@@ -43,11 +43,13 @@
 
 using index_type = ldb::index::tree::avl2_tree<int, int>;
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query is constructible from a tuple") {
     STATIC_CHECK(std::constructible_from<ldb::concrete_tuple_query<index_type>,
                                          ldb::lv::linda_tuple>);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query is copiable") {
     STATIC_CHECK(std::copyable<ldb::concrete_tuple_query<index_type>>);
 
@@ -58,6 +60,16 @@ TEST_CASE("concrete_tuple_query is copiable") {
     CHECK_FALSE(orig != copy);
 }
 
+// NOLINTNEXTLINE
+TEST_CASE("concrete_tuple_query returns its input tuple as representing tuple") {
+    STATIC_CHECK(std::copyable<ldb::concrete_tuple_query<index_type>>);
+
+    ldb::lv::linda_tuple tuple(1, 2);
+    ldb::concrete_tuple_query<index_type> query(tuple);
+    CHECK(query.as_representing_tuple() == tuple);
+}
+
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query is movable") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -69,6 +81,7 @@ TEST_CASE("concrete_tuple_query is movable") {
     CHECK_FALSE(moved != copy);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as greater to smaller tuple") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -78,6 +91,7 @@ TEST_CASE("concrete_tuple_query right-compares as greater to smaller tuple") {
     CHECK(cmp_tuple < query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as less to larger tuple") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -87,6 +101,7 @@ TEST_CASE("concrete_tuple_query right-compares as less to larger tuple") {
     CHECK(cmp_tuple > query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as equal to equal tuple") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -96,6 +111,7 @@ TEST_CASE("concrete_tuple_query right-compares as equal to equal tuple") {
     CHECK(cmp_tuple == query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as greater to member-wise less tuple") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -105,6 +121,7 @@ TEST_CASE("concrete_tuple_query right-compares as greater to member-wise less tu
     CHECK(cmp_tuple < query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as less to member-wise greater tuple") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -114,6 +131,7 @@ TEST_CASE("concrete_tuple_query right-compares as less to member-wise greater tu
     CHECK(cmp_tuple > query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as greater to smaller tuple-ptr") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -123,6 +141,7 @@ TEST_CASE("concrete_tuple_query right-compares as greater to smaller tuple-ptr")
     CHECK(&cmp_tuple < query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as less to larger tuple-ptr") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -132,6 +151,7 @@ TEST_CASE("concrete_tuple_query right-compares as less to larger tuple-ptr") {
     CHECK(&cmp_tuple > query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as equal to equal tuple-ptr") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -141,6 +161,7 @@ TEST_CASE("concrete_tuple_query right-compares as equal to equal tuple-ptr") {
     CHECK(&cmp_tuple == query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as greater to member-wise less tuple-ptr") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 
@@ -150,6 +171,7 @@ TEST_CASE("concrete_tuple_query right-compares as greater to member-wise less tu
     CHECK(&cmp_tuple < query);
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("concrete_tuple_query right-compares as less to member-wise greater tuple-ptr") {
     STATIC_CHECK(std::movable<ldb::concrete_tuple_query<index_type>>);
 

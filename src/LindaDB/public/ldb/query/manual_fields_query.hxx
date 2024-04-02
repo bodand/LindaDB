@@ -104,6 +104,16 @@ namespace ldb {
             return iterate_matchers_via(remove_if_index_matches);
         }
 
+        [[nodiscard]] lv::linda_tuple
+        as_representing_tuple() const noexcept {
+            return [this]<std::size_t... MatcherIndex>(
+                          std::index_sequence<MatcherIndex...>) {
+                return lv::linda_tuple(
+                       lv::make_linda_value(
+                              std::get<MatcherIndex>(_payload).template get_value<lv::linda_value>())...);
+            }(std::make_index_sequence<sizeof...(Matchers)>());
+        }
+
     private:
         constexpr const static auto CONTINUE_LOOP = true;
         constexpr const static auto TERMINATE_LOOP = false;

@@ -36,15 +36,18 @@
 #ifndef LINDADB_QUERY_HXX
 #define LINDADB_QUERY_HXX
 
+#include <cstddef>
 #include <memory>
 #include <utility>
-#include <cstddef>
+
+#include <ldb/query/tuple_query_if.hxx>
+#include <lrt/serialize/tuple.hxx>
 
 namespace lrt {
-    template<class Query>
+    template<ldb::tuple_queryable Query>
     std::pair<std::unique_ptr<std::byte[]>, std::size_t>
     serialize(const Query& query) {
-
+        return serialize(query.as_representing_tuple());
     }
 }
 
