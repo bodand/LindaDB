@@ -48,7 +48,7 @@ using namespace std::literals;
 void
 lrt::remove_work::perform() {
     const auto tuple = deserialize(_bytes);
-    const auto result = _runtime->store().in(ldb::make_type_aware_query(_runtime->store().indices(), tuple));
+    const auto result = _runtime->store().remove(ldb::make_type_aware_query(_runtime->store().indices(), tuple));
     const auto [buf, buf_sz] = serialize(result);
     _runtime->ack(_sender, _ack_with, std::span(buf.get(), buf_sz));
 }

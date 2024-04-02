@@ -58,16 +58,7 @@ TEST_CASE("store can store and rdp by value a nonempty tuple") {
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.insert(tuple);
-    auto ret = store.rdp("asd", 2);
-    REQUIRE(ret.has_value());
-    CHECK(*ret == tuple);
-}
-
-TEST_CASE("store can store without signaling and rdp by value a nonempty tuple") {
-    ldb::store store;
-    auto tuple = lv::linda_tuple("asd", 2);
-    store.insert_nosignal(tuple);
-    auto ret = store.rdp("asd", 2);
+    auto ret = store.try_read("asd", 2);
     REQUIRE(ret.has_value());
     CHECK(*ret == tuple);
 }
@@ -76,7 +67,7 @@ TEST_CASE("store can store and rd by value a nonempty tuple") {
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.insert(tuple);
-    auto ret = store.rd("asd", 2);
+    auto ret = store.read("asd", 2);
     CHECK(ret == tuple);
 }
 
@@ -89,7 +80,7 @@ TEST_CASE("store can store and rdp by value a nonempty tuple without index") {
     int var2;
     int var3;
     int var4;
-    auto ret = store.rdp(
+    auto ret = store.try_read(
            ldb::ref(&name), // asd
            ldb::ref(&var1), // 5
            ldb::ref(&var2), // 4
@@ -109,7 +100,7 @@ TEST_CASE("store for rdp of non-existent tuple by value a nonempty tuple without
     int var2;
     int var3;
     int var4;
-    auto ret = store.rdp(
+    auto ret = store.try_read(
            ldb::ref(&name), // asd
            ldb::ref(&var1), // 5
            ldb::ref(&var2), // 4
@@ -125,7 +116,7 @@ TEST_CASE("store can store and rdp by type a nonempty tuple") {
     store.insert(tuple);
 
     int val = 0;
-    auto ret = store.rdp("asd", ldb::ref(&val));
+    auto ret = store.try_read("asd", ldb::ref(&val));
 
     CHECK(lv::linda_value(val) == tuple[1]);
     REQUIRE(ret.has_value());
@@ -138,7 +129,7 @@ TEST_CASE("store can store and rdp cannot retrieve tuple with mismatched type") 
     store.insert(tuple);
 
     std::int64_t val = 0LL;
-    auto ret = store.rdp("asd", ldb::ref(&val));
+    auto ret = store.try_read("asd", ldb::ref(&val));
 
     CHECK(val == 0LL);
     CHECK_FALSE(ret.has_value());
@@ -149,7 +140,7 @@ TEST_CASE("store can store and rdp cannot retrieve tuple with mismatched value")
     auto tuple = lv::linda_tuple("asd", 2);
     store.insert(tuple);
 
-    auto ret = store.rdp("asd", 3);
+    auto ret = store.try_read("asd", 3);
 
     CHECK_FALSE(ret.has_value());
 }
@@ -161,7 +152,7 @@ TEST_CASE("store can repeat rdp calls for existing tuple") {
 
     for (int i = 0; i < 15; ++i) {
         int val = 0;
-        auto ret = store.rdp("asd", ldb::ref(&val));
+        auto ret = store.try_read("asd", ldb::ref(&val));
 
         CHECK(lv::linda_value(val) == tuple[1]);
         REQUIRE(ret.has_value());
@@ -175,7 +166,7 @@ TEST_CASE("store can repeat rdp calls for missing tuple") {
     store.insert(tuple);
 
     for (int i = 0; i < 15; ++i) {
-        auto ret = store.rdp("asd", 3);
+        auto ret = store.try_read("asd", 3);
         CHECK_FALSE(ret.has_value());
     }
 }
@@ -184,7 +175,7 @@ TEST_CASE("store can store and inp by value a nonempty tuple") {
     ldb::store store;
     auto tuple = lv::linda_tuple("asd", 2);
     store.insert(tuple);
-    auto ret = store.inp("asd", 2);
+    auto ret = store.try_remove("asd", 2);
     REQUIRE(ret.has_value());
     CHECK(*ret == tuple);
 }
@@ -198,7 +189,7 @@ TEST_CASE("store can store and inp by value a nonempty tuple without index") {
     int var2;
     int var3;
     int var4;
-    auto ret = store.inp(
+    auto ret = store.try_remove(
            ldb::ref(&name), // asd
            ldb::ref(&var1), // 5
            ldb::ref(&var2), // 4
@@ -217,7 +208,7 @@ TEST_CASE("store for inp of non-existent tuple by value a nonempty tuple without
     int var2;
     int var3;
     int var4;
-    auto ret = store.inp(
+    auto ret = store.try_remove(
            ldb::ref(&name), // asd
            ldb::ref(&var1), // 5
            ldb::ref(&var2), // 4
@@ -233,7 +224,7 @@ TEST_CASE("store can store and inp by type a nonempty tuple") {
     store.insert(tuple);
 
     int val = 0;
-    auto ret = store.inp("asd", ldb::ref(&val));
+    auto ret = store.try_remove("asd", ldb::ref(&val));
 
     CHECK(lv::linda_value(val) == tuple[1]);
     REQUIRE(ret.has_value());
@@ -246,7 +237,7 @@ TEST_CASE("store can store and inp cannot retrieve tuple with mismatched type") 
     store.insert(tuple);
 
     std::int64_t val = 0LL;
-    auto ret = store.inp("asd", ldb::ref(&val));
+    auto ret = store.try_remove("asd", ldb::ref(&val));
 
     CHECK(val == 0LL);
     CHECK_FALSE(ret.has_value());
@@ -257,7 +248,7 @@ TEST_CASE("store can store and inp cannot retrieve tuple with mismatched value")
     auto tuple = lv::linda_tuple("asd", 2);
     store.insert(tuple);
 
-    auto ret = store.inp("asd", 3);
+    auto ret = store.try_remove("asd", 3);
 
     CHECK_FALSE(ret.has_value());
 }
@@ -268,11 +259,11 @@ TEST_CASE("store cannot repeat inp calls for existing tuple: only first succeeds
     store.insert(tuple);
 
     int val = 0;
-    auto ret = store.inp("asd", ldb::ref(&val));
+    auto ret = store.try_remove("asd", ldb::ref(&val));
     CHECK(lv::linda_value(val) == tuple[1]);
     REQUIRE(ret.has_value());
     CHECK(*ret == tuple);
-    auto ret2 = store.inp("asd", ldb::ref(&val));
+    auto ret2 = store.try_remove("asd", ldb::ref(&val));
     CHECK_FALSE(ret2.has_value());
 }
 
@@ -282,7 +273,7 @@ TEST_CASE("store can repeat inp calls for missing tuple") {
     store.insert(tuple);
 
     for (int i = 0; i < 15; ++i) {
-        auto ret = store.inp("asd", 3);
+        auto ret = store.try_remove("asd", 3);
         CHECK_FALSE(ret.has_value());
     }
 }
@@ -291,7 +282,7 @@ TEST_CASE("store can store zero length tuples") {
     ldb::store store;
     const auto tuple = lv::linda_tuple();
     store.insert(tuple);
-    const auto found = store.in();
+    const auto found = store.remove();
     CHECK(found == tuple);
 }
 
@@ -307,7 +298,7 @@ TEST_CASE("store does not deadlock trivially when out is called on a waiting in"
     });
 
     int rand{};
-    auto ret = store.in("asd", ldb::ref(&rand));
+    auto ret = store.remove("asd", ldb::ref(&rand));
     CHECK(ret[0] == lv::linda_value("asd"));
     CHECK(rand >= 100'000);
     CHECK(rand <= 300'000);
@@ -329,7 +320,7 @@ TEST_CASE("serial reads/writes proceeds",
             const auto key = static_cast<std::int32_t>(key_dist(rng));
 
             int read_val{};
-            const auto ret = store.inp(key, ldb::ref(&read_val));
+            const auto ret = store.try_remove(key, ldb::ref(&read_val));
             if (ret) {
                 CHECK((*ret)[0] == lv::linda_value(key));
                 CHECK(read_val >= val_dist.min());
@@ -353,7 +344,7 @@ TEST_CASE("store removes correct element for query") {
 
     std::string data;
     start.arrive_and_wait();
-    auto res = store.in("asd", 2, ldb::ref(&data));
+    auto res = store.remove("asd", 2, ldb::ref(&data));
     CHECK(res == tuple);
 }
 
@@ -371,7 +362,7 @@ TEST_CASE("store retrieves correct element for query") {
 
     std::string data;
     start.arrive_and_wait();
-    auto res = store.rd("asd", 2, ldb::ref(&data));
+    auto res = store.read("asd", 2, ldb::ref(&data));
     CHECK(res == tuple);
 }
 
@@ -400,7 +391,7 @@ TEST_CASE("parallel reads/writes do not deadlock",
             int rand{};
             const auto key = static_cast<std::int32_t>(key_dist(rng));
             std::this_thread::sleep_for(std::chrono::nanoseconds(time_dist(rng)) * 1.5);
-            const auto ret = store.inp(key, ldb::ref(&rand));
+            const auto ret = store.try_remove(key, ldb::ref(&rand));
             if (!ret) continue;
 
             // Catch2 seems to break itself?

@@ -45,6 +45,6 @@ using namespace std::literals;
 void
 lrt::insert_work::perform() {
     const auto tuple = deserialize(_bytes);
-    _runtime->store().insert_nosignal(tuple);
+    _runtime->store().insert(tuple);
     _runtime->ack(_sender, _ack_with);
 }
