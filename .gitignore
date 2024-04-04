@@ -1,5 +1,6 @@
 CMakeUserPresets.json
 _Deparsed_XSubs.pm
+vcpkg.json
 *.d
 *.slo
 *.lo
