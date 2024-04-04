@@ -44,9 +44,12 @@
 namespace lrt {
     enum class communication_tag : int {
         Terminate = 0xDB'00'01,
-        SyncInsert = 0xDB'00'02,
-        SyncDelete = 0xDB'00'03,
+        Insert = 0xDB'00'02,
+        Delete = 0xDB'00'03,
         Eval = 0xDB'00'04,
+        Search = 0xDB'00'05,
+        TrySearch = 0xDB'00'06,
+        TryDelete = 0xDB'00'07,
     };
 
     /*
@@ -61,8 +64,10 @@ namespace lrt {
      *          bitmap, stuffed into an MPI tag, ie. an int.
      *                      1         2         3
      *    bits:  |01234567890123456789012345678901|
-     *   value:  |XMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM|
-     *  legend:   X : 1 = 1, the special bit of ack messages, otherwise there
+     *   value:  |XDMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM|
+     *  legend:   X : 1 = 0, a zero bit to ensure the tags are not negative,
+     *                       since those are reserved for internal MPI messages
+     *            D : 1 = 1, the special bit of ack messages, otherwise there
      *                       could be collisions with other communication_tag
      *                       tag values
      *            M : 31, the message differentiator, a monotonically
@@ -73,7 +78,7 @@ namespace lrt {
      *          tag only needs to be unique within a given rank, and not
      *          globally. As the message differentiator monot
      */
-    constexpr const static unsigned ack_mask = 0x80000000;
+    constexpr const static unsigned ack_mask = 0x40000000;
 
     inline int
     make_ack_tag() {
@@ -82,10 +87,15 @@ namespace lrt {
         static_assert(sizeof(signed) == sizeof(unsigned),
                       "MPI tag packing requires signed and unsigned to be the same size");
 
+        // counter needs to have its top two bits clear at all times
+        // this allows to have the top-most bit cleared for MPI, and the next set
+        // for differentiating acks from normal messages
+        constexpr const static unsigned counter_mask = 0xC0000000;
+
         static std::atomic<unsigned> _counter = 0;
         auto value = _counter.load(std::memory_order::acquire);
         for (;;) {
-            const auto next_value = (value + 1U) & ~ack_mask;
+            const auto next_value = (value + 1U) & ~counter_mask;
             if (_counter.compare_exchange_strong(value,
                                                  next_value,
                                                  std::memory_order::release,

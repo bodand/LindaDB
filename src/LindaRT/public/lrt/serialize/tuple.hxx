@@ -51,7 +51,7 @@ namespace lrt {
     serialize(const ldb::lv::linda_tuple& tuple);
 
     ldb::lv::linda_tuple
-    deserialize(std::span<std::byte> buf);
+    deserialize(std::span<const std::byte> buf);
 }
 
 #endif

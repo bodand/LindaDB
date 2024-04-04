@@ -34,14 +34,31 @@
  *   
  */
 
+#include <utility>
+#include <vector>
+
 #include <ldb/common.hxx>
 #include <lrt/communication_tags.hxx>
 #include <lrt/runtime.hxx>
+#include <lrt/work_pool/work.hxx>
 #include <lrt/work_pool/work/eval_work.hxx>
 #include <lrt/work_pool/work/insert_work.hxx>
 #include <lrt/work_pool/work/nop_work.hxx>
+#include <lrt/work_pool/work/read_work.hxx>
 #include <lrt/work_pool/work/remove_work.hxx>
+#include <lrt/work_pool/work/try_read_work.hxx>
+#include <lrt/work_pool/work/try_remove_work.hxx>
 #include <lrt/work_pool/work_factory.hxx>
+
+namespace {
+    template<class T>
+    struct type_i {
+        using type = T;
+    };
+
+    template<class T>
+    constexpr const auto type = type_i<T>{};
+}
 
 lrt::work<>
 lrt::work_factory::create(lrt::communication_tag tag,
@@ -49,10 +66,17 @@ lrt::work_factory::create(lrt::communication_tag tag,
                           lrt::runtime& runtime,
                           int sender,
                           int ack) {
+    auto work_maker = [data = std::move(payload), &runtime, sender, ack]<class T>(type_i<T>) mutable {
+        return T(std::move(data), runtime, sender, ack);
+    };
+
     switch (tag) {
-    case communication_tag::SyncInsert: return insert_work(std::move(payload), runtime, sender, ack);
-    case communication_tag::SyncDelete: return remove_work(std::move(payload), runtime, sender, ack);
-    case communication_tag::Eval: return eval_work(std::move(payload), runtime, sender, ack);
+    case communication_tag::Insert: return work_maker(type<insert_work>);
+    case communication_tag::Delete: return work_maker(type<remove_work>);
+    case communication_tag::TryDelete: return work_maker(type<try_remove_work>);
+    case communication_tag::Search: return work_maker(type<read_work>);
+    case communication_tag::TrySearch: return work_maker(type<try_read_work>);
+    case communication_tag::Eval: return work_maker(type<eval_work>);
     case communication_tag::Terminate:
         // termination does not happen through this message system
         return nop_work{};

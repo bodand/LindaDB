@@ -28,45 +28,43 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-04.
+ * Originally created: 2024-04-04.
  *
- * src/LindaRT/public/lrt/linda --
+ * src/LindaRT/include/lrt/work_pool/work/read_work --
  *   
  */
-#ifndef LINDADB_LINDA_HXX
-#define LINDADB_LINDA_HXX
+#ifndef LINDADB_READ_WORK_HXX
+#define LINDADB_READ_WORK_HXX
 
-#include <lrt/runtime.hxx>
-#include <lrt/runtime_storage.hxx>
+#include <ostream>
+#include <utility>
+#include <vector>
 
-template<class... Args>
-inline void
-out(Args&&... args) {
-    lrt::this_runtime().out(ldb::lv::linda_tuple(std::forward<Args>(args)...));
-}
+namespace lrt {
+    struct runtime;
 
-template<class... Args>
-void
-in(Args&&... args) {
-    lrt::this_runtime().in(std::forward<Args>(args)...);
-}
+    struct read_work {
+        explicit read_work(std::vector<std::byte>&& payload,
+                           runtime& runtime,
+                           int sender,
+                           int ack_with)
+             : _bytes(std::move(payload)),
+               _runtime(&runtime),
+               _sender(sender),
+               _ack_with(ack_with) { }
 
-template<class... Args>
-bool
-inp(Args&&... args) {
-    return lrt::this_runtime().inp(std::forward<Args>(args)...);
-}
+        void
+        perform();
 
-template<class... Args>
-void
-rd(Args&&... args) {
-    lrt::this_runtime().rd(std::forward<Args>(args)...);
-}
+    private:
+        friend std::ostream&
+        operator<<(std::ostream& os, const read_work& work);
 
-template<class... Args>
-bool
-rdp(Args&&... args) {
-    return lrt::this_runtime().rdp(std::forward<Args>(args)...);
+        mutable std::vector<std::byte> _bytes;
+        lrt::runtime* _runtime;
+        int _sender;
+        int _ack_with;
+    };
 }
 
 #endif

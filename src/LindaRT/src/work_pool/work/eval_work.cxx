@@ -72,12 +72,13 @@ lrt::eval_work::perform() {
     std::ofstream("_wp.log", std::ios::app) << "WORKED ON EVAL: " << (*this) << "\n";
 
     const ldb::lv::linda_tuple& result_tuple = ldb::lv::linda_tuple(result_values);
-
-    _runtime->store().insert(result_tuple);
+    _runtime->out(result_tuple);
 }
 
 std::ostream&
 lrt::operator<<(std::ostream& os, const lrt::eval_work& work) {
     std::ignore = work;
-    return os << "[eval work] on thread " << std::this_thread::get_id();
+    return os << "[eval work] "
+              << " on rank " << work._runtime->rank()
+              << " on thread " << std::this_thread::get_id();
 }

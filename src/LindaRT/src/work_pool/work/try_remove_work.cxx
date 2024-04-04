@@ -28,45 +28,36 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-04.
+ * Originally created: 2024-04-04.
  *
- * src/LindaRT/public/lrt/linda --
+ * src/LindaRT/src/work_pool/work/read_work --
  *   
  */
-#ifndef LINDADB_LINDA_HXX
-#define LINDADB_LINDA_HXX
 
+#include <thread>
+
+#include <ldb/query.hxx>
 #include <lrt/runtime.hxx>
-#include <lrt/runtime_storage.hxx>
+#include <lrt/serialize/tuple.hxx>
+#include <lrt/work_pool/work/try_remove_work.hxx>
 
-template<class... Args>
-inline void
-out(Args&&... args) {
-    lrt::this_runtime().out(ldb::lv::linda_tuple(std::forward<Args>(args)...));
-}
-
-template<class... Args>
 void
-in(Args&&... args) {
-    lrt::this_runtime().in(std::forward<Args>(args)...);
+lrt::try_remove_work::perform() {
+    const auto tuple = deserialize(_bytes);
+    const auto result = _runtime->store().try_read(
+           ldb::make_type_aware_query(_runtime->store().indices(), tuple));
+    if (result) {
+        const auto [buf, buf_sz] = serialize(*result);
+        _runtime->ack(_sender, _ack_with, std::span(buf.get(), buf_sz));
+    }
+    else {
+        _runtime->ack(_sender, _ack_with);
+    }
 }
 
-template<class... Args>
-bool
-inp(Args&&... args) {
-    return lrt::this_runtime().inp(std::forward<Args>(args)...);
+std::ostream&
+lrt::operator<<(std::ostream& os, const lrt::try_remove_work& work) {
+    return os << "[try remove work]: " << lrt::deserialize(work._bytes)
+              << " on rank " << work._runtime->rank()
+              << " on thread " << std::this_thread::get_id();
 }
-
-template<class... Args>
-void
-rd(Args&&... args) {
-    lrt::this_runtime().rd(std::forward<Args>(args)...);
-}
-
-template<class... Args>
-bool
-rdp(Args&&... args) {
-    return lrt::this_runtime().rdp(std::forward<Args>(args)...);
-}
-
-#endif

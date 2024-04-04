@@ -37,6 +37,13 @@
 find_package(MPI REQUIRED)
 
 add_library(LindaRT STATIC
+            include/lrt/work_pool/work/eval_work.hxx
+            include/lrt/work_pool/work/insert_work.hxx
+            include/lrt/work_pool/work/nop_work.hxx
+            include/lrt/work_pool/work/read_work.hxx
+            include/lrt/work_pool/work/remove_work.hxx
+            include/lrt/work_pool/work/try_read_work.hxx
+            include/lrt/work_pool/work/try_remove_work.hxx
             include/lrt/work_pool/work_factory.hxx
             include/lrt/communication_tags.hxx
             public/lrt/balancer/balancer.hxx
@@ -56,7 +63,10 @@ add_library(LindaRT STATIC
             src/serialize/tuple.cxx
             src/work_pool/work/eval_work.cxx
             src/work_pool/work/insert_work.cxx
+            src/work_pool/work/read_work.cxx
             src/work_pool/work/remove_work.cxx
+            src/work_pool/work/try_read_work.cxx
+            src/work_pool/work/try_remove_work.cxx
             src/work_pool/work_factory.cxx
             src/mpi_runtime.cxx
             src/mpi_thread_context.cxx

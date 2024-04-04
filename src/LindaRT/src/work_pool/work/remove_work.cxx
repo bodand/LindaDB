@@ -57,5 +57,6 @@ std::ostream&
 lrt::operator<<(std::ostream& os, const lrt::remove_work& work) {
     std::ignore = work;
     return os << "[remove work]: " << lrt::deserialize(work._bytes)
+           << " on rank " << work._runtime->rank()
               << " on thread " << std::this_thread::get_id();
 }

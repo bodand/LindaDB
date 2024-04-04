@@ -79,33 +79,40 @@ namespace lrt {
 
         void
         out(const ldb::lv::linda_tuple& tuple) {
-            // if (_mpi.rank() == 0) return _store.insert(tuple);
-            // remote_insert(tuple);
-            // todo
+            if (_mpi.rank() == 0) return (void) _store.insert(tuple);
+            remote_insert(tuple);
         }
 
         template<class... Args>
         void
         in(Args&&... args) {
-            // todo
+            if (_mpi.rank() == 0) return (void) _store.remove(std::forward<Args>(args)...);
+            remote_remove(ldb::make_piecewise_query(_store.indices(),
+                                                    std::forward<Args>(args)...));
         }
 
         template<class... Args>
         bool
         inp(Args&&... args) {
-            // todo
+            if (_mpi.rank() == 0) return _store.try_remove(std::forward<Args>(args)...);
+            remote_try_remove(ldb::make_piecewise_query(_store.indices(),
+                                                        std::forward<Args>(args)...));
         }
 
         template<class... Args>
         void
         rd(Args&&... args) {
-            // todo
+            if (_mpi.rank() == 0) return (void) _store.read(std::forward<Args>(args)...);
+            remote_read(ldb::make_piecewise_query(_store.indices(),
+                                                  std::forward<Args>(args)...));
         }
 
         template<class... Args>
         bool
         rdp(Args&&... args) {
-            // todo
+            if (_mpi.rank() == 0) return _store.try_read(std::forward<Args>(args)...);
+            remote_try_read(ldb::make_piecewise_query(_store.indices(),
+                                                      std::forward<Args>(args)...));
         }
 
         void
@@ -117,6 +124,21 @@ namespace lrt {
     private:
         void
         recv_thread_worker();
+
+        void
+        remote_insert(const ldb::lv::linda_tuple& tuple);
+
+        bool
+        remote_try_remove(const ldb::tuple_query<ldb::store::index_type>& query);
+
+        void
+        remote_remove(const ldb::tuple_query<ldb::store::index_type>& query);
+
+        bool
+        remote_try_read(const ldb::tuple_query<ldb::store::index_type>& query);
+
+        void
+        remote_read(const ldb::tuple_query<ldb::store::index_type>& query);
 
         lrt::mpi_runtime _mpi;
 

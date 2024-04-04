@@ -35,6 +35,7 @@
  */
 
 #include <cstring>
+#include <fstream>
 
 #include <lrt/linda.hxx>
 
@@ -49,8 +50,9 @@ int
 real_main() {
     std::cout << "starting job...\n";
     const char* test = "test";
+    std::ofstream("_log.txt", std::ios::app) << "0waiting in main process...\n";
     eval("str_size", (string_size)(test));
-    std::cout << "waiting in main process...\n";
+    std::ofstream("_log.txt", std::ios::app) << "waiting in main process...\n";
 
     out("str_adage", 38);
 

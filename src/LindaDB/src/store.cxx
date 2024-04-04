@@ -69,7 +69,7 @@ std::optional<ldb::lv::linda_tuple>
 ldb::store::perform_indexed_read(const query_type& query) const {
     std::unique_lock<std::shared_mutex> lck(_header_mtx);
     for (std::size_t i = 0; i < _header_indices.size(); ++i) {
-        const auto result = query.search_on_index(i, _header_indices[i]);
+        const auto result = query.search_via_field(i, _header_indices[i]);
         const auto [cont, maybe_it] = std::visit(query_result_dispatcher<pointer_type>{}, result);
         if (cont) continue;
         if (!maybe_it) return {};
@@ -82,7 +82,7 @@ std::optional<ldb::lv::linda_tuple>
 ldb::store::perform_indexed_remove(const ldb::store::query_type& query) {
     std::unique_lock<std::shared_mutex> lck(_header_mtx);
     for (std::size_t i = 0; i < _header_indices.size(); ++i) {
-        const auto result = query.remove_on_index(i, _header_indices[i]);
+        const auto result = query.remove_via_field(i, _header_indices[i]);
         const auto [cont, maybe_it] = std::visit(query_result_dispatcher<pointer_type>{}, result);
         if (cont) continue;
         if (!maybe_it) return {};

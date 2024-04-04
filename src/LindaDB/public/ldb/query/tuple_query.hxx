@@ -75,6 +75,9 @@ namespace ldb {
             [[nodiscard]] virtual std::partial_ordering
             do_compare(const lv::linda_tuple& tuple) const = 0;
 
+            [[nodiscard]] virtual ldb::lv::linda_tuple
+            do_as_representing_tuple() const = 0;
+
             virtual std::ostream&
             write_to(std::ostream& os) = 0;
 
@@ -87,6 +90,11 @@ namespace ldb {
 
         template<tuple_queryable Query>
         struct query_model final : query_concept {
+            [[nodiscard]] lv::linda_tuple
+            do_as_representing_tuple() const override {
+                return query_impl.as_representing_tuple();
+            }
+
             [[nodiscard]] field_match_type<internal_value_type>
             do_search_on_index(std::size_t field_index,
                                const IndexType& db_index) const override {
@@ -150,6 +158,8 @@ namespace ldb {
         }
 
     public:
+        using value_type = internal_value_type;
+
         tuple_query() = default;
 
         template<class Query>
@@ -172,17 +182,23 @@ namespace ldb {
         ~tuple_query() = default;
 
         [[nodiscard]] field_match_type<internal_value_type>
-        search_on_index(std::size_t field_index,
+        search_via_field(std::size_t field_index,
                         const IndexType& db_index) const {
             assert_that(_impl);
             return _impl->do_search_on_index(field_index, db_index);
         }
 
         [[nodiscard]] field_match_type<internal_value_type>
-        remove_on_index(std::size_t field_index,
+        remove_via_field(std::size_t field_index,
                         IndexType& db_index) const {
             assert_that(_impl);
             return _impl->do_remove_on_index(field_index, db_index);
+        }
+
+        [[nodiscard]] ldb::lv::linda_tuple
+        as_representing_tuple() const {
+            assert_that(_impl);
+            return _impl->do_as_representing_tuple();
         }
     };
 }

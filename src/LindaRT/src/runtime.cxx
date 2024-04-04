@@ -40,16 +40,18 @@
 #include <iterator>
 #include <utility>
 
+#include "ldb/common.hxx"
+
 #define LRT_NOINCLUDE_EVAL
 
 #include <ldb/lv/linda_tuple.hxx>
 #include <lrt/communication_tags.hxx>
 #include <lrt/runtime.hxx>
+#include <lrt/serialize/query.hxx>
+#include <lrt/serialize/tuple.hxx>
 #include <lrt/work_pool/work_factory.hxx>
 
 #include <mpi.h>
-
-#include "lrt/serialize/tuple.hxx"
 
 lrt::runtime::runtime(int* argc,
                       char*** argv,
@@ -68,13 +70,13 @@ lrt::runtime::~runtime() noexcept {
     std::ignore = _mpi.send_with_ack(_mpi.rank(),
                                      static_cast<int>(communication_tag::Terminate),
                                      std::span<std::byte>());
-    std::ofstream("_runtime.log") << "RUNTIME ENDING 1" << std::endl;
+    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 1" << std::endl;
     _recv_thr.join();
-    std::ofstream("_runtime.log") << "RUNTIME ENDING 2" << std::endl;
+    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 2" << std::endl;
     _store.terminate();
-    std::ofstream("_runtime.log") << "RUNTIME ENDING 3" << std::endl;
+    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 3" << std::endl;
     _work_pool.terminate();
-    std::ofstream("_runtime.log") << "RUNTIME ENDING 4" << std::endl;
+    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 4" << std::endl;
 }
 
 void
@@ -89,7 +91,7 @@ lrt::runtime::recv_thread_worker() {
                                               std::move(payload),
                                               *this,
                                               from,
-                                              0);
+                                              ack);
         _work_pool.enqueue(std::move(work));
     }
     _work_pool.terminate();
@@ -100,9 +102,11 @@ lrt::runtime::eval(const ldb::lv::linda_tuple& call_tuple) {
     assert_that(_balancer);
     const auto dest = _balancer->send_to_rank(call_tuple);
     const auto [buf, buf_sz] = serialize(call_tuple);
+    std::ofstream("_eval.log", std::ios::app) << "sending eval from " << rank() << " to " << dest << ": " << call_tuple << "\n";
     std::ignore = _mpi.send_and_wait_ack(dest,
                                          static_cast<int>(communication_tag::Eval),
                                          std::span(buf.get(), buf_sz));
+    std::ofstream("_eval.log", std::ios::app) << "sent eval from " << rank() << " to " << dest << ": " << call_tuple << "\n";
 }
 
 void
@@ -113,5 +117,67 @@ lrt::runtime::loop() {
 
 void
 lrt::runtime::ack(int to, int ack, std::span<std::byte> data) {
+    std::ofstream("_eval.log", std::ios::app) << "sending ack from " << rank()
+                                              << " to " << to
+                                              << ": " << std::hex << ack << std::dec
+                                              << " with payload of " << data.size() << " bytes\n";
     _mpi.send_ack(to, ack, data);
+}
+void
+lrt::runtime::remote_insert(const ldb::lv::linda_tuple& tuple) {
+    const auto [buf, buf_sz] = serialize(tuple);
+    std::ignore = _mpi.send_and_wait_ack(0,
+                                         static_cast<int>(communication_tag::Insert),
+                                         std::span(buf.get(), buf_sz));
+}
+
+namespace {
+    std::vector<std::byte>
+    send_query_with_tag(lrt::mpi_runtime& mpi,
+                        const ldb::tuple_query<ldb::store::index_type>& query,
+                        lrt::communication_tag tag) {
+        const auto [buf, buf_sz] = lrt::serialize(query);
+        return mpi.send_and_wait_ack(0,
+                                     static_cast<int>(tag),
+                                     std::span(buf.get(), buf_sz));
+    }
+
+    void
+    insert_response_into_query_fields(std::span<const std::byte> tuple_bytes,
+                                      const ldb::tuple_query<ldb::store::index_type>& query) {
+        const auto result_tuple = lrt::deserialize(tuple_bytes);
+        // insert values into query fields by performing an imitated search
+        const auto cmp_res = result_tuple <=> query;
+        assert_that(std::is_eq(cmp_res), "received tuple from remote does not match query");
+    }
+}
+
+bool
+lrt::runtime::remote_try_remove(const ldb::tuple_query<ldb::store::index_type>& query) {
+    const auto response = send_query_with_tag(_mpi, query, communication_tag::TryDelete);
+    if (response.empty()) return false;
+    insert_response_into_query_fields(std::span(response), query);
+    return true;
+}
+
+void
+lrt::runtime::remote_remove(const ldb::tuple_query<ldb::store::index_type>& query) {
+    const auto response = send_query_with_tag(_mpi, query, communication_tag::Delete);
+    assert_that(!response.empty(), "result of blocking remote db call empty");
+    insert_response_into_query_fields(std::span(response), query);
+}
+
+bool
+lrt::runtime::remote_try_read(const ldb::tuple_query<ldb::store::index_type>& query) {
+    const auto response = send_query_with_tag(_mpi, query, communication_tag::TrySearch);
+    if (response.empty()) return false;
+    insert_response_into_query_fields(std::span(response), query);
+    return true;
+}
+
+void
+lrt::runtime::remote_read(const ldb::tuple_query<ldb::store::index_type>& query) {
+    const auto response = send_query_with_tag(_mpi, query, communication_tag::Search);
+    assert_that(!response.empty(), "result of blocking remote db call empty");
+    insert_response_into_query_fields(std::span(response), query);
 }

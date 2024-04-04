@@ -33,8 +33,8 @@
  * src/LindaRT/public/lrt/serialize/query --
  *   
  */
-#ifndef LINDADB_QUERY_HXX
-#define LINDADB_QUERY_HXX
+#ifndef LINDADB_SERIALIZE_QUERY_HXX
+#define LINDADB_SERIALIZE_QUERY_HXX
 
 #include <cstddef>
 #include <memory>

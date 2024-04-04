@@ -360,7 +360,7 @@ namespace {
 
     template<std::constructible_from T>
     T
-    deserialize_numeric(std::byte*& buf, std::size_t& len) {
+    deserialize_numeric(std::byte const*& buf, std::size_t& len) {
         assert_that(len >= sizeof(T));
         T i{};
         auto value_representation =
@@ -380,7 +380,7 @@ namespace {
     }
 
     std::string
-    deserialize_string(std::byte*& buf, std::size_t& len) {
+    deserialize_string(std::byte const*& buf, std::size_t& len) {
         const auto str_sz = deserialize_numeric<std::string::size_type>(buf, len);
         assert_that(len >= str_sz);
         std::string str(str_sz, '.');
@@ -397,10 +397,10 @@ namespace {
     }
 
     ldb::lv::linda_tuple
-    tuple_deserialize(std::byte*& buf, std::size_t& len);
+    tuple_deserialize(std::byte const*& buf, std::size_t& len);
 
     ldb::lv::linda_value
-    value_deserialize(std::byte*& buf, std::size_t& len) {
+    value_deserialize(std::byte const*& buf, std::size_t& len) {
         --len;
         switch (static_cast<typemap>(*(buf++))) {
             using enum typemap;
@@ -429,7 +429,7 @@ namespace {
     }
 
     ldb::lv::linda_tuple
-    tuple_deserialize(std::byte*& buf, std::size_t& len) {
+    tuple_deserialize(std::byte const*& buf, std::size_t& len) {
         using namespace ldb::lv;
         std::vector<ldb::lv::linda_value> vals;
         const auto tuple_sz = deserialize_numeric<std::size_t>(buf, len);
@@ -448,9 +448,9 @@ lrt::serialize(const ldb::lv::linda_tuple& tuple) {
 }
 
 ldb::lv::linda_tuple
-lrt::deserialize(std::span<std::byte> buf) {
+lrt::deserialize(std::span<const std::byte> buf) {
     auto tuple_sz = buf.size() - 1;
-    auto tuple_payload_start = buf.data() + 1;
+    const auto *tuple_payload_start = buf.data() + 1;
     return tuple_deserialize(tuple_payload_start, tuple_sz);
 }
 
