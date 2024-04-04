@@ -49,4 +49,9 @@ endif ()
 
 cmake_policy(POP)
 
+if (NOT EXISTS "${project_root_path}/vcpkg.json")
+    file(COPY_FILE "${project_root_path}/vcpkg.default.json"
+            "${project_root_path}/vcpkg.json")
+endif ()
+
 include("${project_root_path}/vcpkg/scripts/buildsystems/vcpkg.cmake")

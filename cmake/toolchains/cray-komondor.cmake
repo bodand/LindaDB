@@ -5,13 +5,13 @@ cmake_policy(SET CMP0054 NEW)
 if (DEFINED ENV{PROJECT_CC_EXE})
     set(CMAKE_C_COMPILER "$ENV{PROJECT_CC_EXE}")
 else ()
-    set(CMAKE_C_COMPILER "/usr/bin/gcc")
+    set(CMAKE_C_COMPILER "cc")
 endif ()
 
 if (DEFINED ENV{PROJECT_CXX_EXE})
     set(CMAKE_CXX_COMPILER "$ENV{PROJECT_CXX_EXE}")
 else ()
-    set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+    set(CMAKE_CXX_COMPILER "CC")
 endif ()
 
 set(CMAKE_C_FLAGS_INIT "-m64")
@@ -25,7 +25,7 @@ endif ()
 cmake_policy(POP)
 
 if (NOT EXISTS "${project_root_path}/vcpkg.json")
-    file(COPY_FILE "${project_root_path}/vcpkg.default.json"
+    file(COPY_FILE "${project_root_path}/vcpkg.komondor.json"
             "${project_root_path}/vcpkg.json")
 endif ()
 

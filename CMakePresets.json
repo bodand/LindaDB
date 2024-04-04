@@ -117,6 +117,19 @@
       }
     },
     {
+      "name": "lnx-cray-rel",
+      "displayName": "Linux AMD compiler on a Cray super-computer Release",
+      "inherits": [
+        "linux-build",
+        "cmake-release-type"
+      ],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/cray-komondor.cmake",
+        "BUILD_SYS_ARCH": "x64"
+      },
+      "binaryDir": "${sourceDir}/_build-release-komondor"
+    },
+    {
       "name": "win-msvc-x64-dbg",
       "displayName": "Windows Visual Studio x64 Debug",
       "description": "Debug build of cg3 for x86_64 using Visual Studio on Windows",
