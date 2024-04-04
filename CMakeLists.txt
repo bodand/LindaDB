@@ -168,6 +168,9 @@ if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
     message(STATUS "Injecting /EHsc into clang-cl command-line")
     add_compile_options(/EHsc)
 endif ()
+find_package(Threads REQUIRED)
+link_libraries(Threads::Threads)
+
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
 
