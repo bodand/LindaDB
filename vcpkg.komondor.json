@@ -7,6 +7,7 @@
   ],
   "dependencies": [
     "boost-preprocessor",
+    "boost-chrono",
     "mimalloc",
     "catch2",
     "fakeit"

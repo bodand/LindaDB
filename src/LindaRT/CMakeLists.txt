@@ -89,7 +89,7 @@ target_include_directories(LindaRT
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaRT
                       PUBLIC LindaDB LindaRT-malloc internal-language-level
-                      PRIVATE MPI::MPI_CXX internal-coverage internal-warnings internal-lto)
+                      PRIVATE Boost::boost MPI::MPI_CXX internal-coverage internal-warnings internal-lto)
 target_compile_definitions(LindaRT-malloc
                            PUBLIC $<$<BOOL:${LINDA_RT_BIG_ENDIAN}>:LINDA_RT_BIG_ENDIAN>)
 
@@ -98,6 +98,6 @@ target_include_directories(LindaRT-main
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaRT-main
-                      PRIVATE LindaDB internal-warnings internal-lto internal-language-level)
+                      PRIVATE LindaDB Boost::boost internal-warnings internal-lto internal-language-level)
 set(PROJECT_TARGETS "${PROJECT_TARGETS};LindaRT-malloc;LindaRT;LindaRT-main" PARENT_SCOPE)
 

@@ -173,6 +173,7 @@ link_libraries(Threads::Threads)
 
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
+find_package(Boost REQUIRED)
 
 # Linda macro
 macro(add_linda_executable exe)
