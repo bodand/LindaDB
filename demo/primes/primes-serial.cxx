@@ -35,19 +35,16 @@
  */
 
 #include <algorithm>
+#include <charconv>
+#include <cstddef>
+#include <cstring>
 #include <functional>
 #include <iostream>
 #include <iterator>
 #include <numeric>
 #include <ranges>
-#include <utility>
 #include <vector>
 
-constexpr static auto checked_range_start = 2;
-constexpr static auto checked_range_end = 1000;
-
-[[nodiscard]] constexpr std::size_t
-value_to_index(int x) noexcept { return static_cast<std::size_t>(x) - checked_range_start; }
 
 template<std::random_access_iterator It,
          std::sentinel_for<It> S>
@@ -68,11 +65,20 @@ advance_max_until(It& current,
 }
 
 int
-main() {
+main(int argc, char** argv) {
+    constexpr static auto checked_range_start = 2;
+    auto checked_range_end = 1000;
+
+    if (argc > 1) std::from_chars(argv[1], argv[1] + std::strlen(argv[1]), checked_range_end);
+
     std::vector<int> values(checked_range_end - checked_range_start);
     std::iota(values.begin(), values.end(), checked_range_start);
 
-    std::ranges::for_each(values, [&values](int val) {
+    const auto value_to_index = [](int x) noexcept {
+        return static_cast<std::size_t>(x) - checked_range_start;
+    };
+
+    std::ranges::for_each(values, [&value_to_index, &values](int val) {
         if (val == 0) return;
         auto sqr_idx = value_to_index(val * val);
         for (auto begin = next_max_until(values.begin(), values.end(), sqr_idx);

@@ -38,7 +38,7 @@
 #include <lrt/runtime_storage.hxx>
 
 int
-real_main();
+real_main(int argc, char** argv);
 
 int
 main(int argc, char** argv) {
@@ -46,7 +46,7 @@ main(int argc, char** argv) {
     lrt::gLrt_Runtime_ObjectRef = &rt;
 
     int result = 0;
-    if (rt.rank() == 0) result = real_main();
+    if (rt.rank() == 0) result = real_main(argc, argv);
 
     rt.loop();
     return result;

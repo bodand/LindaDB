@@ -35,7 +35,10 @@
  */
 
 #include <algorithm>
-#include <fstream>
+#include <charconv>
+#include <cstring>
+#include <iostream>
+#include <ranges>
 
 #include <lrt/linda.hxx>
 
@@ -47,47 +50,40 @@ initialize_values(int n) {
     out("m", 2);
 }
 
-constexpr static auto checked_range_end = 300;
-
 int
-eliminate_multiples(int p) {
-    std::ofstream("_primes.log", std::ios::app) << "p: " << p << "\n";
-
+eliminate_multiples(int p, int n) {
     int current_num;
     in("m", ldb::ref(&current_num));
 
     out("m", current_num + 1);
-    std::ofstream("_primes.log", std::ios::app) << "num: " << current_num << "\n";
 
-    while (current_num * current_num < checked_range_end) {
+    while (current_num * current_num < n) {
         auto vec = rdp("vec", current_num);
-        std::ofstream("_primes.log", std::ios::app) << "(vec, " << current_num << ")\n";
         if (vec) {
             int square = current_num * current_num;
-            while (square < checked_range_end) {
+            while (square < n) {
                 inp("vec", square);
                 square = square + current_num;
             }
         }
         in("m", ldb::ref(&current_num));
-        std::ofstream("_primes.log", std::ios::app) << "num: " << current_num << "\n";
         out("m", current_num + 1);
     }
-
-    std::ofstream("_primes.log", std::ios::app) << "p: " << p << "--done: "
-                                                << "\n";
 
     return p;
 }
 
 int
-real_main() {
+real_main(int argc, char** argv) {
+    constexpr static auto checked_range_start = 2;
+    auto checked_range_end = 1000;
+
+    if (argc > 1) std::from_chars(argv[1], argv[1] + std::strlen(argv[1]), checked_range_end);
     initialize_values(checked_range_end);
-    std::ofstream("_primes.log", std::ios::app) << "Initialized...\n";
 
     std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
-                          [](int i) {
-                              eval("done", (eliminate_multiples) (i));
+                          [&checked_range_end](int i) {
+                              eval("done", (eliminate_multiples) (i, checked_range_end));
                           });
     std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
                           [](int i) {

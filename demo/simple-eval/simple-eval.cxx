@@ -47,12 +47,10 @@ string_size(const char* str) {
 }
 
 int
-real_main() {
+real_main(int, char**) {
     std::cout << "starting job...\n";
     const char* test = "test";
-    std::ofstream("_log.txt", std::ios::app) << "0waiting in main process...\n";
     eval("str_size", (string_size)(test));
-    std::ofstream("_log.txt", std::ios::app) << "waiting in main process...\n";
 
     out("str_adage", 38);
 

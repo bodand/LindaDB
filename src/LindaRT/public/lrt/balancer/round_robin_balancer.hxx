@@ -45,7 +45,7 @@
 
 namespace lrt {
     struct round_robin_balancer final {
-        round_robin_balancer(int comm_size) : _max(comm_size) { }
+        explicit round_robin_balancer(int comm_size) : _max(comm_size) { }
 
         round_robin_balancer(const round_robin_balancer& cp) noexcept : _max(cp._max) {
             _value.store(cp._value.load());
@@ -54,6 +54,7 @@ namespace lrt {
         operator=(const round_robin_balancer& cp) noexcept {
             _max = cp._max;
             _value.store(cp._value.load());
+            return *this;
         }
 
         int

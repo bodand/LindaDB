@@ -73,7 +73,6 @@ namespace lrt {
         enqueue(value_type&& work) {
             int rank{};
             //            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            std::ofstream("_log.txt", std::ios::app) << rank << ": ENQUEUE POOL: " << work << std::endl;
             _queue.enqueue(std::move(work));
         }
 
@@ -124,7 +123,6 @@ namespace lrt {
                       queue_type& work_queue) const {
                 for (;;) {
                     auto work = work_queue.dequeue();
-                    std::ofstream("_wp.log", std::ios::app) << "RETRIEVED WORK: " << work << std::endl;
                     std::apply([&work]<class... CallCtx>(CallCtx&&... context) {
                         work.perform(context...);
                     },

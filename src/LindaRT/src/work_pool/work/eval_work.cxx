@@ -63,13 +63,11 @@ lrt::eval_work::perform() {
 
     std::vector<ldb::lv::linda_value> result_values;
     result_values.reserve(tuple.size());
-    std::ofstream("_wp.log", std::ios::app) << "WORKING ON EVAL: " << (*this) << ": " << tuple << "\n";
 
     std::transform(tuple.begin(), tuple.end(), std::back_inserter(result_values), [](const ldb::lv::linda_value& lv) {
         return std::visit(executing_transform{}, lv);
     });
 
-    std::ofstream("_wp.log", std::ios::app) << "WORKED ON EVAL: " << (*this) << "\n";
 
     const ldb::lv::linda_tuple& result_tuple = ldb::lv::linda_tuple(result_values);
     _runtime->out(result_tuple);

@@ -89,7 +89,6 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         remove_via_field(std::size_t field_index,
                          IndexType& db_index) const {
-            std::ofstream("_log.txt", std::ios::app) << "REMOVE VIA FIELD: " << field_index << std::endl;
             const auto remove_if_index_matches =
                    [field_index,
                     &db_index,
@@ -147,12 +146,9 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         perform_remove(const MatcherImplType& matcher_impl,
                        IndexType& db_index) const {
-            std::ofstream("_log.txt", std::ios::app) << "REMOVE VIA INDEX::PERFORM REMOVE: " << matcher_impl << " IDX: " << matcher_impl.indexable() << std::endl;
             if (!matcher_impl.indexable()) return field_incomparable{};
-            std::ofstream("_log.txt", std::ios::app) << "REMOVE VIA INDEX::PERFORM REMOVE: " << matcher_impl << " INDEX REMOVE" << std::endl;
             if (const auto search_result = db_index.remove(index::tree::value_lookup(matcher_impl, *this));
                 search_result.has_value()) return field_found(*search_result);
-            std::ofstream("_log.txt", std::ios::app) << "REMOVE VIA INDEX::PERFORM REMOVE: " << matcher_impl << " NOT FOUND" << std::endl;
             return field_not_found{};
         }
 
@@ -170,7 +166,6 @@ namespace ldb {
 
         friend constexpr std::partial_ordering
         operator<=>(const lv::linda_tuple& lt, const manual_fields_query& query) {
-            std::ofstream("_log.txt", std::ios::app) << "COMPARING: " << lt << " <=> " << query << std::endl;
             if (lt.size() != sizeof...(Matchers)) return lt.size() <=> sizeof...(Matchers);
             return [&lt, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
                 std::partial_ordering order = std::strong_ordering::equal;

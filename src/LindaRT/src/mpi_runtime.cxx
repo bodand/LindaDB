@@ -153,7 +153,6 @@ lrt::mpi_runtime::recv(int from, int tag) const {
     auto* acked_buf_data = acked_buf.data();
     std::size_t acked_buf_sz = acked_buf.size();
     auto ack_tag = deserialize_numeric<int>(acked_buf_data, acked_buf_sz);
-    std::ofstream("_msg.log", std::ios::app) << "rank " << _rank << " received " << acked_buf_sz - 4 << " bytes from " << stat.MPI_SOURCE << " with ack-tag " << std::hex << ack_tag << "\n";
 
     acked_buf.erase(acked_buf.begin(), std::next(acked_buf.begin(), sizeof(ack_tag)));
 
@@ -199,8 +198,6 @@ lrt::mpi_runtime::send_with_ack(int to, int tag, std::span<std::byte> payload) c
 std::vector<std::byte>
 lrt::mpi_runtime::send_and_wait_ack(int to, int tag, std::span<std::byte> payload) const {
     const auto ack_tag = send_with_ack(to, tag, payload);
-    std::ofstream("_msg.log", std::ios::app) << "rank " << rank() << " sending " << payload.size() << " bytes to " << to << " with tag " << std::hex << tag << " and ack tag " << ack_tag << "\n";
     auto [stat, recv_buf] = primitive_recv(to, ack_tag, _ack_world);
-    std::ofstream("_msg.log", std::ios::app) << "rank " << rank() << "received " << recv_buf.size() << " bytes from " << to << " with tag " << std::hex << ack_tag << "\n";
     return recv_buf;
 }

@@ -527,9 +527,7 @@ namespace ldb::index::tree {
         [[nodiscard]] std::optional<value_type>
         remove(const Q& query) {
             std::scoped_lock<std::shared_mutex> lck(_mtx);
-            std::ofstream("_fa.log", std::ios::app) << "AVL REMOVE: " << query << std::endl;
             auto* node = traverse_tree(query.key());
-            std::ofstream("_fa.log", std::ios::app) << "AVL REMOVE RESULT: " << *node << std::endl;
             if (!*node) return {};
 
             // T-tree: removing from node does not always result
@@ -694,9 +692,7 @@ namespace ldb::index::tree {
 
             for (;;) {
                 if (*node == nullptr) return node;
-                std::ofstream("_fa.log", std::ios::app) << "AVL TRAVERSE NODE: " << *(*node) << std::endl;
                 auto dir = key <=> (*node)->data;
-                std::ofstream("_fa.log", std::ios::app) << "AVL COMPARE: " << dir << " <- " << typeid(key).name() << key << " <=> " << (*node)->data << std::endl;
                 if (dir < 0) {
                     node = (*node)->left_ptr();
                     continue;
@@ -716,9 +712,7 @@ namespace ldb::index::tree {
 
             for (;;) {
                 if (*node == nullptr) return node;
-                std::ofstream("_fa.log", std::ios::app) << "AVL TRAVERSE NODE: " << *(*node) << std::endl;
                 auto dir = key <=> (*node)->data;
-                std::ofstream("_fa.log", std::ios::app) << "AVL COMPARE: " << dir << " <- " << typeid(key).name() << key << " <=> " << (*node)->data << std::endl;
                 if (dir < 0) {
                     node = (*node)->left_ptr();
                     continue;

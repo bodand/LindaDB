@@ -70,13 +70,9 @@ lrt::runtime::~runtime() noexcept {
     std::ignore = _mpi.send_with_ack(_mpi.rank(),
                                      static_cast<int>(communication_tag::Terminate),
                                      std::span<std::byte>());
-    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 1" << std::endl;
     _recv_thr.join();
-    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 2" << std::endl;
     _store.terminate();
-    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 3" << std::endl;
     _work_pool.terminate();
-    std::ofstream("_runtime.log", std::ios::app) << "RUNTIME ENDING 4" << std::endl;
 }
 
 void
@@ -102,11 +98,9 @@ lrt::runtime::eval(const ldb::lv::linda_tuple& call_tuple) {
     assert_that(_balancer);
     const auto dest = _balancer->send_to_rank(call_tuple);
     const auto [buf, buf_sz] = serialize(call_tuple);
-    std::ofstream("_eval.log", std::ios::app) << "sending eval from " << rank() << " to " << dest << ": " << call_tuple << "\n";
     std::ignore = _mpi.send_and_wait_ack(dest,
                                          static_cast<int>(communication_tag::Eval),
                                          std::span(buf.get(), buf_sz));
-    std::ofstream("_eval.log", std::ios::app) << "sent eval from " << rank() << " to " << dest << ": " << call_tuple << "\n";
 }
 
 void
