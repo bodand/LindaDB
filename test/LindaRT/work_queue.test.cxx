@@ -34,10 +34,12 @@
  *   
  */
 
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <concepts>
 #include <ostream>
 #include <thread>
-#include <array>
-#include <algorithm>
 
 #include <catch2/catch_test_macros.hpp>
 #include <lrt/work_pool/work_queue.hxx>

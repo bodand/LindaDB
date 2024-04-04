@@ -65,6 +65,17 @@ namespace lrt {
     struct work_queue<Work, Context...> {
         using value_type = Work;
 
+        work_queue() = default;
+        ~work_queue() noexcept = default;
+
+        work_queue(const work_queue&) = delete;
+        work_queue&
+        operator=(const work_queue&) = delete;
+
+        work_queue(work_queue&&) noexcept = delete;
+        work_queue&
+        operator=(work_queue&&) noexcept = delete;
+
         void
         enqueue(value_type&& work) {
             assert_that(!_terminated.test(), "terminated work queue used");
