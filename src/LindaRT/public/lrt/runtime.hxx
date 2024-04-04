@@ -45,7 +45,7 @@
 #include <ldb/query/tuple_query.hxx>
 #include <ldb/store.hxx>
 #include <lrt/balancer/balancer.hxx>
-#include <lrt/balancer/uniform_random_balancer.hxx>
+#include <lrt/balancer/round_robin_balancer.hxx>
 #include <lrt/mpi_runtime.hxx>
 #include <lrt/mpi_thread_context.hxx>
 #include <lrt/work_pool/work.hxx>
@@ -55,7 +55,7 @@ namespace lrt {
     struct runtime {
         runtime(int* argc, char*** argv,
                 std::function<balancer(const runtime&)> load_balancer //
-                = [](const lrt::runtime& rt) -> lrt::balancer { return lrt::uniform_random_balancer(rt.world_size()); });
+                = [](const lrt::runtime& rt) -> lrt::balancer { return lrt::round_robin_balancer(rt.world_size()); });
 
         runtime(const runtime& cp) = delete;
         runtime(runtime&& mv) noexcept = delete;
