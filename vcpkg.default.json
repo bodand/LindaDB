@@ -1,0 +1,22 @@
+{
+  "name": "linda-db",
+  "version-semver": "0.1.1",
+  "license": "BSD-3-Clause",
+  "maintainers": [
+    "bodand (bodand@proton.me)"
+  ],
+  "dependencies": [
+    "boost-preprocessor",
+    "mimalloc",
+    "catch2",
+    "fakeit",
+    {
+      "name": "openmpi",
+      "platform": "!(windows | uwp)"
+    },
+    {
+      "name": "msmpi",
+      "platform": "windows"
+    }
+  ]
+}
