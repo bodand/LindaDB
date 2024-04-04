@@ -127,6 +127,11 @@ namespace ldb {
             const type_stubbed_tuple_query* _self;
         };
 
+        template<class Fn>
+        search_query_visitor(const lv::linda_value& lhs,
+                             Fn opcode,
+                             const type_stubbed_tuple_query* self) -> search_query_visitor<Fn>;
+
         friend constexpr bool
         operator==(const type_stubbed_tuple_query& lhs,
                    const type_stubbed_tuple_query& rhs) {
