@@ -164,15 +164,6 @@ namespace ldb {
         }
 
         void
-        dump_indices(std::ostream& os) const {
-            std::ranges::for_each(_header_indices, [&os](auto& index) {
-                index.apply([&os](const auto& value) {
-                    os << value << "\n";
-                });
-            });
-        }
-
-        void
         terminate() {
             _data.terminate();
         }

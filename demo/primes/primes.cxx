@@ -55,11 +55,6 @@ eliminate_multiples(int p) {
 
     int current_num;
     in("m", ldb::ref(&current_num));
-    {
-        std::ofstream os("_eval.log", std::ios::app);
-        os << "RANK " << lrt::this_runtime().rank() << "\n";
-        lrt::this_store().dump_indices(os);
-    }
 
     out("m", current_num + 1);
     std::ofstream("_primes.log", std::ios::app) << "num: " << current_num << "\n";
@@ -89,10 +84,6 @@ int
 real_main() {
     initialize_values(checked_range_end);
     std::ofstream("_primes.log", std::ios::app) << "Initialized...\n";
-    {
-        std::ofstream os("_primes.log", std::ios::app);
-        lrt::this_store().dump_indices(os);
-    }
 
     std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
                           [](int i) {
