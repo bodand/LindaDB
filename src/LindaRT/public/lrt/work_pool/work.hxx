@@ -76,7 +76,7 @@ namespace lrt {
                 int rank;
                 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
                 std::ofstream("_log.txt", std::ios::app) << rank << ": DO_PERFORM: " << work << std::endl;
-                this->work.perform();
+                this->work.perform(ctx...);
                 std::ofstream("_log.txt", std::ios::app) << rank << ": DONE_PERFORM: " << work << std::endl;
             }
 

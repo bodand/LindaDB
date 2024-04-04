@@ -99,8 +99,8 @@ namespace lrt {
         bool
         inp(Args&&... args) {
             if (_mpi.rank() == 0) return _store.try_remove(std::forward<Args>(args)...).has_value();
-            remote_try_remove(ldb::make_piecewise_query(_store.indices(),
-                                                        std::forward<Args>(args)...));
+            return remote_try_remove(ldb::make_piecewise_query(_store.indices(),
+                                                               std::forward<Args>(args)...));
         }
 
         template<class... Args>
@@ -115,8 +115,8 @@ namespace lrt {
         bool
         rdp(Args&&... args) {
             if (_mpi.rank() == 0) return _store.try_read(std::forward<Args>(args)...).has_value();
-            remote_try_read(ldb::make_piecewise_query(_store.indices(),
-                                                      std::forward<Args>(args)...));
+            return remote_try_read(ldb::make_piecewise_query(_store.indices(),
+                                                             std::forward<Args>(args)...));
         }
 
         void

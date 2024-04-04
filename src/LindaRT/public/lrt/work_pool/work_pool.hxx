@@ -126,7 +126,7 @@ namespace lrt {
                     auto work = work_queue.dequeue();
                     std::ofstream("_wp.log", std::ios::app) << "RETRIEVED WORK: " << work << std::endl;
                     std::apply([&work]<class... CallCtx>(CallCtx&&... context) {
-                        work.perform();
+                        work.perform(context...);
                     },
                                thread_context);
                 }
