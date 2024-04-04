@@ -44,7 +44,7 @@
 void
 lrt::try_remove_work::perform() {
     const auto tuple = deserialize(_bytes);
-    const auto result = _runtime->store().try_read(
+    const auto result = _runtime->store().try_remove(
            ldb::make_type_aware_query(_runtime->store().indices(), tuple));
     if (result) {
         const auto [buf, buf_sz] = serialize(*result);
