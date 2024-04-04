@@ -38,19 +38,24 @@
 #define LINDADB_COMMUNICATION_TAGS_HXX
 
 #include <atomic>
+#include <compare>
+#include <cstdint>
+#include <limits>
 
 #include <ldb/common.hxx>
 
 namespace lrt {
+    // clang-format off
     enum class communication_tag : int {
-        Terminate = 0xDB'00'01,
-        Insert = 0xDB'00'02,
-        Delete = 0xDB'00'03,
-        Eval = 0xDB'00'04,
-        Search = 0xDB'00'05,
-        TrySearch = 0xDB'00'06,
-        TryDelete = 0xDB'00'07,
+        Terminate = 0b00'00000000000000,
+        Insert    = 0b00'00000000000001,
+        Delete    = 0b00'00000000000010,
+        Eval      = 0b00'00000000000011,
+        Search    = 0b00'00000000000100,
+        TrySearch = 0b00'00000000000101,
+        TryDelete = 0b00'00000000000111,
     };
+    // clang-format on
 
     /*
      * ACK TAG: Since multiple acks could arrive from the same host,
@@ -62,15 +67,22 @@ namespace lrt {
      *          not help) so everyone waits a special ack value which they
      *          send to r0 to reply to their answer with. This is a special
      *          bitmap, stuffed into an MPI tag, ie. an int.
-     *                      1         2         3
-     *    bits:  |01234567890123456789012345678901|
-     *   value:  |XDMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM|
+     *          However, the MPI specification only guarantees the value
+     *          range of a 16-bit int. (Which is valid, considering that is
+     *          allowed in C and C++ as well.)
+     *          Therefore, even if a given platform has 32 bit ints, an
+     *          MPI implementation is not guaranteed to provide support for
+     *          using the upper 16 bits...
+     *
+     *           |           1    |
+     *    bits:  |0123456789012345|
+     *   value:  |XDMMMMMMMMMMMMMM|
      *  legend:   X : 1 = 0, a zero bit to ensure the tags are not negative,
      *                       since those are reserved for internal MPI messages
      *            D : 1 = 1, the special bit of ack messages, otherwise there
      *                       could be collisions with other communication_tag
-     *                       tag values
-     *            M : 31, the message differentiator, a monotonically
+     *                       tag values (normal messages have D = 0)
+     *            M : 15, the message differentiator, a monotonically
      *                    increasing value, per rank, that wraps around
      *                    when it reached its maximum value.
      *
@@ -78,7 +90,7 @@ namespace lrt {
      *          tag only needs to be unique within a given rank, and not
      *          globally. As the message differentiator monot
      */
-    constexpr const static unsigned ack_mask = 0x40000000;
+    constexpr const static unsigned ack_mask = 0b01'00000000000000;
 
     inline int
     make_ack_tag() {
@@ -89,8 +101,8 @@ namespace lrt {
 
         // counter needs to have its top two bits clear at all times
         // this allows to have the top-most bit cleared for MPI, and the next set
-        // for differentiating acks from normal messages
-        constexpr const static unsigned counter_mask = 0xC0000000;
+        // for differentiating acks from normal messages (even with 16-bit ints)
+        constexpr const static unsigned counter_mask = 0b11'00000000000000;
 
         static std::atomic<unsigned> _counter = 0;
         auto value = _counter.load(std::memory_order::acquire);
@@ -102,6 +114,10 @@ namespace lrt {
                                                  std::memory_order::acquire))
                 break;
         }
+        assert_that(static_cast<int>(value | ack_mask) > 0,
+                    "MPI requirements for tags to be positive");
+        assert_that(static_cast<int>(value | ack_mask) <= std::numeric_limits<std::int16_t>::max(),
+                    "MPI only guarantees for tags to be allowed to be smaller than a 16 bit signed int's max value");
         return static_cast<int>(value | ack_mask);
     }
 
