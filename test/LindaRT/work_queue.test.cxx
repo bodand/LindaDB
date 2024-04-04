@@ -63,8 +63,8 @@ TEST_CASE("_work_queue is default constructible") {
 }
 
 TEST_CASE("_work_queue is not copyable/movable") {
-    STATIC_CHECK_FALSE(std::copyable<lrt::work_queue<>>);
-    STATIC_CHECK_FALSE(std::movable<lrt::work_queue<>>);
+    STATIC_CHECK_FALSE(std::copyable<lrt::work_queue<test_work>>);
+    STATIC_CHECK_FALSE(std::movable<lrt::work_queue<test_work>>);
 }
 
 TEST_CASE("serial io of _work_queue works") {
