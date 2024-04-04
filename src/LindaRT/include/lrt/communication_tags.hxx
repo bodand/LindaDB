@@ -74,7 +74,7 @@ namespace lrt {
      *          MPI implementation is not guaranteed to provide support for
      *          using the upper 16 bits...
      *
-     *           |           1    |
+     *           |          1     |
      *    bits:  |0123456789012345|
      *   value:  |XDMMMMMMMMMMMMMM|
      *  legend:   X : 1 = 0, a zero bit to ensure the tags are not negative,

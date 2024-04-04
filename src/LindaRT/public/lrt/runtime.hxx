@@ -37,8 +37,12 @@
 #define LINDADB_RUNTIME_HXX
 
 #include <atomic>
+#include <functional>
+#include <span>
 #include <thread>
 
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/query/tuple_query.hxx>
 #include <ldb/store.hxx>
 #include <lrt/balancer/balancer.hxx>
 #include <lrt/balancer/uniform_random_balancer.hxx>
@@ -94,7 +98,7 @@ namespace lrt {
         template<class... Args>
         bool
         inp(Args&&... args) {
-            if (_mpi.rank() == 0) return _store.try_remove(std::forward<Args>(args)...);
+            if (_mpi.rank() == 0) return _store.try_remove(std::forward<Args>(args)...).has_value();
             remote_try_remove(ldb::make_piecewise_query(_store.indices(),
                                                         std::forward<Args>(args)...));
         }
@@ -110,7 +114,7 @@ namespace lrt {
         template<class... Args>
         bool
         rdp(Args&&... args) {
-            if (_mpi.rank() == 0) return _store.try_read(std::forward<Args>(args)...);
+            if (_mpi.rank() == 0) return _store.try_read(std::forward<Args>(args)...).has_value();
             remote_try_read(ldb::make_piecewise_query(_store.indices(),
                                                       std::forward<Args>(args)...));
         }
