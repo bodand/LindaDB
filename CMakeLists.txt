@@ -177,7 +177,12 @@ link_libraries(Threads::Threads)
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
 find_package(Boost REQUIRED)
-find_package(Tracy CONFIG REQUIRED)
+find_package(Tracy CONFIG)
+
+if (TARGET Tracy::TracyClient)
+    add_library(ldb-tracy INTERFACE)
+    target_link_libraries(ldb-tracy INTERFACE Tracy::TracyClient)
+endif ()
 
 # Linda macro
 macro(add_linda_executable exe)

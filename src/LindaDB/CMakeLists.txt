@@ -99,8 +99,8 @@ target_compile_definitions(LindaDB-malloc
 
 find_package(MPI REQUIRED)
 list(APPEND PROJECT_TARGETS LindaDB-malloc)
-target_link_libraries(LindaDB PUBLIC Tracy::TracyClient MPI::MPI_CXX LindaDB-malloc)
-target_link_libraries(LindaDB-NoAbort PUBLIC Tracy::TracyClient MPI::MPI_CXX LindaDB-malloc)
+target_link_libraries(LindaDB PUBLIC ldb-tracy MPI::MPI_CXX LindaDB-malloc)
+target_link_libraries(LindaDB-NoAbort PUBLIC MPI::MPI_CXX LindaDB-malloc)
 
 target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
@@ -112,13 +112,5 @@ target_include_directories(LindaDB-NoAbort
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaDB-NoAbort
                       PRIVATE internal-coverage internal-warnings internal-lto internal-language-level)
-
-if (TARGET Tracy::TracyClient)
-    target_link_libraries(LindaDB PUBLIC Tracy::TracyClient)
-    target_compile_definitions(LindaDB PUBLIC LINDA_DB_PROFILER)
-
-    target_link_libraries(LindaDB-malloc PUBLIC Tracy::TracyClient)
-    target_compile_definitions(LindaDB-malloc PUBLIC LINDA_DB_PROFILER)
-endif ()
 
 list(APPEND PROJECT_TARGETS LindaDB)
