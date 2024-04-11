@@ -74,7 +74,7 @@
       std::shared_lock<std::remove_cvref_t<decltype(mtx)>> name(mtx); \
       LockMark(mtx)
 #else
-#  define LDBT_CV(name) std::condition_variable name
+#  define LDBT_CV(name) std::condition_variable_any name
 
 #  define LDBT_MUTEX_EX(type, name) type name
 #  define LDBT_LOCK_EX(name, mtx) std::scoped_lock<std::remove_cvref_t<decltype(mtx)>> name(mtx)
