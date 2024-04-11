@@ -92,7 +92,7 @@ namespace lrt {
             LDBT_ZONE_A;
             if (_terminated.test()) throw work_queue_terminated_exception{};
 
-            LDBT_LOCK(_mtx);
+            LDBT_UQ_LOCK(_mtx);
             if (_queue.empty()) _cv.wait(lck, [this] { return !_queue.empty() || _terminated.test(); });
             if (_terminated.test()) throw work_queue_terminated_exception{};
 
