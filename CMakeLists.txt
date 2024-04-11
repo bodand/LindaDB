@@ -79,16 +79,16 @@ include(cmake/generate_warnings.cmake)
 include(cmake/generate_lto.cmake)
 
 find_program(ASCIIDOCTOR_EXE asciidoctor
-             DOC "The asciidoctor executable used to build documentation")
+        DOC "The asciidoctor executable used to build documentation")
 
 test_big_endian(LRT_IS_BIG_ENDIAN)
 
 option(LINDA_DB_USE_MIMALLOC
-       "Build LindaDB using the mimalloc allocator instead of the system's [YES]"
-       YES)
+        "Build LindaDB using the mimalloc allocator instead of the system's [YES]"
+        YES)
 option(LINDA_RT_BIG_ENDIAN
-       "Serialize Linda values in a big-endian byte-order. [IF SYSTEM IS BE]"
-       ${LRT_IS_BIG_ENDIAN})
+        "Serialize Linda values in a big-endian byte-order. [IF SYSTEM IS BE]"
+        ${LRT_IS_BIG_ENDIAN})
 option(LINDA_DB_PROFILING
         "Build with profiling enabled (Tracy profiler) [YES]"
         YES)
@@ -97,10 +97,10 @@ option(LINDA_DB_PROFILING
 add_library(internal-coverage INTERFACE)
 if (NOT DEFINED ENV{CG_DEPLOYMENT})
     target_compile_options(internal-coverage INTERFACE
-                           $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
-                           $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
+            $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
+            $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
     if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
-        AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+            AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH vs_llvmx64_bindir)
         cmake_path(GET vs_llvmx64_bindir PARENT_PATH vs_llvmx64_dir)
         if (CMAKE_CXX_COMPILER_VERSION MATCHES [[^([1-9][0-9]*)\.]])
@@ -112,13 +112,13 @@ if (NOT DEFINED ENV{CG_DEPLOYMENT})
         endif ()
     else ()
         target_link_options(internal-coverage INTERFACE
-                            $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
-                            $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
+                $<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate>
+                $<$<CXX_COMPILER_ID:Clang>:-fcoverage-mapping>)
     endif ()
 endif ()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug"
-    AND CMAKE_CXX_COMPILER_ID MATCHES [[GNU|Clang]])
+        AND CMAKE_CXX_COMPILER_ID MATCHES [[GNU|Clang]])
     add_compile_options(
             $<$<PLATFORM_ID:Linux>:-fsanitize=address>
             $<$<PLATFORM_ID:Linux>:-fno-omit-frame-pointer>
@@ -129,15 +129,15 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug"
 endif ()
 
 try_compile(LDB_HAVE_CXX23
-            SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_cxx23.cxx"
-            LOG_DESCRIPTION "Checking for C++23 support..."
-            CXX_STANDARD 23
-            CXX_EXTENSIONS NO)
+        SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_cxx23.cxx"
+        LOG_DESCRIPTION "Checking for C++23 support..."
+        CXX_STANDARD 23
+        CXX_EXTENSIONS NO)
 try_compile(LDB_HAVE_STACKTRACE
-            SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_stacktrace.cxx"
-            LOG_DESCRIPTION "Checking for std::stacktrace support..."
-            CXX_STANDARD 23
-            CXX_EXTENSIONS NO)
+        SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_stacktrace.cxx"
+        LOG_DESCRIPTION "Checking for std::stacktrace support..."
+        CXX_STANDARD 23
+        CXX_EXTENSIONS NO)
 add_library(internal-language-level INTERFACE)
 if (LDB_HAVE_CXX23)
     set(LDB_CXX_FILE_SUFFIX cxx23)
@@ -147,7 +147,7 @@ else ()
     target_compile_features(internal-language-level INTERFACE cxx_std_20)
 endif ()
 target_compile_definitions(internal-language-level INTERFACE
-                           LDB_HAVE_STACKTRACE=0$<BOOL:${LDB_HAVE_STACKTRACE}>)
+        LDB_HAVE_STACKTRACE=0$<BOOL:${LDB_HAVE_STACKTRACE}>)
 
 # warnings
 add_library(internal-warnings INTERFACE)
@@ -166,7 +166,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/Zc:__cplusplus)
 endif ()
 if ("x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC"
-    AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message(STATUS "Using clang-cl: ${CMAKE_CXX_COMPILER}")
     message(STATUS "Injecting /EHsc into clang-cl command-line")
     add_compile_options(/EHsc)
@@ -179,8 +179,8 @@ find_package(Catch2 CONFIG)
 find_package(Boost REQUIRED)
 find_package(Tracy CONFIG)
 
+add_library(ldb-tracy INTERFACE)
 if (TARGET Tracy::TracyClient)
-    add_library(ldb-tracy INTERFACE)
     target_link_libraries(ldb-tracy INTERFACE Tracy::TracyClient)
 endif ()
 
