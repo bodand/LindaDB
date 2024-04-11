@@ -72,8 +72,6 @@ namespace lrt {
         void
         enqueue(value_type&& work) {
             LDBT_ZONE_A;
-            int rank{};
-            //            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             _queue.enqueue(std::move(work));
         }
 
