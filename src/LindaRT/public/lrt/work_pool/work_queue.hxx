@@ -81,7 +81,7 @@ namespace lrt {
             LDBT_ZONE_A;
             assert_that(!_terminated.test(), "terminated work queue used");
 
-            LDBT_UQ_LOCK(_mtx);
+            LDBT_LOCK(_mtx);
             _queue.emplace(std::move(work));
 
             _cv.notify_one();
@@ -92,7 +92,7 @@ namespace lrt {
             LDBT_ZONE_A;
             if (_terminated.test()) throw work_queue_terminated_exception{};
 
-            LDBT_UQ_LOCK(_mtx);
+            LDBT_LOCK(_mtx);
             if (_queue.empty()) _cv.wait(lck, [this] { return !_queue.empty() || _terminated.test(); });
             if (_terminated.test()) throw work_queue_terminated_exception{};
 
@@ -120,7 +120,7 @@ namespace lrt {
     private:
         std::atomic_flag _terminated = ATOMIC_FLAG_INIT;
         std::queue<value_type> _queue{};
-        LDBT_SH_MUTEX(_mtx);
+        LDBT_MUTEX(_mtx);
         LDBT_CV(_cv);
     };
 
