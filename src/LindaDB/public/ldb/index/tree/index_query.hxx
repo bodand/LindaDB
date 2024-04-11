@@ -43,6 +43,8 @@
 #include <tuple>
 #include <type_traits>
 
+#include <ldb/profile.hxx>
+
 namespace ldb::index::tree {
     template<class Lookup, class Match>
     concept index_lookup = requires(Lookup query,

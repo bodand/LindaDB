@@ -44,6 +44,8 @@
 #include <string_view>
 #include <utility>
 
+#include <ldb/profile.hxx>
+
 namespace ldb::lv {
     struct linda_tuple;
 
@@ -87,10 +89,16 @@ namespace ldb::lv {
 
         friend auto
         operator<=>(const fn_call_holder& rhs,
-                    const fn_call_holder& lhs) { return rhs._fn_name <=> lhs._fn_name; }
+                    const fn_call_holder& lhs) {
+            LDBT_ZONE_A;
+            return rhs._fn_name <=> lhs._fn_name;
+        }
         friend auto
         operator==(const fn_call_holder& rhs,
-                   const fn_call_holder& lhs) { return rhs._fn_name == lhs._fn_name; }
+                   const fn_call_holder& lhs) {
+            LDBT_ZONE_A;
+            return rhs._fn_name == lhs._fn_name;
+        }
     };
 }
 

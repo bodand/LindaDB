@@ -42,30 +42,35 @@
 template<class... Args>
 inline void
 out(Args&&... args) {
+    LDBT_ZONE_A;
     lrt::this_runtime().out(ldb::lv::linda_tuple(std::forward<Args>(args)...));
 }
 
 template<class... Args>
 void
 in(Args&&... args) {
+    LDBT_ZONE_A;
     lrt::this_runtime().in(std::forward<Args>(args)...);
 }
 
 template<class... Args>
 bool
 inp(Args&&... args) {
+    LDBT_ZONE_A;
     return lrt::this_runtime().inp(std::forward<Args>(args)...);
 }
 
 template<class... Args>
 void
 rd(Args&&... args) {
+    LDBT_ZONE_A;
     lrt::this_runtime().rd(std::forward<Args>(args)...);
 }
 
 template<class... Args>
 bool
 rdp(Args&&... args) {
+    LDBT_ZONE_A;
     return lrt::this_runtime().rdp(std::forward<Args>(args)...);
 }
 

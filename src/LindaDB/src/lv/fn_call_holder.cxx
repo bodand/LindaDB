@@ -53,6 +53,7 @@
 
 ldb::lv::fn_call_holder::fn_call_holder(std::string fn_name, std::unique_ptr<linda_tuple>&& tuple)
      : _fn_name(std::move(fn_name)), _args(std::move(tuple)) {
+    LDBT_ZONE_A;
     assert_that(_args, "fn_call_holder: null may not be passed as the args tuple");
 }
 
@@ -64,6 +65,7 @@ ldb::lv::fn_call_holder::fn_call_holder(const fn_call_holder& cp)
 
 ldb::lv::fn_call_holder&
 ldb::lv::fn_call_holder::operator=(const ldb::lv::fn_call_holder& cp) {
+    LDBT_ZONE_A;
     if (&cp == this) return *this;
     _fn_name = cp._fn_name;
     _args = cp._args->clone();
@@ -72,6 +74,7 @@ ldb::lv::fn_call_holder::operator=(const ldb::lv::fn_call_holder& cp) {
 
 ldb::lv::linda_tuple
 ldb::lv::fn_call_holder::execute() const {
+    LDBT_ZONE_A;
     assert_that(gLdb_Dynamic_Function_Map != nullptr,
                 "dynamic execution was not initialized: maybe no functions are dynamically invocable?");
     auto it = gLdb_Dynamic_Function_Map->find(_fn_name);

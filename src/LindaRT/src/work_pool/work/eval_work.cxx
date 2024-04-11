@@ -41,6 +41,8 @@
 #include <lrt/serialize/tuple.hxx>
 #include <lrt/work_pool/work/eval_work.hxx>
 
+#include <ldb/profile.hxx>
+
 namespace {
     struct executing_transform {
         template<class T>
@@ -58,6 +60,7 @@ namespace {
 
 void
 lrt::eval_work::perform() {
+    LDBT_ZONE_A;
     const auto tuple = deserialize(_bytes);
     _runtime->ack(_sender, _ack_with); // eval ACK designates receiving the job
 

@@ -38,30 +38,50 @@
 
 #include <compare>
 
+#include <ldb/profile.hxx>
+
 namespace ldb::lv {
     struct fn_call_tag {
     private:
-        friend constexpr auto
-        operator<=>(fn_call_tag, fn_call_tag) { return std::strong_ordering::equal; }
+        friend auto
+        operator<=>(fn_call_tag, fn_call_tag) {
+            LDBT_ZONE_A;
+            return std::strong_ordering::equal;
+        }
 
         template<class T>
         friend constexpr auto
-        operator<=>(fn_call_tag, const T&) { return std::strong_ordering::less; }
+        operator<=>(fn_call_tag, const T&) {
+            LDBT_ZONE_A;
+            return std::strong_ordering::less;
+        }
 
         template<class T>
         friend auto
-        operator<=>(const T&, fn_call_tag) { return std::strong_ordering::greater; }
+        operator<=>(const T&, fn_call_tag) {
+            LDBT_ZONE_A;
+            return std::strong_ordering::greater;
+        }
 
         friend auto
-        operator==(fn_call_tag, fn_call_tag) { return true; }
+        operator==(fn_call_tag, fn_call_tag) {
+            LDBT_ZONE_A;
+            return true;
+        }
 
         template<class T>
         friend auto
-        operator==(fn_call_tag, const T&) { return false; }
+        operator==(fn_call_tag, const T&) {
+            LDBT_ZONE_A;
+            return false;
+        }
 
         template<class T>
         friend auto
-        operator==(const T&, fn_call_tag) { return false; }
+        operator==(const T&, fn_call_tag) {
+            LDBT_ZONE_A;
+            return false;
+        }
     };
 }
 
@@ -70,6 +90,7 @@ namespace std {
     struct hash<ldb::lv::fn_call_tag> {
         std::size_t
         operator()(const ldb::lv::fn_call_tag& /*ignored*/) const noexcept {
+            LDBT_ZONE_A;
             return static_cast<std::size_t>(0xC0FFEE'0F'DEADBEEF);
         }
     };

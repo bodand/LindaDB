@@ -43,6 +43,7 @@
 #include <ldb/index/tree/index_query.hxx> // NOLINT(*-include-cleaner) actually used
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query/tuple_query_if.hxx>
+#include <ldb/profile.hxx>
 
 namespace ldb {
     template<class IndexType>
@@ -65,6 +66,7 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         search_via_field(std::size_t field_index,
                          const IndexType& db_index) const {
+            LDBT_ZONE_A;
             assert(field_index < _tuple.size());
             if (const auto search_result = db_index.search(index::tree::value_lookup(_tuple[field_index], *this));
                 search_result.has_value()) return field_found(*search_result);
@@ -74,6 +76,7 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         remove_via_field(std::size_t field_index,
                          IndexType& db_index) const {
+            LDBT_ZONE_A;
             assert(field_index < _tuple.size());
             if (const auto search_result = db_index.remove(index::tree::value_lookup(_tuple[field_index], *this));
                 search_result.has_value()) return field_found(*search_result);
@@ -82,6 +85,7 @@ namespace ldb {
 
         [[nodiscard]] const lv::linda_tuple&
         as_representing_tuple() const noexcept {
+            LDBT_ZONE_A;
             return _tuple;
         }
 
@@ -91,6 +95,7 @@ namespace ldb {
         friend constexpr bool
         operator==(const concrete_tuple_query& lhs,
                    const concrete_tuple_query& rhs) {
+            LDBT_ZONE_A;
             return lhs._tuple == rhs._tuple;
         }
 
@@ -100,6 +105,7 @@ namespace ldb {
 
         friend constexpr std::partial_ordering
         operator<=>(const lv::linda_tuple& lhs, const concrete_tuple_query& query) {
+            LDBT_ZONE_A;
             const lv::linda_tuple& rhs = query._tuple;
             if (lhs.size() != rhs.size()) return lhs.size() <=> rhs.size();
             for (std::size_t i = 0; i < rhs.size(); ++i) {

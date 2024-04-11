@@ -41,12 +41,14 @@
 
 lrt::runtime&
 lrt::this_runtime() {
+    LDBT_ZONE_A;
     assert_that(gLrt_Runtime_ObjectRef, "runtime has not yet been initialized");
     return *gLrt_Runtime_ObjectRef;
 }
 
 ldb::store&
 lrt::this_store() {
+    LDBT_ZONE_A;
     assert_that(gLrt_Runtime_ObjectRef, "runtime has not yet been initialized");
     return gLrt_Runtime_ObjectRef->store();
 }

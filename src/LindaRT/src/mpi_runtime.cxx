@@ -49,6 +49,7 @@
 #include <mpi.h>
 
 lrt::mpi_runtime::mpi_runtime(int* argc, char*** argv) {
+    LDBT_ZONE_A;
     if (_mpi_inited.test_and_set()) return;
 
     int got_thread = MPI_THREAD_SINGLE;
@@ -64,6 +65,7 @@ lrt::mpi_runtime::mpi_runtime(int* argc, char*** argv) {
 }
 
 lrt::mpi_runtime::~mpi_runtime() {
+    LDBT_ZONE_A;
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
 }
@@ -74,6 +76,7 @@ namespace {
                    int tag,
                    MPI_Comm comm,
                    std::span<std::byte> payload) noexcept {
+        LDBT_ZONE_A;
         assert_that(static_cast<std::size_t>(std::numeric_limits<int>::max()) >= payload.size(),
                     "error: trying to send larger payload than INT_MAX through MPI");
         MPI_Send(payload.data(),
@@ -88,6 +91,7 @@ namespace {
     primitive_recv(int from,
                    int tag,
                    MPI_Comm comm) noexcept {
+        LDBT_ZONE_A;
         MPI_Status stat; // NOLINT(*init*) MPI output param
         auto succ = MPI_Probe(from, tag, comm, &stat);
         assert_that(succ == MPI_SUCCESS);
@@ -112,12 +116,14 @@ namespace {
 
 void
 lrt::mpi_runtime::send(int to, int tag, std::span<std::byte> payload) const {
+    LDBT_ZONE_A;
     std::ignore = _rank; // make clang shut up about static methods
     primitive_send(to, tag, MPI_COMM_WORLD, payload);
 }
 
 void
 lrt::mpi_runtime::send_ack(int to, int tag, std::span<std::byte> payload) const {
+    LDBT_ZONE_A;
     std::ignore = _rank; // make clang shut up about static methods
     primitive_send(to, tag, _ack_world, payload);
 }
@@ -126,6 +132,7 @@ namespace {
     template<std::constructible_from T>
     T
     deserialize_numeric(std::byte*& buf, std::size_t& len) {
+        LDBT_ZONE_A;
         assert_that(len >= sizeof(T));
         T i{};
         auto value_representation =
@@ -147,6 +154,7 @@ namespace {
 
 std::tuple<int, int, int, std::vector<std::byte>>
 lrt::mpi_runtime::recv(int from, int tag) const {
+    LDBT_ZONE_A;
     std::ignore = _rank; // make clang shut up about static methods
 
     auto [stat, acked_buf] = primitive_recv(from, tag, MPI_COMM_WORLD);
@@ -163,6 +171,7 @@ namespace {
     template<std::input_iterator It, std::sentinel_for<It> S>
     std::size_t
     write_bytes_raw(It begin, S end, std::byte* buf) {
+        LDBT_ZONE_A;
         const auto copied_end = std::copy(std::execution::par_unseq,
                                           begin,
                                           end,
@@ -173,6 +182,7 @@ namespace {
     template<std::integral T>
     std::size_t
     write_int_raw(T val, std::byte* buf) {
+        LDBT_ZONE_A;
         auto value_representation =
                std::bit_cast<std::array<std::byte, sizeof(std::remove_cvref_t<T>)>>(lrt::to_communication_endian(val));
         return write_bytes_raw(value_representation.begin(), value_representation.end(), buf);
@@ -181,6 +191,7 @@ namespace {
 
 int
 lrt::mpi_runtime::send_with_ack(int to, int tag, std::span<std::byte> payload) const {
+    LDBT_ZONE_A;
     std::ignore = _rank; // make clang shut up about static methods
 
     const auto ack_tag = make_ack_tag();
@@ -197,6 +208,7 @@ lrt::mpi_runtime::send_with_ack(int to, int tag, std::span<std::byte> payload) c
 
 std::vector<std::byte>
 lrt::mpi_runtime::send_and_wait_ack(int to, int tag, std::span<std::byte> payload) const {
+    LDBT_ZONE_A;
     const auto ack_tag = send_with_ack(to, tag, payload);
     auto [stat, recv_buf] = primitive_recv(to, ack_tag, _ack_world);
     return recv_buf;

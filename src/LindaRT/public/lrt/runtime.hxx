@@ -83,6 +83,7 @@ namespace lrt {
 
         void
         out(const ldb::lv::linda_tuple& tuple) {
+            LDBT_ZONE_A;
             if (_mpi.rank() == 0) return (void) _store.insert(tuple);
             remote_insert(tuple);
         }
@@ -90,6 +91,7 @@ namespace lrt {
         template<class... Args>
         void
         in(Args&&... args) {
+            LDBT_ZONE_A;
             if (_mpi.rank() == 0) return (void) _store.remove(std::forward<Args>(args)...);
             remote_remove(ldb::make_piecewise_query(_store.indices(),
                                                     std::forward<Args>(args)...));
@@ -98,6 +100,7 @@ namespace lrt {
         template<class... Args>
         bool
         inp(Args&&... args) {
+            LDBT_ZONE_A;
             if (_mpi.rank() == 0) return _store.try_remove(std::forward<Args>(args)...).has_value();
             return remote_try_remove(ldb::make_piecewise_query(_store.indices(),
                                                                std::forward<Args>(args)...));
@@ -106,6 +109,7 @@ namespace lrt {
         template<class... Args>
         void
         rd(Args&&... args) {
+            LDBT_ZONE_A;
             if (_mpi.rank() == 0) return (void) _store.read(std::forward<Args>(args)...);
             remote_read(ldb::make_piecewise_query(_store.indices(),
                                                   std::forward<Args>(args)...));
@@ -114,6 +118,7 @@ namespace lrt {
         template<class... Args>
         bool
         rdp(Args&&... args) {
+            LDBT_ZONE_A;
             if (_mpi.rank() == 0) return _store.try_read(std::forward<Args>(args)...).has_value();
             return remote_try_read(ldb::make_piecewise_query(_store.indices(),
                                                              std::forward<Args>(args)...));

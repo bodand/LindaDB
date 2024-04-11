@@ -57,18 +57,22 @@ namespace {
 
 std::optional<ldb::lv::linda_tuple>
 ldb::store::remove_directly(const query_type& query) {
+    LDBT_ZONE_A;
     return _data.locked_destructive_find(query);
 }
 
 std::optional<ldb::lv::linda_tuple>
 ldb::store::read_directly(const query_type& query) const {
+    LDBT_ZONE_A;
     return _data.locked_find(query);
 }
 
 std::optional<ldb::lv::linda_tuple>
 ldb::store::perform_indexed_read(const query_type& query) const {
-    std::unique_lock<std::shared_mutex> lck(_header_mtx);
+    LDBT_ZONE_A;
+//    LDBT_UQ_LOCK(_header_mtx);
     for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+        LDBT_ZONE("indexed-read::index");
         const auto result = query.search_via_field(i, _header_indices[i]);
         const auto [cont, maybe_it] = std::visit(query_result_dispatcher<pointer_type>{}, result);
         if (cont) continue;
@@ -80,8 +84,10 @@ ldb::store::perform_indexed_read(const query_type& query) const {
 
 std::optional<ldb::lv::linda_tuple>
 ldb::store::perform_indexed_remove(const ldb::store::query_type& query) {
-    std::unique_lock<std::shared_mutex> lck(_header_mtx);
+    LDBT_ZONE_A;
+//    LDBT_UQ_LOCK(_header_mtx);
     for (std::size_t i = 0; i < _header_indices.size(); ++i) {
+        LDBT_ZONE("indexed-remove::index");
         const auto result = query.remove_via_field(i, _header_indices[i]);
         const auto [cont, maybe_it] = std::visit(query_result_dispatcher<pointer_type>{}, result);
         if (cont) continue;

@@ -51,14 +51,17 @@ namespace ldb::lv {
         using is_transparent = std::true_type;
         [[nodiscard]] std::size_t
         operator()(const char* txt) const {
+            LDBT_ZONE_A;
             return std::hash<std::string_view>{}(txt);
         }
         [[nodiscard]] std::size_t
         operator()(std::string_view txt) const {
+            LDBT_ZONE_A;
             return std::hash<std::string_view>{}(txt);
         }
         [[nodiscard]] std::size_t
         operator()(const std::string& txt) const {
+            LDBT_ZONE_A;
             return std::hash<std::string>{}(txt);
         }
     };

@@ -78,6 +78,7 @@
 #endif
 #define LDB_EVAL_REG_FN_I(arg) std::ignore = lrt::fn_mapper<LDB_STR_I(arg)>::value<decltype(arg),                                                              \
                                                                                    decltype([](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {     \
+                                                                                       LDBT_ZONE_A;                                                            \
                                                                                        if constexpr (std::is_function_v<std::remove_cvref_t<decltype(arg)>>) { \
                                                                                            ldb::lv::dyn_function_adapter adapter(arg);                         \
                                                                                            return adapter(args);                                               \
@@ -139,6 +140,7 @@ namespace lrt {
         requires(std::is_invocable_r_v<ldb::lv::linda_value, T, const ldb::lv::linda_tuple&>)
     struct function_loader<Name, R(Args...), T> {
         function_loader() {
+            LDBT_ZONE_A;
             if (!ldb::lv::gLdb_Dynamic_Function_Map) ldb::lv::gLdb_Dynamic_Function_Map = std::make_unique<ldb::lv::global_function_map_type>();
             auto fn_name = std::string{Name.data(), Name.size() - 1};
             (*ldb::lv::gLdb_Dynamic_Function_Map).emplace(fn_name, T{});

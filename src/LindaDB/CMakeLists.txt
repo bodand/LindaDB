@@ -51,13 +51,16 @@ set(LDB_COMMON_SOURCES
     public/ldb/lv/linda_value.hxx
     public/ldb/lv/tuple_builder.hxx
     public/ldb/query/concrete_tuple_query.hxx
-        public/ldb/query/type_stubbed_tuple_query.hxx
+    public/ldb/query/type_stubbed_tuple_query.hxx
     public/ldb/query/make_matcher.hxx
     public/ldb/query/manual_fields_query.hxx
     public/ldb/query/match_type.hxx
     public/ldb/query/match_value.hxx
     public/ldb/query/meta_finder.hxx
     public/ldb/query/tuple_query.hxx
+    public/ldb/common.hxx
+    public/ldb/profile.hxx
+    public/ldb/query.hxx
     public/ldb/store.hxx
     src/data/chunked_list.cxx
     src/index/tree/payload/chime_payload.cxx
@@ -74,7 +77,8 @@ set(LDB_COMMON_SOURCES
     src/query/manual_fields_query.cxx
     src/query/tuple_query.cxx
     src/common.cxx
-    src/store.cxx)
+    src/store.cxx
+    src/tracy.cxx)
 
 add_library(LindaDB STATIC ${LDB_COMMON_SOURCES})
 add_library(LindaDB-NoAbort STATIC ${LDB_COMMON_SOURCES})
@@ -90,12 +94,13 @@ target_link_libraries(LindaDB-malloc
                       PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:mimalloc-static>
                       PRIVATE internal-warnings internal-lto internal-language-level)
 target_compile_definitions(LindaDB-malloc
-                           PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)
+                           PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>
+                           PUBLIC $<$<BOOL:${LINDA_DB_PROFILING}>:LINDA_DB_PROFILING>)
 
 find_package(MPI REQUIRED)
 list(APPEND PROJECT_TARGETS LindaDB-malloc)
-target_link_libraries(LindaDB PUBLIC MPI::MPI_CXX LindaDB-malloc)
-target_link_libraries(LindaDB-NoAbort PUBLIC MPI::MPI_CXX LindaDB-malloc)
+target_link_libraries(LindaDB PUBLIC Tracy::TracyClient MPI::MPI_CXX LindaDB-malloc)
+target_link_libraries(LindaDB-NoAbort PUBLIC Tracy::TracyClient MPI::MPI_CXX LindaDB-malloc)
 
 target_include_directories(LindaDB
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>

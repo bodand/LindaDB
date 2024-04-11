@@ -43,9 +43,10 @@
 #include <variant>
 
 #include <ldb/common.hxx>
+#include <ldb/lv/global_function_map.hxx>
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
-#include <ldb/lv/global_function_map.hxx>
+#include <ldb/profile.hxx>
 
 namespace ldb::lv {
     template<class T>
@@ -54,6 +55,7 @@ namespace ldb::lv {
 
         call_type
         operator()(call_type val) {
+            LDBT_ZONE_A;
             return val;
         }
 
@@ -70,6 +72,7 @@ namespace ldb::lv {
     struct expecting_visitor<const char*> {
         const char*
         operator()(const std::string& str) {
+            LDBT_ZONE_A;
             return str.data();
         }
 
@@ -98,6 +101,7 @@ namespace ldb::lv {
                  std::sentinel_for<It> SIt>
         std::tuple<T, Args...>
         build(It begin, SIt end) {
+            LDBT_ZONE_A;
             assert_that(begin != end,
                         "linda_tuple ended prematurely");
             auto head_value = std::make_tuple(std::visit(expecting_visitor<T>{}, *begin));
@@ -109,6 +113,7 @@ namespace ldb::lv {
         ldb::lv::linda_value
         execute(void* fn,
                 const ldb::lv::linda_tuple& dyn_args) override {
+            LDBT_ZONE_A;
             auto* typed_fn = std::bit_cast<R (*)(T, Args...)>(fn);
             auto typed_args = build(dyn_args.begin(), dyn_args.end());
             return std::apply(typed_fn, typed_args);
@@ -121,6 +126,7 @@ namespace ldb::lv {
                  std::sentinel_for<It> SIt>
         std::tuple<>
         build(It begin, SIt end) {
+            LDBT_ZONE_A;
             assert_that(begin == end,
                         "non-empty linda_tuple reached end of calculation");
             return std::make_tuple();
@@ -129,6 +135,7 @@ namespace ldb::lv {
         ldb::lv::linda_value
         execute(void* fn,
                 const ldb::lv::linda_tuple& dyn_args) override {
+            LDBT_ZONE_A;
             auto* typed_fn = std::bit_cast<R (*)()>(fn);
             auto typed_args = build(dyn_args.begin(), dyn_args.end());
             return std::apply(typed_fn, typed_args);
@@ -148,6 +155,7 @@ namespace ldb::lv {
 
         ldb::lv::linda_value
         operator()(const ldb::lv::linda_tuple& args) {
+            LDBT_ZONE_A;
             return _exeuctor->execute(_fn, args);
         }
 

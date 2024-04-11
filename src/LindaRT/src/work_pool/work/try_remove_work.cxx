@@ -43,6 +43,7 @@
 
 void
 lrt::try_remove_work::perform() {
+    LDBT_ZONE_A;
     const auto tuple = deserialize(_bytes);
     const auto result = _runtime->store().try_remove(
            ldb::make_type_aware_query(_runtime->store().indices(), tuple));

@@ -86,6 +86,7 @@ namespace ldb::index::tree {
                            Args&&... args)
              : data(std::forward<Args>(args)...),
                _parent(par) {
+            LDBT_ZONE_A;
             assert_that(_left.get() != this);
             assert_that(_right.get() != this);
             assert_that(_parent == nullptr || _parent->get() != this);
@@ -99,6 +100,7 @@ namespace ldb::index::tree {
                _right(other.release_right()),
                bf(other.bf),
                data(std::move(other.data)) {
+            LDBT_ZONE_A;
             assert_that(_left.get() != this);
             assert_that(_right.get() != this);
             assert_that(_parent == nullptr || _parent->get() != this);
@@ -109,8 +111,8 @@ namespace ldb::index::tree {
         operator=(const avl2_node& other) = delete;
         avl2_node&
         operator=(avl2_node&& other) noexcept {
-            if (this == &other)
-                return *this;
+            LDBT_ZONE_A;
+            if (this == &other) return *this;
             set_parent(other._parent);
             set_left(other.release_left());
             set_right(other.release_right());
@@ -124,6 +126,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] auto
         get_side_of(avl2_node* child) const noexcept {
+            LDBT_ZONE_A;
             assert_that(_left.get() != this);
             assert_that(_right.get() != this);
             assert_that(_parent == nullptr || _parent->get() != this);
@@ -140,6 +143,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] std::unique_ptr<avl2_node<P>>*
         parent() const {
+            LDBT_ZONE_A;
             assert_that(_left.get() != this);
             assert_that(_right.get() != this);
             assert_that(_parent == nullptr || _parent->get() != this);
@@ -149,6 +153,7 @@ namespace ldb::index::tree {
 
         void
         set_parent(std::unique_ptr<avl2_node<P>>* p) {
+            LDBT_ZONE_A;
             assert_that(_left.get() != this);
             assert_that(_right.get() != this);
             if (p) {
@@ -162,6 +167,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] const std::unique_ptr<avl2_node>&
         left() const {
+            LDBT_ZONE_A;
             assert_that(_left.get() != this);
             assert_that(_right.get() != this);
             assert_that(_parent == nullptr || _parent->get() != this);
@@ -170,6 +176,7 @@ namespace ldb::index::tree {
         }
         [[nodiscard]] decltype(auto)
         release_left() {
+            LDBT_ZONE_A;
             assert_that(_left.get() != this);
             assert_that(_right.get() != this);
             assert_that(_parent == nullptr || _parent->get() != this);
@@ -180,6 +187,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] const std::unique_ptr<avl2_node>*
         left_ptr() const {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -188,6 +196,7 @@ namespace ldb::index::tree {
         }
         [[nodiscard]] std::unique_ptr<avl2_node>*
         left_ptr() {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -197,6 +206,7 @@ namespace ldb::index::tree {
 
         void
         set_left(std::unique_ptr<avl2_node> left) {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -215,6 +225,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] const std::unique_ptr<avl2_node>&
         right() const {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -223,6 +234,7 @@ namespace ldb::index::tree {
         }
         [[nodiscard]] decltype(auto)
         release_right() {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -233,6 +245,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] const std::unique_ptr<avl2_node>*
         right_ptr() const {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -241,6 +254,7 @@ namespace ldb::index::tree {
         }
         [[nodiscard]] std::unique_ptr<avl2_node>*
         right_ptr() {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -250,6 +264,7 @@ namespace ldb::index::tree {
 
         void
         set_right(std::unique_ptr<avl2_node> right) {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -268,6 +283,7 @@ namespace ldb::index::tree {
 
         [[nodiscard]] bool
         balance_is(const avlbf type) const {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -278,6 +294,7 @@ namespace ldb::index::tree {
         auto
         try_insert(const key_type& key,
                    const value_type& value) {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -288,6 +305,7 @@ namespace ldb::index::tree {
         template<class B>
         auto
         try_insert(B&& bundle) {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -298,6 +316,7 @@ namespace ldb::index::tree {
         auto
         insert_into_lower(const key_type& key,
                           const value_type& value) {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -308,6 +327,7 @@ namespace ldb::index::tree {
         std::optional<typename P::bundle_type>
         insert_into_upper(const key_type& key,
                           const value_type& value) {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -319,6 +339,7 @@ namespace ldb::index::tree {
         template<index_lookup<value_type> Q>
         auto
         find_by_query(const Q& query) const {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -329,6 +350,7 @@ namespace ldb::index::tree {
         template<index_lookup<value_type> Q>
         auto
         remove_by_query(const Q& query) {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -338,6 +360,7 @@ namespace ldb::index::tree {
 
         avltype
         type() {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             assert(_parent == nullptr || _parent->get() != this);
@@ -350,12 +373,14 @@ namespace ldb::index::tree {
         template<class Fn>
         void
         apply(const Fn& fn) const {
+            LDBT_ZONE_A;
             if (_left) _left->apply(fn);
             data.apply(fn);
             if (_right) _right->apply(fn);
         }
 
         ~avl2_node() {
+            LDBT_ZONE_A;
             assert(_left.get() != this);
             assert(_right.get() != this);
             if (_left) release(&_left);
@@ -374,6 +399,7 @@ namespace ldb::index::tree {
 
         static void
         release(std::unique_ptr<avl2_node>* subtree) noexcept {
+            LDBT_ZONE_A;
             while ((*subtree)->_left && (*subtree)->_right) {
                 subtree = &(*subtree)->_left;
             }
@@ -402,7 +428,8 @@ namespace ldb::index::tree {
         template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         search(const Q& query) const {
-            std::shared_lock<std::shared_mutex> lck(_mtx);
+            LDBT_ZONE_A;
+            LDBT_SH_LOCK(_mtx);
             const auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
@@ -412,7 +439,8 @@ namespace ldb::index::tree {
         void
         insert(const key_type& key,
                const value_type& value) {
-            std::unique_lock<std::shared_mutex> lck(_mtx);
+            LDBT_ZONE_A;
+            LDBT_UQ_LOCK(_mtx);
             std::unique_ptr<node_type>* parent = nullptr;
             std::unique_ptr<node_type>* current = &root;
             while (*current) {
@@ -526,7 +554,8 @@ namespace ldb::index::tree {
         template<index_lookup<value_type> Q>
         [[nodiscard]] std::optional<value_type>
         remove(const Q& query) {
-            std::scoped_lock<std::shared_mutex> lck(_mtx);
+            LDBT_ZONE_A;
+            LDBT_UQ_LOCK(_mtx);
             auto* node = traverse_tree(query.key());
             if (!*node) return {};
 
@@ -584,6 +613,7 @@ namespace ldb::index::tree {
         template<class Fn>
         void
         apply(const Fn& fn) const {
+            LDBT_ZONE_A;
             if (root) root->apply(fn);
         }
 
@@ -592,6 +622,7 @@ namespace ldb::index::tree {
 
         bool
         handle_half_leaf_removal(std::unique_ptr<node_type>* node) {
+            LDBT_ZONE_A;
             auto* leaf = (*node)->left_ptr();
             if (*leaf == nullptr) leaf = (*node)->right_ptr();
             assert((*leaf)->type() == LEAF);
@@ -610,6 +641,7 @@ namespace ldb::index::tree {
 
         void
         delete_node(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             assert(node_ptr);
             assert(*node_ptr);
             assert((*node_ptr)->data.empty() && "non-empty node removed");
@@ -688,6 +720,7 @@ namespace ldb::index::tree {
         template<class Key>
         const std::unique_ptr<node_type>*
         traverse_tree(const Key& key) const {
+            LDBT_ZONE_A;
             auto* node = &root;
 
             for (;;) {
@@ -708,6 +741,7 @@ namespace ldb::index::tree {
         template<class Key>
         std::unique_ptr<node_type>*
         traverse_tree(const Key& key) {
+            LDBT_ZONE_A;
             auto* node = &root;
 
             for (;;) {
@@ -727,6 +761,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         find_successor(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             auto ptr = (*node_ptr)->right_ptr();
             if (*ptr) {
                 while (*ptr) ptr = (*ptr)->left_ptr();
@@ -746,6 +781,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         find_greatest_lower_bound(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             auto ptr = (*node_ptr)->left_ptr();
             if (*ptr) {
                 while ((*ptr)->right()) ptr = (*ptr)->right_ptr();
@@ -755,6 +791,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         rotate_left(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             std::unique_ptr<node_type>* parent_ptr = (*node_ptr)->parent();
 
             if (parent_ptr == nullptr) {
@@ -789,6 +826,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         rotate_right(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             std::unique_ptr<node_type>* parent_ptr = (*node_ptr)->parent();
 
             if (parent_ptr == nullptr) {
@@ -823,6 +861,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         insert_left_imbalance(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             auto& node = *node_ptr;
 
             if (node->left()->bf == node->bf) {
@@ -849,6 +888,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         insert_right_imbalance(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             assert(node_ptr);
             assert(*node_ptr);
             auto& node = *node_ptr;
@@ -876,6 +916,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         delete_left_imbalance(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             auto node = node_ptr->get();
 
             if (node->left()->balance_is(LEFT_HEAVY)) {
@@ -909,6 +950,7 @@ namespace ldb::index::tree {
 
         std::unique_ptr<node_type>*
         delete_right_imbalance(std::unique_ptr<node_type>* node_ptr) {
+            LDBT_ZONE_A;
             auto node = node_ptr->get();
 
             if (node->right()->balance_is(RIGHT_HEAVY)) {
@@ -942,6 +984,7 @@ namespace ldb::index::tree {
         static void
         set_balance_factors(std::unique_ptr<node_type>* node_ptr,
                             avlbf bf) {
+            LDBT_ZONE_A;
             (*node_ptr)->bf = BALANCED;
             auto& left = (*node_ptr)->left();
             auto& right = (*node_ptr)->right();
@@ -960,7 +1003,7 @@ namespace ldb::index::tree {
         }
 
         std::unique_ptr<node_type> root{};
-        mutable std::shared_mutex _mtx;
+        mutable LDBT_SH_MUTEX(_mtx);
     };
 }
 

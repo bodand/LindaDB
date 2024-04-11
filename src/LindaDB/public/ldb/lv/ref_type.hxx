@@ -82,6 +82,7 @@ namespace std {
     struct hash<ldb::lv::ref_type> {
         std::size_t
         operator()(const ldb::lv::ref_type& ref) const noexcept {
+            LDBT_ZONE_A;
             return hash<int>{}(ref.type_idx());
         }
     };

@@ -42,6 +42,7 @@ real_main(int argc, char** argv);
 
 int
 main(int argc, char** argv) {
+    LDBT_ZONE("Linda runtime main");
     lrt::runtime rt(&argc, &argv);
     lrt::gLrt_Runtime_ObjectRef = &rt;
 

@@ -47,6 +47,7 @@ namespace lrt {
     template<ldb::tuple_queryable Query>
     std::pair<std::unique_ptr<std::byte[]>, std::size_t>
     serialize(const Query& query) {
+        LDBT_ZONE_A;
         return serialize(query.as_representing_tuple());
     }
 }

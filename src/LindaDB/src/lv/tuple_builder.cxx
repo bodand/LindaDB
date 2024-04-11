@@ -43,6 +43,7 @@
 
 void
 ldb::lv::tuple_builder::add_fn_call(ldb::lv::linda_tuple&& tuple) {
+    LDBT_ZONE_A;
     _values.emplace_back(fn_call_holder(_last_fn->function_name,
                                         std::make_unique<linda_tuple>(std::move(tuple))));
 }

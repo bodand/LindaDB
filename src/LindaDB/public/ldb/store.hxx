@@ -61,10 +61,7 @@
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/lv/linda_value.hxx>
 #include <ldb/query.hxx>
-#include <ldb/store_command/read_store_command.hxx>
-#include <ldb/store_command/remove_store_command.hxx>
-
-#include <mpi.h>
+#include <ldb/profile.hxx>
 
 namespace ldb {
     struct store {
@@ -76,15 +73,18 @@ namespace ldb {
 
         static auto
         indices() noexcept {
+            LDBT_ZONE_A;
             return ::ldb::over_index<index_type>;
         }
 
         void
         insert(const lv::linda_tuple& tuple) {
+            LDBT_ZONE_A;
             auto new_it = _data.push_back(tuple);
 
             {
-                std::scoped_lock<std::shared_mutex> lck(_header_mtx);
+                LDBT_ZONE("store::insert-indices");
+//                LDBT_UQ_LOCK(_header_mtx);
                 for (std::size_t i = 0;
                      i < _header_indices.size() && i < tuple.size();
                      ++i) {
@@ -97,6 +97,7 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         try_read(const query_type& query) const {
+            LDBT_ZONE_A;
             return retrieve_weak(query,
                                  std::mem_fn(&store::perform_indexed_read));
         }
@@ -114,6 +115,7 @@ namespace ldb {
 
         lv::linda_tuple
         read(const query_type& query) const {
+            LDBT_ZONE_A;
             return retrieve_strong(query,
                                    std::mem_fn(&store::perform_indexed_read));
         }
@@ -131,6 +133,7 @@ namespace ldb {
 
         std::optional<lv::linda_tuple>
         try_remove(const query_type& query) {
+            LDBT_ZONE_A;
             return retrieve_weak(query,
                                  std::mem_fn(&store::perform_indexed_remove));
         }
@@ -148,6 +151,7 @@ namespace ldb {
 
         lv::linda_tuple
         remove(const query_type& query) {
+            LDBT_ZONE_A;
             return retrieve_strong(query,
                                    std::mem_fn(&store::perform_indexed_remove));
         }
@@ -177,6 +181,7 @@ namespace ldb {
                         Extractor&& extractor)
             requires(std::invocable<Extractor, store, decltype(query)>)
         {
+            LDBT_ZONE_A;
             for (;;) {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
                 if (check_and_reset_sync_need()) continue;
@@ -190,6 +195,7 @@ namespace ldb {
                         Extractor&& extractor) const
             requires(std::invocable<Extractor, const store, decltype(query)>)
         {
+            LDBT_ZONE_A;
             for (;;) {
                 if (auto read = std::forward<Extractor>(extractor)(this, query)) return *read;
                 if (check_and_reset_sync_need()) continue;
@@ -203,6 +209,7 @@ namespace ldb {
                       Extractor&& extractor)
             requires(std::invocable<Extractor, store, decltype(query)>)
         {
+            LDBT_ZONE_A;
             return std::forward<Extractor>(extractor)(this, query);
         }
 
@@ -212,12 +219,14 @@ namespace ldb {
                       Extractor&& extractor) const
             requires(std::invocable<Extractor, const store, decltype(query)>)
         {
+            LDBT_ZONE_A;
             return std::forward<Extractor>(extractor)(this, query);
         }
 
         void
         wait_for_sync() const {
-            std::unique_lock<std::mutex> lck(_read_mtx);
+            LDBT_ZONE_A;
+            LDBT_UQ_LOCK(_read_mtx);
             auto sync_check_over_this = [this]() noexcept {
                 return check_sync_need();
             };
@@ -263,10 +272,10 @@ namespace ldb {
         }
 
         mutable std::atomic<int> _sync_needed = 0;
-        mutable std::mutex _read_mtx;
-        mutable std::condition_variable _wait_read;
+        mutable LDBT_MUTEX(_read_mtx);
+        mutable LDBT_CV(_wait_read);
 
-        mutable std::shared_mutex _header_mtx;
+//        mutable LDBT_SH_MUTEX(_header_mtx);
         std::array<index_type, 1> _header_indices{};
         storage_type _data{};
     };

@@ -28,52 +28,14 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-11.
+ * Originally created: 2024-04-04.
  *
- * src/LindaDB/public/ldb/store_command/remove_store_command --
+ * src/LindaDB/src/tracy --
  *   
  */
-#ifndef LINDADB_REMOVE_STORE_COMMAND_HXX
-#define LINDADB_REMOVE_STORE_COMMAND_HXX
 
-#include <algorithm>
-#include <concepts>
-#include <cstddef>
-#include <numeric>
-#include <ranges>
-#include <shared_mutex>
-#include <tuple>
-#include <vector>
+#ifdef TRACY_ENABLE
 
-#include <ldb/lv/linda_tuple.hxx>
-#include <ldb/query/manual_fields_query.hxx>
-
-namespace ldb {
-    template<class Index, class Pointer>
-    struct remove_store_command {
-        using index_type = Index;
-
-        template<std::ranges::forward_range Rng>
-        remove_store_command(helper::over_index_impl<Index> /*type dispatch*/,
-                             Pointer tuple,
-                             Rng&& indices)
-            requires(std::same_as<std::ranges::range_value_t<Rng>, Index*>)
-             : _indices(std::ranges::begin(indices), std::ranges::end(indices)),
-               tuple_it(tuple) { }
-
-        lv::linda_tuple
-        commit() {
-            std::ranges::for_each(std::views::iota(std::size_t{}, _indices.size()),
-                                  [this](std::size_t idx) {
-                                      std::ignore = _indices[idx]->remove(index::tree::value_lookup((*tuple_it)[idx], tuple_it));
-                                  });
-            return *tuple_it;
-        }
-
-    private:
-        std::vector<Index*> _indices;
-        Pointer tuple_it;
-    };
-}
+#include <tracy/Tracy.hpp>
 
 #endif

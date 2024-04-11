@@ -41,12 +41,14 @@
 #include <syncstream>
 
 #include <ldb/common.hxx>
+#include <ldb/profile.hxx>
 
 void
 ldb::assert_that_impl(const bool cond,
                       const std::string_view cond_stringified,
                       const std::string_view message,
                       const std::source_location src) {
+    LDBT_ZONE_A;
     if (cond) return;
     std::osyncstream(std::cerr)
            << "FATAL: assertion failed '" << cond_stringified << "' "

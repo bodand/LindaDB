@@ -48,7 +48,9 @@ namespace lrt {
              : _bytes(std::move(payload)),
                _runtime(&runtime),
                _sender(sender),
-               _ack_with(ack_with) { }
+               _ack_with(ack_with) {
+            LDBT_ZONE("remove work ctor");
+        }
 
         void
         perform();

@@ -47,6 +47,7 @@
 #include <functional>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <ostream>
 #include <span>
 #include <type_traits>
@@ -187,6 +188,7 @@ namespace ldb::lv {
 
             [[nodiscard]] constexpr auto
             operator<=>(const iterator_impl& other) const noexcept {
+                LDBT_ZONE_A;
                 assert_that(arithmetic_meaningful_with(other));
 
                 if (other._owner == nullptr && _owner == nullptr) return std::strong_ordering::equal;
@@ -207,6 +209,7 @@ namespace ldb::lv {
 
             [[nodiscard]] constexpr bool
             operator==(const iterator_impl& other) const noexcept {
+                LDBT_ZONE_A;
                 return std::is_eq(*this <=> other);
             }
 

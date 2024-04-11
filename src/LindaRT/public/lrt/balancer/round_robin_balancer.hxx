@@ -48,10 +48,12 @@ namespace lrt {
         explicit round_robin_balancer(int comm_size) : _max(comm_size) { }
 
         round_robin_balancer(const round_robin_balancer& cp) noexcept : _max(cp._max) {
+            LDBT_ZONE_A;
             _value.store(cp._value.load());
         }
         round_robin_balancer&
         operator=(const round_robin_balancer& cp) noexcept {
+            LDBT_ZONE_A;
             _max = cp._max;
             _value.store(cp._value.load());
             return *this;
@@ -59,6 +61,7 @@ namespace lrt {
 
         int
         send_to_rank(const ldb::lv::linda_tuple& /*ignored*/) {
+            LDBT_ZONE_A;
             auto value = _value.load(std::memory_order_acquire);
             for (;;) {
                 const auto next_candidate_value = value + 1;

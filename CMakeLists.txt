@@ -89,6 +89,9 @@ option(LINDA_DB_USE_MIMALLOC
 option(LINDA_RT_BIG_ENDIAN
        "Serialize Linda values in a big-endian byte-order. [IF SYSTEM IS BE]"
        ${LRT_IS_BIG_ENDIAN})
+option(LINDA_DB_PROFILING
+        "Build with profiling enabled (Tracy profiler) [YES]"
+        YES)
 
 # coverage data
 add_library(internal-coverage INTERFACE)
@@ -174,6 +177,7 @@ link_libraries(Threads::Threads)
 find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
 find_package(Boost REQUIRED)
+find_package(Tracy CONFIG REQUIRED)
 
 # Linda macro
 macro(add_linda_executable exe)

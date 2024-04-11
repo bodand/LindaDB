@@ -68,6 +68,7 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         search_via_field(std::size_t field_index,
                          const IndexType& db_index) const {
+            LDBT_ZONE_A;
             assert_that(field_index < _tuple.size());
             return std::visit(search_query_visitor(
                                      _tuple[field_index],
@@ -81,6 +82,7 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         remove_via_field(std::size_t field_index,
                          IndexType& db_index) const {
+            LDBT_ZONE_A;
             assert_that(field_index < _tuple.size());
             return std::visit(search_query_visitor(
                                      _tuple[field_index],
@@ -93,6 +95,7 @@ namespace ldb {
 
         [[nodiscard]] const lv::linda_tuple&
         as_representing_tuple() const noexcept {
+            LDBT_ZONE_A;
             return _tuple;
         }
 

@@ -79,7 +79,7 @@ target_include_directories(LindaRT-malloc
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(LindaRT-malloc
-                      PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:mimalloc-static>
+                      PUBLIC LindaDB $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:mimalloc-static>
                       PRIVATE internal-warnings internal-lto internal-language-level)
 target_compile_definitions(LindaRT-malloc
                            PUBLIC $<$<BOOL:${LINDA_DB_USE_MIMALLOC}>:LINDA_DB_USE_MIMALLOC>)

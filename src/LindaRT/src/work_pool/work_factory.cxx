@@ -66,6 +66,7 @@ lrt::work_factory::create(lrt::communication_tag tag,
                           lrt::runtime& runtime,
                           int sender,
                           int ack) {
+    LDBT_ZONE_A;
     auto work_maker = [data = std::move(payload), &runtime, sender, ack]<class T>(type_i<T>) mutable {
         return T(std::move(data), runtime, sender, ack);
     };

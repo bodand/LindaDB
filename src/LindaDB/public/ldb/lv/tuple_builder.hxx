@@ -60,12 +60,14 @@ namespace ldb::lv {
 
         template<class T>
         tuple_builder(std::string_view name, T&& arg) { // initial call
+            LDBT_ZONE_A;
             adder_impl<T>::add(*this, name, std::forward<T>(arg));
         }
 
         template<class T>
         tuple_builder&
         operator()(std::string_view name, T&& arg) {
+            LDBT_ZONE_A;
             adder_impl<T>::add(*this, name, std::forward<T>(arg));
             return *this;
         }
@@ -73,6 +75,7 @@ namespace ldb::lv {
         template<class... Args>
         tuple_builder&
         operator()(std::string_view name, Args&&... args) {
+            LDBT_ZONE_A;
             std::ignore = name;
             add_arguments(make_linda_value(std::forward<Args>(args))...);
             return *this;
@@ -80,6 +83,7 @@ namespace ldb::lv {
 
         auto
         build() {
+            LDBT_ZONE_A;
             if (_last_fn) throw bad_tuple_build(_last_fn->function_name);
             return linda_tuple(_values);
         }
@@ -95,6 +99,7 @@ namespace ldb::lv {
             template<class U = T>
             static void
             add(tuple_builder& builder, std::string_view ignore, U&& arg) {
+                LDBT_ZONE_A;
                 std::ignore = ignore;
                 builder.add_value(std::forward<U>(arg));
             }
@@ -105,6 +110,7 @@ namespace ldb::lv {
             template<class Fn>
             static void
             add(tuple_builder& builder, std::string_view fn_name, Fn&& fn) {
+                LDBT_ZONE_A;
                 std::ignore = std::forward<Fn>(fn);
                 builder.add_function<R>(fn_name);
             }
@@ -115,6 +121,7 @@ namespace ldb::lv {
         add_arguments(Args&&... args)
             requires((std::same_as<Args, linda_value> && ...))
         {
+            LDBT_ZONE_A;
             if (!_last_fn) throw bad_tuple_build("<missing>");
             add_fn_call(linda_tuple(std::forward<Args>(args)...));
             _last_fn.reset();
@@ -123,6 +130,7 @@ namespace ldb::lv {
         template<class T>
         void
         add_value(T&& arg) {
+            LDBT_ZONE_A;
             if (_last_fn) {
                 add_fn_call(linda_tuple(std::forward<T>(arg)));
                 _last_fn.reset();
@@ -138,6 +146,7 @@ namespace ldb::lv {
         template<class R>
         void
         add_function(std::string_view fn) {
+            LDBT_ZONE_A;
             if (_last_fn) throw bad_tuple_build(fn);
             _last_fn = last_fun_type{.function_name = {fn.data(), fn.size()},
                                      .typeinfo = R{}};

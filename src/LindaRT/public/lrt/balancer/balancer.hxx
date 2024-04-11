@@ -71,11 +71,13 @@ namespace lrt {
 
             std::unique_ptr<balancer_concept>
             clone() const override {
+                LDBT_ZONE_A;
                 return std::make_unique<balancer_model>(balancer_impl);
             }
 
             int
             do_send_to_rank(const ldb::lv::linda_tuple& tuple) override {
+                LDBT_ZONE_A;
                 return balancer_impl.send_to_rank(tuple);
             }
 
@@ -106,6 +108,7 @@ namespace lrt {
 
         [[nodiscard]] int
         send_to_rank(const ldb::lv::linda_tuple& tuple) {
+            LDBT_ZONE_A;
             return _impl->do_send_to_rank(tuple);
         }
     };

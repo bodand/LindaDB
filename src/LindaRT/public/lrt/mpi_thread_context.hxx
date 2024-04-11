@@ -38,6 +38,8 @@
 
 #include <optional>
 
+#include <ldb/profile.hxx>
+
 #include <mpi.h>
 
 namespace lrt {
@@ -46,6 +48,7 @@ namespace lrt {
 
         int
         rank() const noexcept {
+            LDBT_ZONE_A;
             int rank;
             MPI_Comm_rank(thread_communicator, &rank);
             return rank;
@@ -53,6 +56,7 @@ namespace lrt {
 
         int
         size() const noexcept {
+            LDBT_ZONE_A;
             int size;
             MPI_Comm_size(thread_communicator, &size);
             return size;
@@ -60,12 +64,14 @@ namespace lrt {
 
         static const mpi_thread_context&
         current() noexcept {
+            LDBT_ZONE_A;
             if (current_context) return *current_context;
             return global_context;
         }
 
         static void
         set_current(const mpi_thread_context& context) noexcept {
+            LDBT_ZONE_A;
             current_context = context;
         }
 

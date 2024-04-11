@@ -71,6 +71,7 @@ namespace lrt {
 
         void
         enqueue(value_type&& work) {
+            LDBT_ZONE_A;
             int rank{};
             //            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             _queue.enqueue(std::move(work));
@@ -78,22 +79,14 @@ namespace lrt {
 
         void
         terminate() {
+            LDBT_ZONE_A;
             _queue.terminate();
         }
 
         ~work_pool() {
+            LDBT_ZONE_A;
             _queue.await_terminated();
             std::ranges::for_each(threads(), [](auto& t) { t.join(); });
-        }
-
-        std::size_t
-        worker_size() noexcept {
-            return threads().size();
-        }
-
-        std::span<std::tuple<WorkerContext...>*>
-        thread_contexts() noexcept {
-            return _storage._context_pointers;
         }
 
     private:
@@ -103,6 +96,7 @@ namespace lrt {
                        const context_builder_type* builder,
                        queue_type* work_queue,
                        std::latch* latch) const {
+                LDBT_ZONE_A;
                 std::tuple<WorkerContext...> thread_context = (*builder)();
                 *ctx_pointer = &thread_context;
                 if constexpr (sizeof...(WorkerContext) > 0) {
@@ -121,6 +115,7 @@ namespace lrt {
             void
             work_loop(std::tuple<WorkerContext...>& thread_context,
                       queue_type& work_queue) const {
+                LDBT_ZONE("worker loop");
                 for (;;) {
                     auto work = work_queue.dequeue();
                     std::apply([&work]<class... CallCtx>(CallCtx&&... context) {

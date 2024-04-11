@@ -72,12 +72,14 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         search_via_field(std::size_t field_index,
                          const IndexType& db_index) const {
+            LDBT_ZONE_A;
             const auto do_check_if_index_matches =
                    [field_index,
                     &db_index,
                     this](field_match_type<value_type>& result,
                           std::size_t matcher_idx,
                           const auto& matcher_impl) {
+                       LDBT_ZONE_A;
                        if (matcher_idx != field_index) return CONTINUE_LOOP;
 
                        result = this->perform_search(matcher_impl, db_index);
@@ -89,12 +91,14 @@ namespace ldb {
         [[nodiscard]] field_match_type<value_type>
         remove_via_field(std::size_t field_index,
                          IndexType& db_index) const {
+            LDBT_ZONE_A;
             const auto remove_if_index_matches =
                    [field_index,
                     &db_index,
                     this](field_match_type<value_type>& result,
                           std::size_t matcher_idx,
                           const auto& matcher_impl) {
+                       LDBT_ZONE_A;
                        if (matcher_idx != field_index) return CONTINUE_LOOP;
 
                        result = this->perform_remove(matcher_impl, db_index);
@@ -105,8 +109,10 @@ namespace ldb {
 
         [[nodiscard]] lv::linda_tuple
         as_representing_tuple() const noexcept {
+            LDBT_ZONE_A;
             return [this]<std::size_t... MatcherIndex>(
                           std::index_sequence<MatcherIndex...>) {
+                LDBT_ZONE_A;
                 return lv::linda_tuple(
                        lv::make_linda_value(
                               std::get<MatcherIndex>(_payload).template get_value<lv::linda_value>())...);

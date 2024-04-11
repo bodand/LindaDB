@@ -43,6 +43,7 @@
 #include <limits>
 
 #include <ldb/common.hxx>
+#include <ldb/profile.hxx>
 
 namespace lrt {
     // clang-format off
@@ -94,6 +95,7 @@ namespace lrt {
 
     inline int
     make_ack_tag() {
+        LDBT_ZONE_A;
         // this is probably guaranteed, but let's make sure, as I haven't
         // read the standard recently nor do I want to
         static_assert(sizeof(signed) == sizeof(unsigned),

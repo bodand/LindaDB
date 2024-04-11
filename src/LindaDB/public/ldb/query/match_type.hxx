@@ -74,6 +74,7 @@ namespace ldb {
         operator<=>(const std::variant<Args...>& value) const noexcept
             requires((std::same_as<T, Args> || ...))
         {
+            LDBT_ZONE_A;
             if (auto found = std::get_if<T>(&value);
                 found) {
                 if (_ref) *_ref = *found;

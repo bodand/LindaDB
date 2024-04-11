@@ -61,6 +61,7 @@ namespace ldb {
         operator<=>(const std::variant<Args...>& value, const match_value& mv) noexcept(noexcept(std::declval<T>() == mv._field))
             requires((std::same_as<T, Args> || ...))
         {
+            LDBT_ZONE_A;
             return std::visit([field = mv._field]<class V>(V&& val) {
                 if constexpr (std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<V>>) {
                     return std::forward<V>(val) <=> field;

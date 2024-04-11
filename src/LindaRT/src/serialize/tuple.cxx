@@ -90,6 +90,7 @@ namespace {
     template<std::integral T>
     constexpr T
     swap_unless_comm_endian(T val) noexcept {
+        LDBT_ZONE_A;
         using enum std::endian;
         if constexpr (big == native) {                   // on big endian system
             if constexpr (communication_endian == big) { // comm order is big
@@ -119,34 +120,68 @@ namespace {
         std::size_t buf = 0;
 
         void
-        operator()(std::int16_t /*ignore*/) { buf = sizeof(std::int16_t); }
+        operator()(std::int16_t /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::int16_t);
+        }
         void
-        operator()(std::uint16_t /*ignore*/) { buf = sizeof(std::uint16_t); }
+        operator()(std::uint16_t /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::uint16_t);
+        }
         void
-        operator()(std::int32_t /*ignore*/) { buf = sizeof(std::int32_t); }
+        operator()(std::int32_t /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::int32_t);
+        }
         void
-        operator()(std::uint32_t /*ignore*/) { buf = sizeof(std::uint32_t); }
+        operator()(std::uint32_t /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::uint32_t);
+        }
         void
-        operator()(std::int64_t /*ignore*/) { buf = sizeof(std::int64_t); }
+        operator()(std::int64_t /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::int64_t);
+        }
         void
-        operator()(std::uint64_t /*ignore*/) { buf = sizeof(std::uint64_t); }
+        operator()(std::uint64_t /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::uint64_t);
+        }
         void
-        operator()(const std::string& str) { buf = sizeof(std::string::size_type) + str.size(); }
+        operator()(const std::string& str) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::string::size_type) + str.size();
+        }
         void
-        operator()(float /*ignore*/) { buf = sizeof(float); }
+        operator()(float /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(float);
+        }
         void
-        operator()(double /*ignore*/) { buf = sizeof(double); }
+        operator()(double /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(double);
+        }
         void
         operator()(const ldb::lv::fn_call_holder& fn_call_holder) {
+            LDBT_ZONE_A;
             const auto tuple_with_length_sz = calculate_tuple_serial_size(fn_call_holder.args());
             const auto fn_name_sz = fn_call_holder.fn_name().size();
             const auto fn_name_length_sz = sizeof(std::string::size_type);
             buf = tuple_with_length_sz + fn_name_length_sz + fn_name_sz;
         }
         void
-        operator()(ldb::lv::fn_call_tag /*ignore*/) { buf = 0; }
+        operator()(ldb::lv::fn_call_tag /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = 0;
+        }
         void
-        operator()(ldb::lv::ref_type /*ignore*/) { buf = sizeof(std::int8_t); }
+        operator()(ldb::lv::ref_type /*ignore*/) {
+            LDBT_ZONE_A;
+            buf = sizeof(std::int8_t);
+        }
     };
 
     enum class typemap : std::uint8_t {
@@ -225,12 +260,15 @@ namespace {
         static_assert(std::numeric_limits<double>::is_iec559,
                       "LindaRT requires IEEE754 doubles");
 
-        explicit value_serializator(std::byte* buf) : buf(buf) { }
+        explicit value_serializator(std::byte* buf) : buf(buf) {
+            LDBT_ZONE_A;
+        }
         std::byte* buf;
 
         template<std::integral T>
         std::size_t
         operator()(T val) const {
+            LDBT_ZONE_A;
             buf[0] = to_typemap<T>::value;
             return 1 + write_int_raw(val, buf + 1);
         }
@@ -238,18 +276,21 @@ namespace {
         template<std::floating_point T>
         std::size_t
         operator()(T val) const {
+            LDBT_ZONE_A;
             buf[0] = to_typemap<T>::value;
             return 1 + write_float_raw(val, buf + 1);
         }
 
         std::size_t
         operator()(const std::string& str) const {
+            LDBT_ZONE_A;
             buf[0] = to_typemap<std::string>::value;
             return 1 + write_string_raw(str, buf + 1);
         }
 
         std::size_t
         operator()(const ldb::lv::fn_call_holder& fn_call_holder) const {
+            LDBT_ZONE_A;
             auto my_buf = buf;
             *(my_buf++) = to_typemap<ldb::lv::fn_call_holder>::value;
 
@@ -261,12 +302,14 @@ namespace {
 
         std::size_t
         operator()(ldb::lv::fn_call_tag /*ignore*/) const {
+            LDBT_ZONE_A;
             buf[0] = to_typemap<ldb::lv::fn_call_tag>::value;
             return 1;
         }
 
         std::size_t
         operator()(ldb::lv::ref_type ref) const {
+            LDBT_ZONE_A;
             auto my_buf = buf;
             *(my_buf++) = to_typemap<ldb::lv::ref_type>::value;
             my_buf += write_int_raw(ref.type_idx(), my_buf);
@@ -276,6 +319,7 @@ namespace {
         template<std::integral T>
         static std::size_t
         write_int_raw(T val, std::byte* buf) {
+            LDBT_ZONE_A;
             auto value_representation =
                    std::bit_cast<std::array<std::byte, sizeof(std::remove_cvref_t<T>)>>(swap_unless_comm_endian(val));
             return write_bytes_raw(value_representation.begin(), value_representation.end(), buf);
@@ -285,6 +329,7 @@ namespace {
         template<std::floating_point T>
         static std::size_t
         write_float_raw(T val, std::byte* buf) {
+            LDBT_ZONE_A;
             auto value_representation =
                    std::bit_cast<std::array<std::byte, sizeof(std::remove_cvref_t<T>)>>(val);
             return write_bytes_raw(value_representation.begin(), value_representation.end(), buf);
@@ -293,6 +338,7 @@ namespace {
         template<std::input_iterator It, std::sentinel_for<It> S>
         static std::size_t
         write_bytes_raw(It begin, S end, std::byte* buf) {
+            LDBT_ZONE_A;
             const auto copied_end = std::copy(std::execution::par_unseq,
                                               begin,
                                               end,
@@ -302,6 +348,7 @@ namespace {
 
         static std::size_t
         write_string_raw(std::string_view str, std::byte* buf) {
+            LDBT_ZONE_A;
             const auto length_sz = write_int_raw(str.size(), buf);
             std::transform(std::execution::par_unseq,
                            str.data(),
@@ -316,6 +363,7 @@ namespace {
 
     std::size_t
     calculate_value_serial_size(const ldb::lv::linda_value& val) {
+        LDBT_ZONE_A;
         value_size_calculator calc;
         std::visit(calc, val);
         return 1 + calc.buf; // 1 byte header
@@ -323,6 +371,7 @@ namespace {
 
     std::size_t
     calculate_tuple_serial_size(const ldb::lv::linda_tuple& tuple) {
+        LDBT_ZONE_A;
         const auto size = sizeof(std::size_t); // tuple len
         std::vector<std::size_t> buf(tuple.size(), std::size_t{});
         std::iota(buf.begin(), buf.end(), std::size_t{});
@@ -335,12 +384,14 @@ namespace {
     std::size_t
     value_serialize(std::byte* buf,
                     const ldb::lv::linda_value& val) {
+        LDBT_ZONE_A;
         return std::visit(value_serializator{buf}, val);
     }
 
     std::size_t
     tuple_serialize_into(std::byte* buf,
                          const ldb::lv::linda_tuple& tuple) {
+        LDBT_ZONE_A;
         const std::size_t i = value_serializator::write_int_raw(tuple.size(), buf);
         return std::accumulate(tuple.begin(), tuple.end(), i, [buf](auto acc, const auto& val) {
             return acc + value_serialize(buf + acc, val);
@@ -349,6 +400,7 @@ namespace {
 
     std::pair<std::unique_ptr<std::byte[]>, std::size_t>
     tuple_serialize(const ldb::lv::linda_tuple& val) {
+        LDBT_ZONE_A;
         const auto serial_size = calculate_tuple_serial_size(val) + 1;
         auto buf = std::make_unique<std::byte[]>(serial_size);
         buf[0] = std::byte{1};
@@ -361,6 +413,7 @@ namespace {
     template<std::constructible_from T>
     T
     deserialize_numeric(std::byte const*& buf, std::size_t& len) {
+        LDBT_ZONE_A;
         assert_that(len >= sizeof(T));
         T i{};
         auto value_representation =
@@ -381,6 +434,7 @@ namespace {
 
     std::string
     deserialize_string(std::byte const*& buf, std::size_t& len) {
+        LDBT_ZONE_A;
         const auto str_sz = deserialize_numeric<std::string::size_type>(buf, len);
         assert_that(len >= str_sz);
         std::string str(str_sz, '.');
@@ -401,6 +455,7 @@ namespace {
 
     ldb::lv::linda_value
     value_deserialize(std::byte const*& buf, std::size_t& len) {
+        LDBT_ZONE_A;
         --len;
         switch (static_cast<typemap>(*(buf++))) {
             using enum typemap;
@@ -430,6 +485,7 @@ namespace {
 
     ldb::lv::linda_tuple
     tuple_deserialize(std::byte const*& buf, std::size_t& len) {
+        LDBT_ZONE_A;
         using namespace ldb::lv;
         std::vector<ldb::lv::linda_value> vals;
         const auto tuple_sz = deserialize_numeric<std::size_t>(buf, len);
@@ -444,22 +500,26 @@ namespace {
 
 std::pair<std::unique_ptr<std::byte[]>, std::size_t>
 lrt::serialize(const ldb::lv::linda_tuple& tuple) {
+    LDBT_ZONE_A;
     return tuple_serialize(tuple);
 }
 
 ldb::lv::linda_tuple
 lrt::deserialize(std::span<const std::byte> buf) {
+    LDBT_ZONE_A;
     auto tuple_sz = buf.size() - 1;
-    const auto *tuple_payload_start = buf.data() + 1;
+    const auto* tuple_payload_start = buf.data() + 1;
     return tuple_deserialize(tuple_payload_start, tuple_sz);
 }
 
 int
 lrt::to_communication_endian(int system_endian_input) {
+    LDBT_ZONE_A;
     return swap_unless_comm_endian(system_endian_input);
 }
 
 int
 lrt::from_communication_endian(int communication_endian_input) {
+    LDBT_ZONE_A;
     return swap_unless_comm_endian(communication_endian_input);
 }

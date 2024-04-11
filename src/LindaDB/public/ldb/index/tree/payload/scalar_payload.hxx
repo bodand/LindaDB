@@ -66,13 +66,19 @@ namespace ldb::index::tree::payloads {
         template<class K2 = K, class P2 = P>
         constexpr scalar_payload(K2&& key, P2&& value) noexcept(std::is_nothrow_move_constructible_v<K>)
             requires(std::constructible_from<std::pair<K, P>, std::pair<K2, P2>>)
-             : _value(std::make_pair(std::forward<K2>(key), std::forward<P2>(value))) { }
+             : _value(std::make_pair(std::forward<K2>(key), std::forward<P2>(value))) {
+            LDBT_ZONE_A;
+        }
 
         constexpr explicit scalar_payload(bundle_type&& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
-             : _value(std::move(bundle)) { }
+             : _value(std::move(bundle)) {
+            LDBT_ZONE_A;
+        }
 
         constexpr explicit scalar_payload(const bundle_type& bundle) noexcept(std::is_nothrow_constructible_v<bundle_type>)
-             : _value(bundle) { }
+             : _value(bundle) {
+            LDBT_ZONE_A;
+        }
 
         constexpr scalar_payload() = default;
 
@@ -88,6 +94,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] std::weak_ordering
         operator<=>(const auto& other) const noexcept(noexcept(kv_key() <=> other)) {
+            LDBT_ZONE_A;
             if (empty()) return std::weak_ordering::equivalent;
             return kv_key() <=> other;
         }
@@ -96,16 +103,26 @@ namespace ldb::index::tree::payloads {
         capacity() const noexcept { return 1U; }
 
         [[nodiscard]] constexpr size_type
-        size() const noexcept { return _value.has_value() ? 1U : 0U; }
+        size() const noexcept {
+            LDBT_ZONE_A;
+            return _value.has_value() ? 1U : 0U;
+        }
 
         [[nodiscard]] constexpr bool
-        full() const noexcept { return _value.has_value(); }
+        full() const noexcept {
+            LDBT_ZONE_A;
+            return _value.has_value();
+        }
 
         [[nodiscard]] constexpr bool
-        empty() const noexcept { return !_value.has_value(); }
+        empty() const noexcept {
+            LDBT_ZONE_A;
+            return !_value.has_value();
+        }
 
         bool
         try_merge(scalar_payload& other) {
+            LDBT_ZONE_A;
             if (capacity() - size() < other.size()) return false;
             if (other.full()) {
                 _value = other._value;
@@ -116,12 +133,14 @@ namespace ldb::index::tree::payloads {
 
         void
         merge_until_full(scalar_payload& other) {
+            LDBT_ZONE_A;
             std::ignore = try_merge(other);
         }
 
         template<index_lookup<value_type> Q>
         [[nodiscard]] constexpr std::optional<value_type>
         try_get(Q query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
+            LDBT_ZONE_A;
             if (empty()) return std::nullopt;
             if (kv_key() != query.key()) return std::nullopt;
             if (kv_value() != query) return std::nullopt;
@@ -130,6 +149,7 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr bool
         try_set(const key_type& key, const value_type& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
+            LDBT_ZONE_A;
             if (full()) {
                 if (kv_key() == key) {
                     kv_value() = value;
@@ -143,11 +163,13 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr bool
         try_set(const bundle_type& bundle) noexcept(noexcept(try_set(bundle.first, bundle.second))) {
+            LDBT_ZONE_A;
             return try_set(bundle.first, bundle.second);
         }
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(const K& key, const P& value) noexcept(noexcept(_value = std::make_pair(key, value))) {
+            LDBT_ZONE_A;
             if (!empty() && kv_key() == key) {
                 kv_value() = value;
                 return std::nullopt;
@@ -159,17 +181,20 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(const key_type& key, const value_type& value) noexcept(noexcept(force_set_lower(key, value))) {
+            LDBT_ZONE_A;
             return force_set_lower(key, value);
         }
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_lower(bundle_type&& bundle) noexcept(noexcept(force_set_lower(bundle.first, bundle.second))) {
+            LDBT_ZONE_A;
             auto&& [key, value] = std::move(bundle);
             return force_set_lower(std::move(key), std::move(value));
         }
 
         [[nodiscard]] constexpr std::optional<bundle_type>
         force_set_upper(bundle_type&& bundle) noexcept(noexcept(force_set_upper(bundle.first, bundle.second))) {
+            LDBT_ZONE_A;
             auto&& [key, value] = std::move(bundle);
             return force_set_upper(std::move(key), std::move(value));
         }
@@ -177,6 +202,7 @@ namespace ldb::index::tree::payloads {
         template<index_lookup<value_type> Q>
         std::optional<value_type>
         remove(Q query) {
+            LDBT_ZONE_A;
             if (!_value.has_value()) return std::nullopt;
             if (kv_key() == query.key()
                 && kv_value() == query) return kv_value_destructive();
@@ -186,24 +212,28 @@ namespace ldb::index::tree::payloads {
         template<class Fn>
         void
         apply(Fn&& fn) {
+            LDBT_ZONE_A;
             if (full()) std::invoke(std::forward<Fn>(fn), *_value);
         }
 
     private:
         [[nodiscard]] const key_type&
         kv_key() const noexcept {
+            LDBT_ZONE_A;
             assert_that(!empty());
             return _value->first;
         }
 
         [[nodiscard]] const value_type&
         kv_value() const noexcept {
+            LDBT_ZONE_A;
             assert_that(!empty());
             return _value->second;
         }
 
         [[nodiscard]] value_type
         kv_value_destructive() noexcept {
+            LDBT_ZONE_A;
             assert_that(!empty());
             auto ret = _value->second;
             _value.reset();
@@ -212,12 +242,14 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] key_type&
         kv_key() noexcept {
+            LDBT_ZONE_A;
             assert_that(!empty());
             return _value->first;
         }
 
         [[nodiscard]] value_type&
         kv_value() noexcept {
+            LDBT_ZONE_A;
             assert_that(!empty());
             return _value->second;
         }
@@ -230,24 +262,28 @@ namespace ldb::index::tree::payloads {
 
         [[nodiscard]] friend constexpr bool
         operator==(const scalar_payload<K, P>& self, const K& other) noexcept(noexcept(self.kv_key() == other)) {
+            LDBT_ZONE_A;
             if (self.empty()) return true;
             return self.kv_key() == other;
         }
 
         [[nodiscard]] friend constexpr bool
         operator==(const K& other, const scalar_payload<K, P>& self) noexcept(noexcept(other == self.kv_key())) {
+            LDBT_ZONE_A;
             if (self.empty()) return true;
             return other == self.kv_key();
         }
 
         [[nodiscard]] friend constexpr bool
         operator!=(const scalar_payload<K, P>& self, const K& other) noexcept(noexcept(self.kv_key() != other)) {
+            LDBT_ZONE_A;
             if (self.empty()) return false;
             return self.kv_key() != other;
         }
 
         [[nodiscard]] friend constexpr bool
         operator!=(const K& other, const scalar_payload<K, P>& self) noexcept(noexcept(other != self.kv_key())) {
+            LDBT_ZONE_A;
             if (self.empty()) return false;
             return other != self.kv_key();
         }

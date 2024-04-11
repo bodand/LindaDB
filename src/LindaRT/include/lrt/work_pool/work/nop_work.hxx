@@ -39,9 +39,14 @@
 #include <ostream>
 namespace lrt {
     struct nop_work final {
+        nop_work() {
+            LDBT_ZONE("nop work ctor");
+        }
+
         template<class... Args>
         void
         perform(Args&&... args) {
+            LDBT_ZONE_A;
             ((std::ignore = std::forward<Args>(args)), ...);
         }
 

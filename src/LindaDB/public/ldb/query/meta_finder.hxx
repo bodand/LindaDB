@@ -46,12 +46,14 @@ namespace ldb::meta {
 
         bool
         operator()(auto* ptr, std::size_t ptr_idx) const noexcept {
+            LDBT_ZONE_A;
             if (ptr == nullptr) return false;
             idx = ptr_idx;
             return true;
         }
         bool
         operator()(bool same, std::size_t ptr_idx) const noexcept {
+            LDBT_ZONE_A;
             if (!same) return false;
             idx = ptr_idx;
             return true;
