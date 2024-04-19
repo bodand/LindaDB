@@ -112,12 +112,16 @@ namespace ldb::lv {
     }
 
     template<class T>
-    struct is_linda_value : std::bool_constant<helper::is_member_of<T, linda_value>::value> { };
+    struct is_linda_value : std::bool_constant<helper::is_member_of<std::remove_cvref_t<T>, linda_value>::value> { };
 
     template<std::size_t N>
     struct is_linda_value<const char[N]> : std::true_type { };
     template<std::size_t N>
     struct is_linda_value<char[N]> : std::true_type { };
+    template<>
+    struct is_linda_value<const char*> : std::true_type { };
+    template<>
+    struct is_linda_value<char*> : std::true_type { };
 
     template<class T>
     constexpr const static auto is_linda_value_v = is_linda_value<T>::value;

@@ -43,11 +43,9 @@
 #include <queue>
 
 #include <ldb/common.hxx>
+#include <ldb/profile.hxx>
 #include <lrt/work_pool/work.hxx>
 #include <lrt/work_pool/work_if.hxx>
-
-#include <mpi.h>
-
 
 namespace lrt {
     struct work_queue_terminated_exception : std::exception {
@@ -118,7 +116,7 @@ namespace lrt {
         }
 
     private:
-        std::atomic_flag _terminated = ATOMIC_FLAG_INIT;
+        std::atomic_flag _terminated;
         std::queue<value_type> _queue{};
         LDBT_MUTEX(_mtx);
         LDBT_CV(_cv);

@@ -35,6 +35,7 @@
 
 find_package(MPI REQUIRED)
 
+add_subdirectory(mx-prod)
 add_subdirectory(primes)
 add_subdirectory(simple-eval)
 

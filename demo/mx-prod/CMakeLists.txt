@@ -1,6 +1,6 @@
 # LindaDB project
 #
-# Copyright (c) 2024 András Bodor <bodand@pm.me>
+# Copyright (c) 2024 András Bodor <bodand@proton.me>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,22 +28,14 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Originally created: 2024-03-04.
+# Originally created: 2024-04-19.
 #
-# demo/src/primes/CMakeLists.txt --
-#   A parallel implementation of the sieve of Eratosthenes in Linda
+# demo/mx-prod/CMakeLists.txt --
+#   Demo program as an example for matrix multiplication.
 
 #add_executable(primes primes.cxx)
 #target_link_libraries(primes PUBLIC LindaRT LindaRT-main)
-add_linda_executable(primes primes.cxx)
-target_compile_features(primes PUBLIC cxx_std_20)
-    add_test(NAME "Linda-primes"
-            COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:primes>)
-
-add_executable(primes-serial primes-serial.cxx)
-target_compile_features(primes-serial PUBLIC cxx_std_20)
-
-# testing
-#target_link_libraries(primes PRIVATE internal-coverage)
-#set_tests_properties("Linda-primes" PROPERTIES
-#                     ENVIRONMENT "LLVM_PROFILE_FILE=%m-%p.profraw")
+add_linda_executable(mx-prod mx-prod.cxx)
+target_compile_features(mx-prod PUBLIC cxx_std_20)
+add_test(NAME "Linda-mx-prod"
+        COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:mx-prod>)
