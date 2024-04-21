@@ -40,6 +40,7 @@ set(LDB_COMMON_SOURCES
     public/ldb/index/tree/payload/chime_payload.hxx
     public/ldb/index/tree/payload/scalar_payload.hxx
     public/ldb/index/tree/payload/vector_payload.hxx
+    public/ldb/index/tree/payload/vectorset_payload.hxx
     public/ldb/index/tree/impl/avl2/avl2_tree.hxx
     public/ldb/index/tree/index_query.hxx
     public/ldb/index/tree/payload.hxx

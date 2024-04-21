@@ -90,8 +90,8 @@ func(std::string a,
 
 int
 real_main(int, char**) {
-    const auto mx_width = 100;
-    const auto mx_height = 100;
+    const auto mx_width = 10;
+    const auto mx_height = 10;
 
     out("W", mx_width);
     out("H", mx_height);
