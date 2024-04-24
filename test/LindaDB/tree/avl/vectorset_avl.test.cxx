@@ -54,16 +54,21 @@ using tsut_type = ldb::index::tree::avl2_tree<ldb::lv::linda_tuple,
                                               2,
                                               lps::vectorset_payload<ldb::lv::linda_tuple, 2>>;
 
+// NOLINTNEXTLINE
 TEST_CASE("new vectorset AVL-tree can be constructed") {
     CHECK_NOTHROW(sut_type{});
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("new empty vectorset AVL-tree can insert elements") {
     sut_type sut;
     CHECK_NOTHROW(sut.insert(1));
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("new empty vectorset AVL-tree can insert multiple elements") {
+    // NOLINTNEXTLINE
+    // NOLINTNEXTLINE
     SECTION("increasing order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(1));
@@ -71,7 +76,9 @@ TEST_CASE("new empty vectorset AVL-tree can insert multiple elements") {
         CHECK_NOTHROW(sut.insert(3));
         CHECK_NOTHROW(sut.insert(4));
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("decreasing order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(4));
@@ -79,7 +86,9 @@ TEST_CASE("new empty vectorset AVL-tree can insert multiple elements") {
         CHECK_NOTHROW(sut.insert(2));
         CHECK_NOTHROW(sut.insert(1));
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("mixed order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(2));
@@ -89,7 +98,9 @@ TEST_CASE("new empty vectorset AVL-tree can insert multiple elements") {
     }
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("new vectorset AVL-tree can search elements") {
+    // NOLINTNEXTLINE
     SECTION("increasing order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(1));
@@ -101,7 +112,9 @@ TEST_CASE("new vectorset AVL-tree can search elements") {
         REQUIRE(res.has_value());
         CHECK(*res == 1);
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("decreasing order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(4));
@@ -113,7 +126,9 @@ TEST_CASE("new vectorset AVL-tree can search elements") {
         REQUIRE(res.has_value());
         CHECK(*res == 1);
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("mixed order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(2));
@@ -127,7 +142,9 @@ TEST_CASE("new vectorset AVL-tree can search elements") {
     }
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("new vectorset AVL-tree can search elements for concrete value") {
+    // NOLINTNEXTLINE
     SECTION("increasing order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(1));
@@ -139,7 +156,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for concrete value") {
         REQUIRE(res.has_value());
         CHECK(*res == 1);
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("decreasing order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(4));
@@ -151,7 +170,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for concrete value") {
         REQUIRE(res.has_value());
         CHECK(*res == 1);
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("mixed order") {
         sut_type sut;
         CHECK_NOTHROW(sut.insert(2));
@@ -165,9 +186,12 @@ TEST_CASE("new vectorset AVL-tree can search elements for concrete value") {
     }
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("new vectorset AVL-tree can search elements for tuple with concrete values") {
     using namespace ldb;
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("increasing order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple(1)));
@@ -186,7 +210,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with concrete va
         res = sut.remove_query(make_concrete_query(over_index<tsut_type>, lv::linda_tuple(1)));
         REQUIRE_FALSE(res.has_value());
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("decreasing order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple(4)));
@@ -205,7 +231,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with concrete va
         res = sut.remove_query(make_concrete_query(over_index<tsut_type>, lv::linda_tuple(1)));
         REQUIRE_FALSE(res.has_value());
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("mixed order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple(2)));
@@ -226,9 +254,12 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with concrete va
     }
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("new vectorset AVL-tree can search elements for tuple with typed query values") {
     using namespace ldb;
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("increasing order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple(1)));
@@ -247,7 +278,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with typed query
         res = sut.remove_query(make_type_aware_query(over_index<tsut_type>, lv::linda_tuple(lv::ref_type(2))));
         REQUIRE(res.has_value());
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("decreasing order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple(4)));
@@ -266,7 +299,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with typed query
         res = sut.remove_query(make_type_aware_query(over_index<tsut_type>, lv::linda_tuple(lv::ref_type(2))));
         REQUIRE(res.has_value());
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("mixed order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple(2)));
@@ -287,9 +322,12 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with typed query
     }
 }
 
+// NOLINTNEXTLINE
 TEST_CASE("new vectorset AVL-tree can search elements for tuple with pitch-wise queries") {
     using namespace ldb;
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("increasing order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple("AAA", 1)));
@@ -309,7 +347,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with pitch-wise 
         res = sut.remove_query(make_piecewise_query(over_index<tsut_type>, "AAA", ldb::ref(&val)));
         REQUIRE(res.has_value());
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("decreasing order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple("AAA", 4)));
@@ -329,7 +369,9 @@ TEST_CASE("new vectorset AVL-tree can search elements for tuple with pitch-wise 
         res = sut.remove_query(make_piecewise_query(over_index<tsut_type>, "AAA", ldb::ref(&val)));
         REQUIRE(res.has_value());
     }
+    // NOLINTNEXTLINE
 
+    // NOLINTNEXTLINE
     SECTION("mixed order") {
         tsut_type sut;
         CHECK_NOTHROW(sut.insert(lv::linda_tuple("AAA", 2)));

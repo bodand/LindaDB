@@ -64,14 +64,14 @@ namespace ldb {
 
             virtual ~query_concept() = default;
 
-            [[nodiscard]] virtual field_match_type<internal_value_type>
-            do_search_on_index(std::size_t field_index,
-                               const IndexType& db_index) const = 0;
-
-            [[nodiscard]] virtual field_match_type<internal_value_type>
-            do_remove_on_index(std::size_t field_index,
-                               IndexType& db_index) const = 0;
-
+//            [[nodiscard]] virtual field_match_type<internal_value_type>
+//            do_search_on_index(std::size_t field_index,
+//                               const IndexType& db_index) const = 0;
+//
+//            [[nodiscard]] virtual field_match_type<internal_value_type>
+//            do_remove_on_index(std::size_t field_index,
+//                               IndexType& db_index) const = 0;
+//
             [[nodiscard]] virtual std::partial_ordering
             do_compare(const lv::linda_tuple& tuple) const = 0;
 
@@ -96,20 +96,20 @@ namespace ldb {
                 return query_impl.as_representing_tuple();
             }
 
-            [[nodiscard]] field_match_type<internal_value_type>
-            do_search_on_index(std::size_t field_index,
-                               const IndexType& db_index) const override {
-                LDBT_ZONE_A;
-                return query_impl.search_via_field(field_index, db_index);
-            }
-
-            [[nodiscard]] field_match_type<internal_value_type>
-            do_remove_on_index(std::size_t field_index,
-                               IndexType& db_index) const override {
-                LDBT_ZONE_A;
-                return query_impl.remove_via_field(field_index, db_index);
-            }
-
+//            [[nodiscard]] field_match_type<internal_value_type>
+//            do_search_on_index(std::size_t field_index,
+//                               const IndexType& db_index) const override {
+//                LDBT_ZONE_A;
+//                return query_impl.search_via_field(field_index, db_index);
+//            }
+//
+//            [[nodiscard]] field_match_type<internal_value_type>
+//            do_remove_on_index(std::size_t field_index,
+//                               IndexType& db_index) const override {
+//                LDBT_ZONE_A;
+//                return query_impl.remove_via_field(field_index, db_index);
+//            }
+//
             [[nodiscard]] std::partial_ordering
             do_compare(const lv::linda_tuple& tuple) const override {
                 LDBT_ZONE_A;
@@ -186,22 +186,22 @@ namespace ldb {
         operator=(tuple_query&& mv) noexcept = default;
 
         ~tuple_query() = default;
-
-        [[nodiscard]] field_match_type<internal_value_type>
-        search_via_field(std::size_t field_index,
-                        const IndexType& db_index) const {
-            LDBT_ZONE_A;
-            assert_that(_impl);
-            return _impl->do_search_on_index(field_index, db_index);
-        }
-
-        [[nodiscard]] field_match_type<internal_value_type>
-        remove_via_field(std::size_t field_index,
-                        IndexType& db_index) const {
-            LDBT_ZONE_A;
-            assert_that(_impl);
-            return _impl->do_remove_on_index(field_index, db_index);
-        }
+//
+//        [[nodiscard]] field_match_type<internal_value_type>
+//        search_via_field(std::size_t field_index,
+//                        const IndexType& db_index) const {
+//            LDBT_ZONE_A;
+//            assert_that(_impl);
+//            return _impl->do_search_on_index(field_index, db_index);
+//        }
+//
+//        [[nodiscard]] field_match_type<internal_value_type>
+//        remove_via_field(std::size_t field_index,
+//                        IndexType& db_index) const {
+//            LDBT_ZONE_A;
+//            assert_that(_impl);
+//            return _impl->do_remove_on_index(field_index, db_index);
+//        }
 
         [[nodiscard]] ldb::lv::linda_tuple
         as_representing_tuple() const {

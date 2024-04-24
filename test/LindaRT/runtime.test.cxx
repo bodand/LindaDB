@@ -46,12 +46,12 @@ TEST_CASE("runtime can retrieve a store object") {
     char* argv_storage[] = {prog};
     char** argv = argv_storage;
     lrt::runtime rt(&argc, &argv);
-    STATIC_CHECK(std::same_as<decltype(rt.store()), ldb::store&>);
+    STATIC_CHECK(std::same_as<decltype(rt.store()), ldb::simple_store&>);
     CHECK_NOTHROW(rt.store());
 
     SECTION("constant runtime retrieves constant store") {
         const lrt::runtime& const_rt = rt;
-        STATIC_CHECK(std::same_as<decltype(const_rt.store()), const ldb::store&>);
+        STATIC_CHECK(std::same_as<decltype(const_rt.store()), const ldb::simple_store&>);
         CHECK_NOTHROW(const_rt.store());
     }
 }

@@ -51,6 +51,7 @@
 namespace ldb {
     template<class IndexType, class... Matchers>
     struct manual_fields_query final {
+        using index_type = IndexType;
         using value_type = IndexType::value_type;
 
         manual_fields_query(const manual_fields_query& cp) = default;
@@ -68,44 +69,44 @@ namespace ldb {
                std::is_nothrow_constructible_v<Matchers, Args> && ...))
             requires((!std::same_as<Args, manual_fields_query> && ...))
              : _payload(meta::make_matcher<Args>(std::forward<Args>(args))...) { }
-
-        [[nodiscard]] field_match_type<value_type>
-        search_via_field(std::size_t field_index,
-                         const IndexType& db_index) const {
-            LDBT_ZONE_A;
-            const auto do_check_if_index_matches =
-                   [field_index,
-                    &db_index,
-                    this](field_match_type<value_type>& result,
-                          std::size_t matcher_idx,
-                          const auto& matcher_impl) {
-                       LDBT_ZONE_A;
-                       if (matcher_idx != field_index) return CONTINUE_LOOP;
-
-                       result = this->perform_search(matcher_impl, db_index);
-                       return TERMINATE_LOOP;
-                   };
-            return iterate_matchers_via(do_check_if_index_matches);
-        }
-
-        [[nodiscard]] field_match_type<value_type>
-        remove_via_field(std::size_t field_index,
-                         IndexType& db_index) const {
-            LDBT_ZONE_A;
-            const auto remove_if_index_matches =
-                   [field_index,
-                    &db_index,
-                    this](field_match_type<value_type>& result,
-                          std::size_t matcher_idx,
-                          const auto& matcher_impl) {
-                       LDBT_ZONE_A;
-                       if (matcher_idx != field_index) return CONTINUE_LOOP;
-
-                       result = this->perform_remove(matcher_impl, db_index);
-                       return TERMINATE_LOOP;
-                   };
-            return iterate_matchers_via(remove_if_index_matches);
-        }
+//
+//        [[nodiscard]] field_match_type<value_type>
+//        search_via_field(std::size_t field_index,
+//                         const IndexType& db_index) const {
+//            LDBT_ZONE_A;
+//            const auto do_check_if_index_matches =
+//                   [field_index,
+//                    &db_index,
+//                    this](field_match_type<value_type>& result,
+//                          std::size_t matcher_idx,
+//                          const auto& matcher_impl) {
+//                       LDBT_ZONE_A;
+//                       if (matcher_idx != field_index) return CONTINUE_LOOP;
+//
+//                       result = this->perform_search(matcher_impl, db_index);
+//                       return TERMINATE_LOOP;
+//                   };
+//            return iterate_matchers_via(do_check_if_index_matches);
+//        }
+//
+//        [[nodiscard]] field_match_type<value_type>
+//        remove_via_field(std::size_t field_index,
+//                         IndexType& db_index) const {
+//            LDBT_ZONE_A;
+//            const auto remove_if_index_matches =
+//                   [field_index,
+//                    &db_index,
+//                    this](field_match_type<value_type>& result,
+//                          std::size_t matcher_idx,
+//                          const auto& matcher_impl) {
+//                       LDBT_ZONE_A;
+//                       if (matcher_idx != field_index) return CONTINUE_LOOP;
+//
+//                       result = this->perform_remove(matcher_impl, db_index);
+//                       return TERMINATE_LOOP;
+//                   };
+//            return iterate_matchers_via(remove_if_index_matches);
+//        }
 
         [[nodiscard]] lv::linda_tuple
         as_representing_tuple() const noexcept {
@@ -175,7 +176,7 @@ namespace ldb {
             if (lt.size() != sizeof...(Matchers)) return lt.size() <=> sizeof...(Matchers);
             return [&lt, &payload = query._payload]<std::size_t... Is>(std::index_sequence<Is...>) {
                 std::partial_ordering order = std::strong_ordering::equal;
-                std::ignore = (matcher(order)(std::get<Is>(payload) <=> lt[Is]) && ...);
+                std::ignore = (matcher(order)(lt[Is] <=> std::get<Is>(payload)) && ...);
                 return order;
             }(std::make_index_sequence<sizeof...(Matchers)>());
         }

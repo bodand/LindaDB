@@ -48,6 +48,7 @@
 namespace ldb {
     template<class IndexType>
     struct concrete_tuple_query {
+        using index_type = IndexType;
         using value_type = IndexType::value_type;
 
         concrete_tuple_query(const concrete_tuple_query& cp) = default;

@@ -43,7 +43,7 @@
 
 #include <ldb/lv/linda_tuple.hxx>
 #include <ldb/query/tuple_query.hxx>
-#include <ldb/store.hxx>
+#include <ldb/simple_store.hxx>
 #include <lrt/balancer/balancer.hxx>
 #include <lrt/balancer/round_robin_balancer.hxx>
 #include <lrt/mpi_runtime.hxx>
@@ -69,10 +69,10 @@ namespace lrt {
         void
         eval(const ldb::lv::linda_tuple& call_tuple);
 
-        ldb::store&
+        ldb::simple_store&
         store() noexcept { return _store; }
 
-        const ldb::store&
+        const ldb::simple_store&
         store() const noexcept { return _store; }
 
         [[nodiscard]] int
@@ -138,16 +138,16 @@ namespace lrt {
         remote_insert(const ldb::lv::linda_tuple& tuple);
 
         bool
-        remote_try_remove(const ldb::tuple_query<ldb::store::index_type>& query);
+        remote_try_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
         void
-        remote_remove(const ldb::tuple_query<ldb::store::index_type>& query);
+        remote_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
         bool
-        remote_try_read(const ldb::tuple_query<ldb::store::index_type>& query);
+        remote_try_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
         void
-        remote_read(const ldb::tuple_query<ldb::store::index_type>& query);
+        remote_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
         lrt::mpi_runtime _mpi;
 
@@ -158,7 +158,7 @@ namespace lrt {
 
         lrt::work_pool<std::dynamic_extent, work<>> _work_pool;
 
-        ldb::store _store{};
+        ldb::simple_store _store{};
     };
 }
 

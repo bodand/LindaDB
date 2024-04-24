@@ -70,15 +70,11 @@ namespace ldb {
 
     template<class Query>
     concept tuple_queryable = requires(Query query,
-                                       std::size_t field_index,
-                                       // this is just an example db index
-                                       index::tree::avl2_tree<lv::linda_value,
-                                                              typename Query::value_type>
-                                              db_index) {
+                                       lv::linda_tuple tuple) {
         typename Query::value_type;
+
         { query.as_representing_tuple() } -> std::convertible_to<lv::linda_tuple>;
-        { query.search_via_field(field_index, db_index) } -> std::same_as<field_match_type<typename Query::value_type>>;
-        { query.remove_via_field(field_index, db_index) } -> std::same_as<field_match_type<typename Query::value_type>>;
+        { query <=> tuple };
     };
 }
 

@@ -49,13 +49,14 @@ add_covered_test(NAME LindaDB.Test CATCH
                  query/type_stubbed_tuple_query.test.cxx
                  tree/avl/scalar_avl.test.cxx
                  tree/avl/vector_avl.test.cxx
-                 tree/avl/chime_avl.test.cxx
+#                 tree/avl/chime_avl.test.cxx
                  tree/avl/vectorset_avl.test.cxx
-                 tree_payloads/chime_payload.test.cxx
+#                 tree_payloads/chime_payload.test.cxx
                  tree_payloads/scalar_payload.test.cxx
                  tree_payloads/vector_payload.test.cxx
                  tree_payloads/vectorset_payload.test.cxx
-                 store.test.cxx
+#                 store.test.cxx
+                 simple_store.test.cxx
                  LIBRARIES LindaDB)
 
 add_covered_test(NAME LindaDB.AssertTest CATCH

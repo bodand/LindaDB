@@ -36,6 +36,7 @@
 #ifndef LINDADB_SIMPLE_STORE_HXX
 #define LINDADB_SIMPLE_STORE_HXX
 
+#include <optional>
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload/vectorset_payload.hxx>
@@ -83,7 +84,7 @@ namespace ldb {
             return try_read(make_piecewise_query(indices(), std::forward<Args>(args)...));
         }
 
-        std::optional<lv::linda_tuple>
+        lv::linda_tuple
         read(const query_type& query) const {
             LDBT_ZONE_A;
             return retrieve_strong(query,

@@ -50,6 +50,7 @@
 namespace ldb {
     template<class IndexType>
     struct type_stubbed_tuple_query {
+        using index_type = IndexType;
         using value_type = IndexType::value_type;
 
         type_stubbed_tuple_query(const type_stubbed_tuple_query& cp) = default;

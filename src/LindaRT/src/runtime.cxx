@@ -58,8 +58,7 @@ lrt::runtime::runtime(int* argc,
                       std::function<balancer(const runtime&)> load_balancer)
      : _mpi(argc, argv),
        _recv_thr(&lrt::runtime::recv_thread_worker, this),
-       _work_pool([]() { return std::make_tuple(); },
-                  4) {
+       _work_pool([]() { return std::make_tuple(); }) {
     LDBT_ZONE_A;
     _balancer = load_balancer(*this);
 
@@ -73,7 +72,7 @@ lrt::runtime::~runtime() noexcept {
                                      static_cast<int>(communication_tag::Terminate),
                                      std::span<std::byte>());
     _recv_thr.join();
-    _store.terminate();
+//    _store.terminate();
     _work_pool.terminate();
 }
 
@@ -117,10 +116,10 @@ lrt::runtime::loop() {
 void
 lrt::runtime::ack(int to, int ack, std::span<std::byte> data) {
     LDBT_ZONE_A;
-    std::ofstream("_eval.log", std::ios::app) << "sending ack from " << rank()
-                                              << " to " << to
-                                              << ": " << std::hex << ack << std::dec
-                                              << " with payload of " << data.size() << " bytes\n";
+//    std::ofstream("_eval.log", std::ios::app) << "sending ack from " << rank()
+//                                              << " to " << to
+//                                              << ": " << std::hex << ack << std::dec
+//                                              << " with payload of " << data.size() << " bytes\n";
     _mpi.send_ack(to, ack, data);
 }
 void
@@ -135,7 +134,7 @@ lrt::runtime::remote_insert(const ldb::lv::linda_tuple& tuple) {
 namespace {
     std::vector<std::byte>
     send_query_with_tag(lrt::mpi_runtime& mpi,
-                        const ldb::tuple_query<ldb::store::index_type>& query,
+                        const ldb::tuple_query<ldb::simple_store::storage_type>& query,
                         lrt::communication_tag tag) {
         LDBT_ZONE_A;
         const auto [buf, buf_sz] = lrt::serialize(query);
@@ -146,7 +145,7 @@ namespace {
 
     void
     insert_response_into_query_fields(std::span<const std::byte> tuple_bytes,
-                                      const ldb::tuple_query<ldb::store::index_type>& query) {
+                                      const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
         LDBT_ZONE_A;
         const auto result_tuple = lrt::deserialize(tuple_bytes);
         // insert values into query fields by performing an imitated search
@@ -156,7 +155,7 @@ namespace {
 }
 
 bool
-lrt::runtime::remote_try_remove(const ldb::tuple_query<ldb::store::index_type>& query) {
+lrt::runtime::remote_try_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
     LDBT_ZONE_A;
     const auto response = send_query_with_tag(_mpi, query, communication_tag::TryDelete);
     if (response.empty()) return false;
@@ -165,7 +164,7 @@ lrt::runtime::remote_try_remove(const ldb::tuple_query<ldb::store::index_type>& 
 }
 
 void
-lrt::runtime::remote_remove(const ldb::tuple_query<ldb::store::index_type>& query) {
+lrt::runtime::remote_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
     LDBT_ZONE_A;
     const auto response = send_query_with_tag(_mpi, query, communication_tag::Delete);
     assert_that(!response.empty(), "result of blocking remote db call empty");
@@ -173,7 +172,7 @@ lrt::runtime::remote_remove(const ldb::tuple_query<ldb::store::index_type>& quer
 }
 
 bool
-lrt::runtime::remote_try_read(const ldb::tuple_query<ldb::store::index_type>& query) {
+lrt::runtime::remote_try_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
     LDBT_ZONE_A;
     const auto response = send_query_with_tag(_mpi, query, communication_tag::TrySearch);
     if (response.empty()) return false;
@@ -182,7 +181,7 @@ lrt::runtime::remote_try_read(const ldb::tuple_query<ldb::store::index_type>& qu
 }
 
 void
-lrt::runtime::remote_read(const ldb::tuple_query<ldb::store::index_type>& query) {
+lrt::runtime::remote_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
     LDBT_ZONE_A;
     const auto response = send_query_with_tag(_mpi, query, communication_tag::Search);
     assert_that(!response.empty(), "result of blocking remote db call empty");

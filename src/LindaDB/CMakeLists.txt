@@ -37,7 +37,7 @@
 set(LDB_COMMON_SOURCES
     public/ldb/data/chunked_list.hxx
     public/ldb/data/locked_list.hxx
-    public/ldb/index/tree/payload/chime_payload.hxx
+#    public/ldb/index/tree/payload/chime_payload.hxx
     public/ldb/index/tree/payload/scalar_payload.hxx
     public/ldb/index/tree/payload/vector_payload.hxx
     public/ldb/index/tree/payload/vectorset_payload.hxx
@@ -63,9 +63,9 @@ set(LDB_COMMON_SOURCES
     public/ldb/profile.hxx
     public/ldb/query.hxx
     public/ldb/simple_store.hxx
-    public/ldb/store.hxx
+#    public/ldb/store.hxx
     src/data/chunked_list.cxx
-    src/index/tree/payload/chime_payload.cxx
+#    src/index/tree/payload/chime_payload.cxx
     src/index/tree/payload/scalar_payload.cxx
     src/index/tree/payload/vector_payload.cxx
     src/index/tree/index_query.cxx
@@ -79,7 +79,7 @@ set(LDB_COMMON_SOURCES
     src/query/manual_fields_query.cxx
     src/query/tuple_query.cxx
     src/common.cxx
-    src/store.cxx
+#    src/store.cxx
     src/simple_store.cxx
     src/tracy.cxx)
 

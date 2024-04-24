@@ -58,31 +58,33 @@ func(std::string a,
      std::string b,
      std::string c) {
     int width;
+    int height;
     rd("W", ldb::ref(&width));
+    rd("H", ldb::ref(&height));
 
-    //    for (auto i : std::views::iota(0, width)) {
-    //        for (auto j : std::views::iota(0, width)) {
-    //            out("C", i, j, 0LL);
-    //        }
-    //    }
-    int x, y;
-    while (inp("<", ldb::ref(&x), ldb::ref(&y))) {
-        long long value = 0;
+    for (auto i : std::views::iota(0, width)) {
+        for (auto j : std::views::iota(0, height)) {
+            if (!inp("<", i, j)) continue;
+            int x = i;
+            int y = j;
 
-        for (int i = 0; i < width; ++i) {
-            long long value_a;
-            long long value_b;
+            long long value = 0;
 
-            rd(a, x, i, ldb::ref(&value_a));
-            rd(b, i, y, ldb::ref(&value_b));
+            for (int k = 0; k < width; ++k) {
+                long long value_a;
+                long long value_b;
 
-            value += value_a * value_b;
+                rd(a, x, k, ldb::ref(&value_a));
+                rd(b, k, y, ldb::ref(&value_b));
+
+                value += value_a * value_b;
+            }
+
+            out(c,
+                x,
+                y,
+                value);
         }
-
-        out(c,
-            x,
-            y,
-            value);
     }
 
     return 0;
@@ -90,29 +92,25 @@ func(std::string a,
 
 int
 real_main(int, char**) {
-    const auto mx_width = 10;
-    const auto mx_height = 10;
+    const auto mx_width = 100;
+    const auto mx_height = 100;
 
     out("W", mx_width);
     out("H", mx_height);
 
+    const auto start = std::chrono::high_resolution_clock::now();
     for (auto i : std::views::iota(0, mx_width)) {
         for (auto j : std::views::iota(0, mx_height)) {
             auto val = get_random();
             out("A", i, j, val);
-            std::cout << std::setw(2) << val << ' ';
         }
-        std::cout << '\n';
     }
-    std::cout << "\n\n";
 
     for (auto i : std::views::iota(0, mx_height)) {
         for (auto j : std::views::iota(0, mx_width)) {
             auto val = get_random();
             out("B", i, j, val);
-            std::cout << std::setw(2) << val << ' ';
         }
-        std::cout << '\n';
     }
 
     for (auto i : std::views::iota(0, mx_width)) {
@@ -120,23 +118,22 @@ real_main(int, char**) {
             out("<", i, j);
         }
     }
+    const auto end = std::chrono::high_resolution_clock::now();
 
-    std::ofstream("_a.log", std::ios::app) << lrt::this_runtime().rank() << ": INITED\n";
     for (int i : std::views::iota(1, lrt::this_runtime().world_size())) {
-        eval((func) ("A", "B", "C"));
+        eval("computed", (func) ("A", "B", "C"));
     }
+    in("computed", 0);
 
-    std::ofstream fout("out.txt");
-    std::cout << "\n\n";
     for (auto i : std::views::iota(0, mx_width)) {
         for (auto j : std::views::iota(0, mx_height)) {
-            long long val;
+            [[maybe_unused]] long long val;
             rd("C", i, j, ldb::ref(&val));
-            fout << std::setw(7) << val << ' ';
+            std::ignore = val;
         }
-        fout << '\n';
     }
-    std::ofstream("_a.log", std::ios::app) << lrt::this_runtime().rank() << ": DONE\n";
+
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "\n";
 
     return 0;
 }
