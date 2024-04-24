@@ -88,7 +88,7 @@ namespace ldb::lv {
     }
 
     struct linda_tuple final {
-        explicit linda_tuple()
+        linda_tuple()
              : _size(0) { }
 
         explicit linda_tuple(linda_value lv1)
@@ -142,10 +142,8 @@ namespace ldb::lv {
         [[nodiscard]] std::unique_ptr<linda_tuple>
         clone() const { return std::make_unique<linda_tuple>(*this); }
 
-        auto
-        operator<=>(const linda_tuple& rhs) const noexcept {
-            return _size <=> rhs._size;
-        }
+        std::partial_ordering
+        operator<=>(const linda_tuple& rhs) const noexcept;
 
         [[nodiscard]] bool
         operator==(const linda_tuple& rhs) const noexcept = default;
@@ -401,6 +399,13 @@ namespace ldb::lv {
         [[nodiscard]] constexpr auto
         cend() const { return const_iterator(this, _size); }
     };
+
+    inline std::partial_ordering
+    linda_tuple::operator<=>(const linda_tuple& rhs) const noexcept {
+        auto sz_diff = _size <=> rhs._size;
+        if (std::is_neq(sz_diff)) return sz_diff;
+        return std::lexicographical_compare_three_way(begin(), end(), rhs.begin(), rhs.end());
+    }
 }
 
 namespace std {

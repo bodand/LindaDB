@@ -178,6 +178,23 @@ namespace ldb::index::tree::payloads {
             return std::nullopt;
         }
 
+        template<class Q>
+        [[nodiscard]] constexpr std::optional<value_type>
+        try_get(Q raw_query) const noexcept(std::is_nothrow_constructible_v<std::optional<value_type>, value_type>) {
+            LDBT_ZONE_A;
+            if (empty()) return std::nullopt;
+            auto data_end_offset = static_cast<std::ptrdiff_t>(_data_sz);
+            if (auto it = std::lower_bound(std::begin(_data),
+                                           std::next(std::begin(_data), data_end_offset),
+                                           raw_query,
+                                           compare_pair_to_key);
+                it != std::next(std::begin(_data), data_end_offset)
+                && *it == raw_query) {
+                return {*it};
+            }
+            return std::nullopt;
+        }
+
         [[nodiscard]] constexpr bool
         try_set(const key_type& key, const value_type& value) {
             LDBT_ZONE_A;
@@ -187,7 +204,7 @@ namespace ldb::index::tree::payloads {
         [[nodiscard]] constexpr bool
         try_set(const bundle_type& bundle) {
             LDBT_ZONE_A;
-            return try_set(bundle.first, bundle.second);
+            return try_set(bundle, bundle); // convert value to pseudo-kv pair
         }
 
         [[nodiscard]] constexpr std::optional<bundle_type>
@@ -243,7 +260,21 @@ namespace ldb::index::tree::payloads {
             auto data_end = std::next(begin(_data), _data_sz);
             auto it = std::ranges::lower_bound(begin(_data), data_end, query.key());
             if (it == data_end) return std::nullopt;
-            if (it->second != query) return std::nullopt;
+            if (*it != query) return std::nullopt;
+            std::ranges::rotate(it, it + 1, data_end);
+            --_data_sz;
+            return _data.back();
+        }
+
+        template<class Q>
+        constexpr std::optional<value_type>
+        remove(Q raw_query) {
+            LDBT_ZONE_A;
+            assert_that(!empty());
+            auto data_end = std::next(begin(_data), _data_sz);
+            auto it = std::lower_bound(begin(_data), data_end, raw_query);
+            if (it == data_end) return std::nullopt;
+            if (*it != raw_query) return std::nullopt;
             std::ranges::rotate(it, it + 1, data_end);
             --_data_sz;
             return _data.back();

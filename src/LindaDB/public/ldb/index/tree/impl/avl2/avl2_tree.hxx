@@ -336,7 +336,7 @@ namespace ldb::index::tree {
             return data.force_set_upper(key, value);
         }
 
-        template<index_lookup<value_type> Q>
+        template<class Q>
         auto
         find_by_query(const Q& query) const {
             LDBT_ZONE_A;
@@ -347,7 +347,7 @@ namespace ldb::index::tree {
             return data.try_get(query);
         }
 
-        template<index_lookup<value_type> Q>
+        template<class Q>
         auto
         remove_by_query(const Q& query) {
             LDBT_ZONE_A;
@@ -434,6 +434,24 @@ namespace ldb::index::tree {
             if (!*node) return {};
 
             return (*node)->find_by_query(query);
+        }
+
+        template<class Q>
+        [[nodiscard]] std::optional<value_type>
+        search_query(const Q& query) const {
+            LDBT_ZONE_A;
+            LDBT_SH_LOCK(_mtx);
+            const auto* node = traverse_tree(query);
+            if (!*node) return {};
+
+            return (*node)->find_by_query(query);
+        }
+
+        void
+        insert(const value_type& value)
+            requires(std::same_as<key_type, value_type>)
+        {
+            insert(value, value);
         }
 
         void
@@ -566,6 +584,40 @@ namespace ldb::index::tree {
             auto found = (*node)->remove_by_query(query);
             if (!found) return {};
 
+            return remove_node_internal(node, std::move(found));
+        }
+
+        template<class Q>
+        [[nodiscard]] std::optional<value_type>
+        remove_query(const Q& query) {
+            LDBT_ZONE_A;
+            LDBT_UQ_LOCK(_mtx);
+            auto* node = traverse_tree(query);
+            if (!*node) return {};
+
+            // T-tree: removing from node does not always result
+            //         in removal of the node
+            // query mechanism: finding a bounding node does not always mean
+            //                  we can remove from it
+            auto found = (*node)->remove_by_query(query);
+            if (!found) return {};
+
+            return remove_node_internal(node, std::move(found));
+        }
+
+        template<class Fn>
+        void
+        apply(const Fn& fn) const {
+            LDBT_ZONE_A;
+            if (root) root->apply(fn);
+        }
+
+    private:
+        using node_type = avl2_node<payload_type>;
+
+        template<class T>
+        auto
+        remove_node_internal(std::unique_ptr<node_type>* node, T&& found) {
             // T-tree: depending on the node type, we may need to shuffle around
             //         some elements in the nodes
             switch ((*node)->type()) {
@@ -575,7 +627,7 @@ namespace ldb::index::tree {
                 }
                 break;
             case HALF_LEAF: {
-                if (handle_half_leaf_removal(node)) return found;
+                if (handle_half_leaf_removal(node)) return std::forward<T>(found);
                 break;
             }
 
@@ -607,18 +659,8 @@ namespace ldb::index::tree {
             }
             }
 
-            return found;
+            return std::forward<T>(found);
         }
-
-        template<class Fn>
-        void
-        apply(const Fn& fn) const {
-            LDBT_ZONE_A;
-            if (root) root->apply(fn);
-        }
-
-    private:
-        using node_type = avl2_node<payload_type>;
 
         bool
         handle_half_leaf_removal(std::unique_ptr<node_type>* node) {

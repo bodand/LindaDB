@@ -62,6 +62,7 @@ set(LDB_COMMON_SOURCES
     public/ldb/common.hxx
     public/ldb/profile.hxx
     public/ldb/query.hxx
+    public/ldb/simple_store.hxx
     public/ldb/store.hxx
     src/data/chunked_list.cxx
     src/index/tree/payload/chime_payload.cxx
@@ -79,6 +80,7 @@ set(LDB_COMMON_SOURCES
     src/query/tuple_query.cxx
     src/common.cxx
     src/store.cxx
+    src/simple_store.cxx
     src/tracy.cxx)
 
 add_library(LindaDB STATIC ${LDB_COMMON_SOURCES})
