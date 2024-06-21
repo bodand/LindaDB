@@ -609,6 +609,7 @@ namespace ldb::index::tree {
         void
         apply(const Fn& fn) const {
             LDBT_ZONE_A;
+            LDBT_UQ_LOCK(_mtx);
             if (root) root->apply(fn);
         }
 

@@ -37,6 +37,7 @@
 #define LINDADB_SIMPLE_STORE_HXX
 
 #include <optional>
+
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/index_query.hxx>
 #include <ldb/index/tree/payload/vectorset_payload.hxx>
@@ -90,7 +91,7 @@ namespace ldb {
             return retrieve_strong(query,
                                    std::mem_fn(&simple_store::perform_read));
         }
-        
+
         template<class... Args>
         lv::linda_tuple
         read(Args&&... args)
@@ -112,10 +113,10 @@ namespace ldb {
         template<class... Args>
         std::optional<lv::linda_tuple>
         try_remove(Args&&... args)
-        requires((
-               (lv::is_linda_value_v<std::remove_cvref_t<Args>>
-                || meta::is_matcher_type_v<Args>)
-               && ...))
+            requires((
+                   (lv::is_linda_value_v<std::remove_cvref_t<Args>>
+                    || meta::is_matcher_type_v<Args>)
+                   && ...))
         {
             return try_remove(make_piecewise_query(indices(), std::forward<Args>(args)...));
         }
@@ -130,12 +131,19 @@ namespace ldb {
         template<class... Args>
         lv::linda_tuple
         remove(Args&&... args)
-        requires((
-               (lv::is_linda_value_v<std::remove_cvref_t<Args>>
-                || meta::is_matcher_type_v<Args>)
-               && ...))
+            requires((
+                   (lv::is_linda_value_v<std::remove_cvref_t<Args>>
+                    || meta::is_matcher_type_v<Args>)
+                   && ...))
         {
             return remove(make_piecewise_query(indices(), std::forward<Args>(args)...));
+        }
+
+        void
+        dump(std::ostream& os) const {
+            _storage.apply([&os](auto& node) {
+                os << node << "\n";
+            });
         }
 
     private:

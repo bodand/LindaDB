@@ -38,6 +38,7 @@
 
 #include <cstddef>
 #include <utility>
+#include <functional>
 #include <vector>
 
 #include <lrt/communication_tags.hxx>
@@ -52,7 +53,8 @@ namespace lrt {
                std::vector<std::byte>&& payload,
                lrt::runtime& runtime,
                int sender,
-               int ack);
+               int ack,
+               std::function<void(lrt::work<>)> enq);
     };
 }
 

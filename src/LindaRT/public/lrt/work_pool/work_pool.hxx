@@ -51,8 +51,6 @@
 // TEMPORARY
 #include <lrt/mpi_thread_context.hxx>
 
-#include <mpi.h>
-
 namespace lrt {
     template<std::size_t, class...>
     struct work_pool;
@@ -81,7 +79,8 @@ namespace lrt {
             _queue.terminate();
         }
 
-        ~work_pool() {
+        void
+        await_terminated() {
             LDBT_ZONE_A;
             _queue.await_terminated();
             std::ranges::for_each(threads(), [](auto& t) { t.join(); });

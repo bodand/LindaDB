@@ -76,16 +76,16 @@
 #ifndef LDB_STR_I
 #  define LDB_STR_I(...) #__VA_ARGS__
 #endif
-#define LDB_EVAL_REG_FN_I(arg) std::ignore = lrt::fn_mapper<LDB_STR_I(arg)>::value<decltype(arg),                                                              \
-                                                                                   decltype([](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {     \
-                                                                                       LDBT_ZONE_A;                                                            \
-                                                                                       if constexpr (std::is_function_v<std::remove_cvref_t<decltype(arg)>>) { \
-                                                                                           ldb::lv::dyn_function_adapter adapter(arg);                         \
-                                                                                           return adapter(args);                                               \
-                                                                                       }                                                                       \
-                                                                                       assert_that(false, "called a non-function type");                       \
-                                                                                       return {};                                                              \
-                                                                                   })>;
+#define LDB_EVAL_REG_FN_I(fn) std::ignore = lrt::fn_mapper<LDB_STR_I(fn)>::value<decltype(fn),                                                              \
+                                                                                 decltype([](const ldb::lv::linda_tuple& args) -> ldb::lv::linda_value {    \
+                                                                                     LDBT_ZONE_A;                                                           \
+                                                                                     if constexpr (std::is_function_v<std::remove_cvref_t<decltype(fn)>>) { \
+                                                                                         ldb::lv::dyn_function_adapter adapter(fn);                         \
+                                                                                         return adapter(args);                                              \
+                                                                                     }                                                                      \
+                                                                                     assert_that(false, "called a non-function type");                      \
+                                                                                     return {};                                                             \
+                                                                                 })>;
 
 #define LDB_EVAL_REG_FN(r, data, arg) LDB_EVAL_REG_FN_I(BOOST_PP_REMOVE_PARENS(arg))
 #define LDB_EVAL_REGISTER_FUNCTIONS(seq) \

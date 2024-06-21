@@ -38,6 +38,7 @@
 
 #include <concepts>
 #include <cstddef>
+#include <type_traits>
 #include <variant>
 
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
@@ -71,7 +72,7 @@ namespace ldb {
     template<class Query>
     concept tuple_queryable = requires(Query query,
                                        lv::linda_tuple tuple) {
-        typename Query::value_type;
+        typename std::remove_cvref_t<Query>::value_type;
 
         { query.as_representing_tuple() } -> std::convertible_to<lv::linda_tuple>;
         { query <=> tuple };

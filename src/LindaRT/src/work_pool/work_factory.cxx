@@ -34,6 +34,7 @@
  *   
  */
 
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -65,10 +66,11 @@ lrt::work_factory::create(lrt::communication_tag tag,
                           std::vector<std::byte>&& payload,
                           lrt::runtime& runtime,
                           int sender,
-                          int ack) {
+                          int ack,
+                          std::function<void(lrt::work<>)> enq) {
     LDBT_ZONE_A;
-    auto work_maker = [data = std::move(payload), &runtime, sender, ack]<class T>(type_i<T>) mutable {
-        return T(std::move(data), runtime, sender, ack);
+    auto work_maker = [data = std::move(payload), &runtime, sender, ack, enq]<class T>(type_i<T>) mutable {
+        return T(std::move(data), runtime, sender, ack, enq);
     };
 
     switch (tag) {

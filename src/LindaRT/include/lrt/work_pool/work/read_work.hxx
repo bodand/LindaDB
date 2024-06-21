@@ -47,11 +47,13 @@ namespace lrt {
         explicit read_work(std::vector<std::byte>&& payload,
                            runtime& runtime,
                            int sender,
-                           int ack_with)
+                           int ack_with,
+                           std::function<void(lrt::work<>)> enqueue)
              : _bytes(std::move(payload)),
                _runtime(&runtime),
                _sender(sender),
-               _ack_with(ack_with) {
+               _ack_with(ack_with),
+               _enqueue(std::move(enqueue)) {
             LDBT_ZONE("read work ctor");
         }
 
@@ -66,6 +68,7 @@ namespace lrt {
         lrt::runtime* _runtime;
         int _sender;
         int _ack_with;
+        std::function<void(lrt::work<>)> _enqueue;
     };
 }
 

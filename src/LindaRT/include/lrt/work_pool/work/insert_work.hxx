@@ -47,7 +47,8 @@ namespace lrt {
     struct runtime;
 
     struct insert_work {
-        explicit insert_work(std::vector<std::byte>&& payload, runtime& runtime, int sender, int ack_with)
+        explicit insert_work(std::vector<std::byte>&& payload, runtime& runtime, int sender, int ack_with, //
+                             std::function<void(lrt::work<>)>)
              : _bytes(std::move(payload)),
                _runtime(&runtime),
                _sender(sender),

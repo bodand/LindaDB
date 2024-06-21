@@ -53,13 +53,18 @@
 
 #include <mpi.h>
 
+namespace {
+    static int rank = -1;
+}
+
 lrt::runtime::runtime(int* argc,
                       char*** argv,
                       std::function<balancer(const runtime&)> load_balancer)
      : _mpi(argc, argv),
        _recv_thr(&lrt::runtime::recv_thread_worker, this),
-       _work_pool([]() { return std::make_tuple(); }) {
+       _work_pool([]() { return std::make_tuple(); }, 8) {
     LDBT_ZONE_A;
+    ::rank = _mpi.rank();
     _balancer = load_balancer(*this);
 
     _recv_start.test_and_set();
@@ -68,12 +73,14 @@ lrt::runtime::runtime(int* argc,
 
 lrt::runtime::~runtime() noexcept {
     LDBT_ZONE_A;
+    if (_mpi.rank() == 0) MPI_Barrier(MPI_COMM_WORLD);
     std::ignore = _mpi.send_with_ack(_mpi.rank(),
                                      static_cast<int>(communication_tag::Terminate),
                                      std::span<std::byte>());
     _recv_thr.join();
-//    _store.terminate();
     _work_pool.terminate();
+    _work_pool.await_terminated();
+    if (_mpi.rank() != 0) MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void
@@ -89,7 +96,10 @@ lrt::runtime::recv_thread_worker() {
                                               std::move(payload),
                                               *this,
                                               from,
-                                              ack);
+                                              ack,
+                                              [&wp = this->_work_pool]<class W>(W&& work) {
+                                                  wp.enqueue(std::forward<W>(work));
+                                              });
         _work_pool.enqueue(std::move(work));
     }
     _work_pool.terminate();
@@ -116,10 +126,10 @@ lrt::runtime::loop() {
 void
 lrt::runtime::ack(int to, int ack, std::span<std::byte> data) {
     LDBT_ZONE_A;
-//    std::ofstream("_eval.log", std::ios::app) << "sending ack from " << rank()
-//                                              << " to " << to
-//                                              << ": " << std::hex << ack << std::dec
-//                                              << " with payload of " << data.size() << " bytes\n";
+    //    std::ofstream("_eval.log", std::ios::app) << "sending ack from " << rank()
+    //                                              << " to " << to
+    //                                              << ": " << std::hex << ack << std::dec
+    //                                              << " with payload of " << data.size() << " bytes\n";
     _mpi.send_ack(to, ack, data);
 }
 void
@@ -143,7 +153,7 @@ namespace {
                                      std::span(buf.get(), buf_sz));
     }
 
-    void
+    auto
     insert_response_into_query_fields(std::span<const std::byte> tuple_bytes,
                                       const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
         LDBT_ZONE_A;
@@ -151,6 +161,7 @@ namespace {
         // insert values into query fields by performing an imitated search
         const auto cmp_res = result_tuple <=> query;
         assert_that(std::is_eq(cmp_res), "received tuple from remote does not match query");
+        return result_tuple;
     }
 }
 
@@ -163,12 +174,12 @@ lrt::runtime::remote_try_remove(const ldb::tuple_query<ldb::simple_store::storag
     return true;
 }
 
-void
+ldb::lv::linda_tuple
 lrt::runtime::remote_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
     LDBT_ZONE_A;
     const auto response = send_query_with_tag(_mpi, query, communication_tag::Delete);
     assert_that(!response.empty(), "result of blocking remote db call empty");
-    insert_response_into_query_fields(std::span(response), query);
+    return insert_response_into_query_fields(std::span(response), query);
 }
 
 bool
@@ -180,10 +191,10 @@ lrt::runtime::remote_try_read(const ldb::tuple_query<ldb::simple_store::storage_
     return true;
 }
 
-void
+ldb::lv::linda_tuple
 lrt::runtime::remote_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query) {
     LDBT_ZONE_A;
     const auto response = send_query_with_tag(_mpi, query, communication_tag::Search);
     assert_that(!response.empty(), "result of blocking remote db call empty");
-    insert_response_into_query_fields(std::span(response), query);
+    return insert_response_into_query_fields(std::span(response), query);
 }

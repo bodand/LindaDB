@@ -45,8 +45,8 @@ void
 lrt::try_remove_work::perform() {
     LDBT_ZONE_A;
     const auto tuple = deserialize(_bytes);
-    const auto result = _runtime->store().try_remove(
-           ldb::make_type_aware_query(_runtime->store().indices(), tuple));
+    const auto query = ldb::tuple_query<ldb::simple_store::storage_type>(ldb::make_type_aware_query(_runtime->store().indices(), tuple));
+    const auto result = _runtime->store().try_remove(query);
     if (result) {
         const auto [buf, buf_sz] = serialize(*result);
         _runtime->ack(_sender, _ack_with, std::span(buf.get(), buf_sz));

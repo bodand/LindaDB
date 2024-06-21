@@ -74,15 +74,11 @@ namespace lrt {
 
             void
             do_perform(const Context&... ctx) override {
-                LDBT_ZONE_A;
-                int rank;
-                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
                 this->work.perform(ctx...);
             }
 
             void
             write_to(std::ostream& os) override {
-                LDBT_ZONE_A;
                 os << work;
             }
 

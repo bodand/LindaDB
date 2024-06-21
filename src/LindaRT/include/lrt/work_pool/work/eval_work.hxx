@@ -46,7 +46,8 @@ namespace lrt {
     struct runtime;
 
     struct eval_work {
-        explicit eval_work(std::vector<std::byte>&& payload, runtime& runtime, int sender, int ack_with)
+        explicit eval_work(std::vector<std::byte>&& payload, runtime& runtime, int sender, int ack_with,
+                           std::function<void(lrt::work<>)>)
              : _bytes(std::move(payload)),
                _runtime(&runtime),
                _sender(sender),

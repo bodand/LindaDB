@@ -47,10 +47,10 @@ out(Args&&... args) {
 }
 
 template<class... Args>
-void
+auto
 in(Args&&... args) {
     LDBT_ZONE_A;
-    lrt::this_runtime().in(std::forward<Args>(args)...);
+    return lrt::this_runtime().in(std::forward<Args>(args)...);
 }
 
 template<class... Args>
@@ -61,10 +61,10 @@ inp(Args&&... args) {
 }
 
 template<class... Args>
-void
+auto
 rd(Args&&... args) {
     LDBT_ZONE_A;
-    lrt::this_runtime().rd(std::forward<Args>(args)...);
+    return lrt::this_runtime().rd(std::forward<Args>(args)...);
 }
 
 template<class... Args>

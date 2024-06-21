@@ -40,19 +40,26 @@
 #include <lrt/serialize/tuple.hxx>
 #include <lrt/work_pool/work/read_work.hxx>
 
+using namespace std::literals;
+
 void
 lrt::read_work::perform() {
     LDBT_ZONE_A;
     const auto tuple = deserialize(_bytes);
-    const auto result = _runtime->store().read(
+    const auto result = _runtime->store().try_read(
            ldb::make_type_aware_query(_runtime->store().indices(), tuple));
-    const auto [buf, buf_sz] = serialize(result);
+    if (!result) {
+//        std::this_thread::sleep_for(1ms);
+        _enqueue(*this);
+        return;
+    }
+    const auto [buf, buf_sz] = serialize(*result);
     _runtime->ack(_sender, _ack_with, std::span(buf.get(), buf_sz));
 }
 
 std::ostream&
 lrt::operator<<(std::ostream& os, const lrt::read_work& work) {
     return os << "[read work]: " << lrt::deserialize(work._bytes)
-           << " on rank " << work._runtime->rank()
+              << " on rank " << work._runtime->rank()
               << " on thread " << std::this_thread::get_id();
 }

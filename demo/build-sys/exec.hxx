@@ -28,38 +28,30 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-03.
+ * Originally created: 2024-05-05.
  *
- * src/LindaRT/src/work_pool/work/insert_work --
- *   
+ * demo/build-sys/exec --
+ *   Cross-platform process spawner. Has minimal functionality.
  */
+#ifndef LINDADB_EXEC_HXX
+#define LINDADB_EXEC_HXX
 
-#include <chrono>
-#include <thread>
+#include <filesystem>
+#include <string>
+#include <system_error>
 
-#include <lrt/runtime.hxx>
-#include <lrt/work_pool/work/insert_work.hxx>
-
-using namespace std::literals;
-
-void
-lrt::insert_work::perform() {
-    LDBT_ZONE_A;
-    const auto tuple = deserialize(_bytes);
-//    std::ofstream("_remote_io.log", std::ios::app) << _runtime->rank() << ": INSERT: " << tuple << "\n";
-
-//    std::ofstream _88("AAAAAAAAAAA.log", std::ios::app);
-//    _88 << "---------------------------------------------------------------\n"
-//        << "BEFORE " << tuple << "\n"
-//        << "---------------------------------------------------------------\n";
-//    _runtime->store().dump(_88);
-//
-    _runtime->store().insert(tuple);
-//
-//    _88 << "---------------------------------------------------------------\n"
-//        << "AFTER " << tuple << "\n"
-//        << "---------------------------------------------------------------\n";
-//    _runtime->store().dump(_88);
-
-    _runtime->ack(_sender, _ack_with);
+/**
+ * Is the first file parameter older than the second
+ */
+inline bool
+is_older(const std::filesystem::path& a,
+         const std::filesystem::path& b) {
+    std::error_code eca{};
+    std::error_code ecb{};
+    return last_write_time(a, eca) < last_write_time(b, ecb);
 }
+
+int
+cross_exec(const std::string& exe, const std::string& args);
+
+#endif

@@ -154,8 +154,8 @@ namespace ldb::index::tree::payloads {
             LDBT_ZONE_A;
             if (size() == capacity()) return;
             // todo: proper merge algorithm
-            for (std::size_t i = 0; i < other.size(); ++i) {
-                auto succ = try_set(other._data[i]);
+            for (std::size_t i = other.size(); i > 0; --i) {
+                auto succ = try_set(other._data[i - 1]);
                 if (!succ) break;
                 --other._data_sz;
             }
@@ -286,9 +286,11 @@ namespace ldb::index::tree::payloads {
 
         template<class Fn>
         void
-        apply(Fn&& fn) {
+        apply(Fn&& fn) const {
             LDBT_ZONE_A;
-            std::ranges::for_each(_data, std::forward<Fn>(fn), [](const auto& p) { return p.second; });
+            std::ranges::for_each_n(_data.begin(),
+                                    static_cast<std::iter_difference_t<decltype(_data.begin())>>(_data_sz),
+                                    std::forward<Fn>(fn));
         }
 
 

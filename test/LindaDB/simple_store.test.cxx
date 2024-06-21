@@ -306,6 +306,90 @@ TEST_CASE("simple_store can store zero length tuples") {
 }
 
 // NOLINTNEXTLINE
+TEST_CASE("simple_store retrieves stuff properly") {
+    ldb::simple_store simple_store;
+
+    simple_store.insert(ldb::lv::linda_tuple("CC", "fib10.o", "fib10.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "get-fib10.o", "get-fib10.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("LINK", "get-fib10.exe", "get-fib10.o fib10.o"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "fib11.o", "fib11.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "get-fib11.o", "get-fib11.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("LINK", "get-fib11.exe", "get-fib11.o fib11.o"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "fib12.o", "fib12.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "get-fib12.o", "get-fib12.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("LINK", "get-fib12.exe", "get-fib12.o fib12.o"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "fib13.o", "fib13.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "get-fib13.o", "get-fib13.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("LINK", "get-fib13.exe", "get-fib13.o fib13.o"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "fib14.o", "fib14.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "get-fib14.o", "get-fib14.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("LINK", "get-fib14.exe", "get-fib14.o fib14.o"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "fib15.o", "fib15.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("CC", "get-fib15.o", "get-fib15.cxx"));
+    simple_store.insert(ldb::lv::linda_tuple("LINK", "get-fib15.exe", "get-fib15.o fib15.o"));
+
+    const auto q = ldb::make_type_aware_query(simple_store.indices(),
+                                              ldb::lv::linda_tuple("CC", ldb::lv::ref_type(6), ldb::lv::ref_type(6)));
+
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 1
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 2
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 3
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 4
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 5
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 6
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 7
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 8
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 9
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 10
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 11
+    {
+        const auto got = simple_store.remove(q);
+        simple_store.insert(lv::linda_tuple("_OBJ", (got)[1]));
+    }; // 12
+
+    std::string inp, outp;
+    CHECK(simple_store.try_remove("LINK", ldb::ref(&inp), ldb::ref(&outp)));
+    CHECK(simple_store.try_remove("LINK", ldb::ref(&inp), ldb::ref(&outp)));
+    CHECK(simple_store.try_remove("LINK", ldb::ref(&inp), ldb::ref(&outp)));
+    CHECK(simple_store.try_remove("LINK", ldb::ref(&inp), ldb::ref(&outp)));
+    CHECK(simple_store.try_remove("LINK", ldb::ref(&inp), ldb::ref(&outp)));
+    CHECK(simple_store.try_remove("LINK", ldb::ref(&inp), ldb::ref(&outp)));
+}
+
+// NOLINTNEXTLINE
 TEST_CASE("simple_store does not deadlock trivially when out is called on a waiting in") {
     static std::uniform_int_distribution<unsigned> time_dist(500'000U, 1'000'000U);
     static std::uniform_int_distribution<int> val_dist(100'000, 300'000);

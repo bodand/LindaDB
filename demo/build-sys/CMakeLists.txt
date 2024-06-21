@@ -1,6 +1,6 @@
 # LindaDB project
 #
-# Copyright (c) 2024 András Bodor <bodand@pm.me>
+# Copyright (c) 2024 András Bodor <bodand@proton.me>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,21 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Originally created: 2024-03-04.
+# Originally created: 2024-04-30.
 #
-# demo/CMakeLists.txt --
-#   Builds a set of demo applications for Linda
+# demo/build-sys/CMakeLists.txt --
+#   A demo build-system built on top of Linda. Not completed.
 
-find_package(MPI REQUIRED)
 
-add_subdirectory(build-sys)
-add_subdirectory(mx-prod)
-add_subdirectory(primes)
-add_subdirectory(simple-eval)
+if (WIN32)
+    set(exec_impl exec.win32.cxx)
+else ()
+    return() # currently not implemented :(
+    set(exec_impl exec.posix.cxx)
+endif ()
 
+add_linda_executable(lb build.cxx ${exec_impl})
+target_compile_features(lb PUBLIC cxx_std_20)
+target_link_libraries(lb PUBLIC $<$<PLATFORM_ID:Windows>:Shlwapi>)
+add_test(NAME "Linda-lb"
+        COMMAND "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "${MPIEXEC_MAX_NUMPROCS}" $<TARGET_FILE:lb>)

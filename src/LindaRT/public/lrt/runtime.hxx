@@ -89,12 +89,12 @@ namespace lrt {
         }
 
         template<class... Args>
-        void
+        ldb::lv::linda_tuple
         in(Args&&... args) {
             LDBT_ZONE_A;
-            if (_mpi.rank() == 0) return (void) _store.remove(std::forward<Args>(args)...);
-            remote_remove(ldb::make_piecewise_query(_store.indices(),
-                                                    std::forward<Args>(args)...));
+            if (_mpi.rank() == 0) return _store.remove(std::forward<Args>(args)...);
+            return remote_remove(ldb::make_piecewise_query(_store.indices(),
+                                                           std::forward<Args>(args)...));
         }
 
         template<class... Args>
@@ -107,12 +107,12 @@ namespace lrt {
         }
 
         template<class... Args>
-        void
+        ldb::lv::linda_tuple
         rd(Args&&... args) {
             LDBT_ZONE_A;
-            if (_mpi.rank() == 0) return (void) _store.read(std::forward<Args>(args)...);
-            remote_read(ldb::make_piecewise_query(_store.indices(),
-                                                  std::forward<Args>(args)...));
+            if (_mpi.rank() == 0) return _store.read(std::forward<Args>(args)...);
+            return remote_read(ldb::make_piecewise_query(_store.indices(),
+                                                         std::forward<Args>(args)...));
         }
 
         template<class... Args>
@@ -140,13 +140,13 @@ namespace lrt {
         bool
         remote_try_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
-        void
+        ldb::lv::linda_tuple
         remote_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
         bool
         remote_try_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
-        void
+        ldb::lv::linda_tuple
         remote_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
 
         lrt::mpi_runtime _mpi;

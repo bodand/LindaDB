@@ -13,7 +13,7 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
       },
       "environment": {
-        "CMAKE_BUILD_PARALLEL_LEVEL": ""
+        "CMAKE_BUILD_PARALLEL_LEVEL": "32"
       }
     },
     {

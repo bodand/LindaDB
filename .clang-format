@@ -80,7 +80,7 @@ IncludeCategories:
   - Regex: ^<[Ww]indows.h>$
     Priority: 998
   # other WinAPI headers #
-  - Regex: ^<(win.+|shlobj|tchar|shell.+|ws2.+|wow64.+)\.h>$
+  - Regex: ^<(win.+|shlobj|Shlwapi|tchar|shell.+|ws2.+|wow64.+)\.h>$
     Priority: 999
   # C headers #
   - Regex: ^<.*\.h>$
