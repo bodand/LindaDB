@@ -36,9 +36,10 @@
 
 #include <postgres.h>
 // after postgres.h
+#include <commands/trigger.h>
 #include <fmgr.h>
 
-#include "../include/linda_funs.h"
+#include "../../include/linda_funs.h"
 
 PG_MODULE_MAGIC;
 
@@ -53,6 +54,7 @@ PG_FUNCTION_INFO_V1(datum_to_linda_value_bytes);
 // utilities
 PG_FUNCTION_INFO_V1(linda_value_type);
 PG_FUNCTION_INFO_V1(linda_value_nicetype);
+PG_FUNCTION_INFO_V1(linda_notify_trigger);
 
 // comparisions
 PG_FUNCTION_INFO_V1(linda_value_cmp_equal_image);
@@ -121,6 +123,25 @@ linda_value_nicetype(PG_FUNCTION_ARGS) {
 }
 
 Datum
+linda_notify_trigger(PG_FUNCTION_ARGS) {
+    if (!CALLED_AS_TRIGGER(fcinfo)) {
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_FUNCTION),
+                 errmsg("function %s can only be called from triggers",
+                        __func__)));
+    }
+
+    TriggerData* trigger_data = (TriggerData*) fcinfo->context;
+    HeapTuple ret = trigger_data->tg_trigtuple;
+    if (TRIGGER_FIRED_BY_UPDATE(trigger_data->tg_event)) ret = trigger_data->tg_newtuple;
+
+    lv_notify_impl(ret, trigger_data->tg_relation);
+
+    PG_RETURN_POINTER(ret);
+}
+
+// comparisions
+Datum
 linda_value_cmp(PG_FUNCTION_ARGS) {
     Datum left = PG_GETARG_DATUM(0);
     Datum right = PG_GETARG_DATUM(1);
@@ -136,101 +157,25 @@ linda_value_cmp(PG_FUNCTION_ARGS) {
     PG_RETURN_INT32(order);
 }
 
-Datum
-linda_value_lt(PG_FUNCTION_ARGS) {
-    Datum left = PG_GETARG_DATUM(0);
-    Datum right = PG_GETARG_DATUM(1);
-    Pointer maybe_detoasted_left = PG_DETOAST_DATUM(left);
-    Pointer maybe_detoasted_right = PG_DETOAST_DATUM(right);
+#define LV_CMP_FN(name, impl)                                    \
+    Datum linda_value_##name(PG_FUNCTION_ARGS) {                 \
+        Datum left = PG_GETARG_DATUM(0);                         \
+        Datum right = PG_GETARG_DATUM(1);                        \
+        Pointer maybe_detoasted_left = PG_DETOAST_DATUM(left);   \
+        Pointer maybe_detoasted_right = PG_DETOAST_DATUM(right); \
+        const bool order = impl(maybe_detoasted_left,            \
+                                maybe_detoasted_right);          \
+        PG_FREE_IF_COPY(maybe_detoasted_left, 0);                \
+        PG_FREE_IF_COPY(maybe_detoasted_right, 1);               \
+        PG_RETURN_BOOL(order);                                   \
+    }
 
-    const bool order = lv_less(maybe_detoasted_left,
-                               maybe_detoasted_right);
-
-    PG_FREE_IF_COPY(maybe_detoasted_left, 0);
-    PG_FREE_IF_COPY(maybe_detoasted_right, 1);
-
-    PG_RETURN_BOOL(order);
-}
-
-Datum
-linda_value_le(PG_FUNCTION_ARGS) {
-    Datum left = PG_GETARG_DATUM(0);
-    Datum right = PG_GETARG_DATUM(1);
-    Pointer maybe_detoasted_left = PG_DETOAST_DATUM(left);
-    Pointer maybe_detoasted_right = PG_DETOAST_DATUM(right);
-
-    const bool order = lv_less_equal(maybe_detoasted_left,
-                                     maybe_detoasted_right);
-
-    PG_FREE_IF_COPY(maybe_detoasted_left, 0);
-    PG_FREE_IF_COPY(maybe_detoasted_right, 1);
-
-    PG_RETURN_BOOL(order);
-}
-
-Datum
-linda_value_gt(PG_FUNCTION_ARGS) {
-    Datum left = PG_GETARG_DATUM(0);
-    Datum right = PG_GETARG_DATUM(1);
-    Pointer maybe_detoasted_left = PG_DETOAST_DATUM(left);
-    Pointer maybe_detoasted_right = PG_DETOAST_DATUM(right);
-
-    const bool order = lv_greater(maybe_detoasted_left,
-                                  maybe_detoasted_right);
-
-    PG_FREE_IF_COPY(maybe_detoasted_left, 0);
-    PG_FREE_IF_COPY(maybe_detoasted_right, 1);
-
-    PG_RETURN_BOOL(order);
-}
-
-Datum
-linda_value_ge(PG_FUNCTION_ARGS) {
-    Datum left = PG_GETARG_DATUM(0);
-    Datum right = PG_GETARG_DATUM(1);
-    Pointer maybe_detoasted_left = PG_DETOAST_DATUM(left);
-    Pointer maybe_detoasted_right = PG_DETOAST_DATUM(right);
-
-    const bool order = lv_greater_equal(maybe_detoasted_left,
-                                        maybe_detoasted_right);
-
-    PG_FREE_IF_COPY(maybe_detoasted_left, 0);
-    PG_FREE_IF_COPY(maybe_detoasted_right, 1);
-
-    PG_RETURN_BOOL(order);
-}
-
-Datum
-linda_value_eq(PG_FUNCTION_ARGS) {
-    Datum left = PG_GETARG_DATUM(0);
-    Datum right = PG_GETARG_DATUM(1);
-    Pointer maybe_detoasted_left = PG_DETOAST_DATUM(left);
-    Pointer maybe_detoasted_right = PG_DETOAST_DATUM(right);
-
-    const bool order = lv_equal(maybe_detoasted_left,
-                                maybe_detoasted_right);
-
-    PG_FREE_IF_COPY(maybe_detoasted_left, 0);
-    PG_FREE_IF_COPY(maybe_detoasted_right, 1);
-
-    PG_RETURN_BOOL(order);
-}
-
-Datum
-linda_value_ne(PG_FUNCTION_ARGS) {
-    Datum left = PG_GETARG_DATUM(0);
-    Datum right = PG_GETARG_DATUM(1);
-    Pointer maybe_detoasted_left = PG_DETOAST_DATUM(left);
-    Pointer maybe_detoasted_right = PG_DETOAST_DATUM(right);
-
-    const bool order = lv_inequal(maybe_detoasted_left,
-                                  maybe_detoasted_right);
-
-    PG_FREE_IF_COPY(maybe_detoasted_left, 0);
-    PG_FREE_IF_COPY(maybe_detoasted_right, 1);
-
-    PG_RETURN_BOOL(order);
-}
+LV_CMP_FN(lt, lv_less)
+LV_CMP_FN(le, lv_less_equal)
+LV_CMP_FN(gt, lv_greater)
+LV_CMP_FN(ge, lv_greater_equal)
+LV_CMP_FN(eq, lv_equal)
+LV_CMP_FN(ne, lv_inequal)
 
 Datum
 linda_value_cmp_equal_image(PG_FUNCTION_ARGS) {

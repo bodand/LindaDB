@@ -43,8 +43,8 @@ extern "C"
 #include <fmgr.h>
 }
 
-#include "../include/fam_datum.hxx"
-#include "../include/linda_funs.h"
+#include "../../include/fam_datum.hxx"
+#include "../../include/linda_funs.h"
 
 namespace {
     template<class Int>

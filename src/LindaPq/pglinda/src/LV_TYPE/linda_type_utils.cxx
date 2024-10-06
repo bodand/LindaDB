@@ -28,22 +28,17 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-07-07.
+ * Originally created: 2024-10-10.
  *
- * src/LindaPq/pqlinda/src/linda_hash --
- *   Support functions for allowing hash indexes in Postgres on LV columns.
+ * src/LindaPq/pglinda/src/LV_TYPE/linda_type_utils --
+ *   
  */
 
-#include <xxh3.h>
+#include "../../include/fam_datum.hxx"
+#include "../../include/linda_type_funs.h"
 
-#include "../include/fam_datum.hxx"
-#include "../include/linda_funs.h"
-
-int64
-lv_hash(void* datum, int64 salt) {
-    if (salt == 0)
-        return XXH3_64bits(VARDATA_ANY(datum), VARSIZE_ANY(datum));
-    return XXH3_64bits_withSeed(VARDATA_ANY(datum),
-                                VARSIZE_ANY(datum),
-                                salt);
+lv_type_internal
+lv_truetype(const void* datum) {
+    const auto type = static_cast<const fam_datum*>(datum)->type();
+    return static_cast<lv_type_internal>(type);
 }

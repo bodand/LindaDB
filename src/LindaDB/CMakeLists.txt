@@ -74,6 +74,7 @@ set(LDB_COMMON_SOURCES
     src/lv/fn_call_holder.cxx
     src/lv/global_function_map.cxx
     src/lv/linda_tuple.cxx
+    src/lv/linda_value.cxx
     src/lv/tuple_builder.cxx
     src/query/concrete_tuple_query.cxx
     src/query/manual_fields_query.cxx

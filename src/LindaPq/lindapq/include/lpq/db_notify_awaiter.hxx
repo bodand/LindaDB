@@ -28,39 +28,32 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/work_pool --
+ * src/LindaPq/lindapq/include/lpq/db_notify_awaiter --
  *   
  */
+#ifndef DB_NOTIFY_AWAITER_HXX
+#define DB_NOTIFY_AWAITER_HXX
+#include <atomic>
+#include <chrono>
 
-#include <catch2/catch_test_macros.hpp>
-#include <lrt/work_pool/work_pool.hxx>
+#include "db_context.hxx"
 
-#include <lrt/work_pool/work.hxx>
+namespace lpq {
+    struct db_notify_awaiter {
+        constexpr const static auto cfg_loop_timeout = std::chrono::milliseconds(777);
 
-namespace {
-    struct test_work {
-        lrt::work_pool<2, lrt::work<>>* pool;
+        db_notify_awaiter(db_context& db, std::string_view channel);
 
-        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
+        void loop();
 
-        void
-        perform() {
-            pool->terminate();
-        }
-
-        friend std::ostream&
-        operator<<(std::ostream& os, const test_work& /*ignored*/) {
-            return os;
-        }
+        void terminate();
+    private:
+        int _socket;
+        std::atomic_flag _stop = ATOMIC_FLAG_INIT;
+        db_context& _db;
     };
 }
 
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.await_terminated();
-}
+#endif

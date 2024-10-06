@@ -28,13 +28,13 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-07-07.
+ * Originally created: 2024-10-10.
  *
- * src/LindaPq/pqlinda/include/linda_funs --
- *   Header for the functions for implementing the LV postgres type.
+ * src/LindaPq/pglinda/include/linda_type_funs --
+ *   
  */
-#ifndef LINDA_FUNS_H
-#define LINDA_FUNS_H
+#ifndef LINDA_TYPE_FUNS_H
+#define LINDA_TYPE_FUNS_H
 
 #include <postgres.h>
 // after postgres.h
@@ -47,53 +47,76 @@
 #  define LPQ_EXTERN
 #endif
 
-// string I/O
+typedef uint8 lv_type_internal;
+#define LvTypeGetDatum(x) UInt8GetDatum(x)
+#define DatumGetLvType(x) DatumGetUInt8(x)
+
+// string IO
 LPQ_EXTERN const char*
-internal_to_lv_str(void* datum);
+internal_to_lv_type_str(lv_type_internal datum);
 
+LPQ_EXTERN lv_type_internal
+lv_type_str_to_internal(char* str_raw);
+
+// binary IO
 LPQ_EXTERN bytea*
-internal_to_lv_bytes(void* datum);
+internal_to_lv_type_bytes(lv_type_internal datum);
 
-// binary I/O
-LPQ_EXTERN void*
-lv_str_to_internal(char* str_raw);
-
-LPQ_EXTERN void*
-lv_bytes_to_internal(StringInfo buf);
+LPQ_EXTERN lv_type_internal
+lv_type_bytes_to_internal(StringInfo buf);
 
 // utils
-LPQ_EXTERN int
-lv_type(void* datum);
-
-LPQ_EXTERN const char*
-lv_nicetype(void* datum);
-
-LPQ_EXTERN void
-lv_notify_impl(void* tuple_raw, void* relation_raw);
+LPQ_EXTERN lv_type_internal
+lv_truetype(const void* datum);
 
 // comparisions
+// type <-> type (most type <-> type comps. are done in place at this time)
 LPQ_EXTERN int
-lv_cmp(void* lhs, void* rhs);
+lv_type_cmp(lv_type_internal lhs, lv_type_internal rhs);
 
-LPQ_EXTERN bool
-lv_less(void* lhs, void* rhs);
+// type <-> value
+LPQ_EXTERN int
+lv_type_value_cmp(lv_type_internal lhs, void* rhs);
 
-LPQ_EXTERN bool
-lv_less_equal(void* lhs, void* rhs);
+LPQ_EXTERN int
+lv_type_value_less(lv_type_internal lhs, void* rhs);
 
-LPQ_EXTERN bool
-lv_greater(void* lhs, void* rhs);
+LPQ_EXTERN int
+lv_type_value_less_equal(lv_type_internal lhs, void* rhs);
 
-LPQ_EXTERN bool
-lv_greater_equal(void* lhs, void* rhs);
+LPQ_EXTERN int
+lv_type_value_greater(lv_type_internal lhs, void* rhs);
 
-LPQ_EXTERN bool
-lv_equal(void* lhs, void* rhs);
+LPQ_EXTERN int
+lv_type_value_greater_equal(lv_type_internal lhs, void* rhs);
 
-LPQ_EXTERN bool
-lv_inequal(void* lhs, void* rhs);
+LPQ_EXTERN int
+lv_type_value_equal(lv_type_internal lhs, void* rhs);
 
-LPQ_EXTERN int64
-lv_hash(void* datum, int64 salt);
+LPQ_EXTERN int
+lv_type_value_inequal(lv_type_internal lhs, void* rhs);
+
+// value <-> type
+LPQ_EXTERN int
+lv_value_type_cmp(void* lhs, lv_type_internal rhs);
+
+LPQ_EXTERN int
+lv_value_type_less(void* lhs, lv_type_internal rhs);
+
+LPQ_EXTERN int
+lv_value_type_less_equal(void* lhs, lv_type_internal rhs);
+
+LPQ_EXTERN int
+lv_value_type_greater(void* lhs, lv_type_internal rhs);
+
+LPQ_EXTERN int
+lv_value_type_greater_equal(void* lhs, lv_type_internal rhs);
+
+LPQ_EXTERN int
+lv_value_type_equal(void* lhs, lv_type_internal rhs);
+
+LPQ_EXTERN int
+lv_value_type_inequal(void* lhs, lv_type_internal rhs);
+
 
 #endif

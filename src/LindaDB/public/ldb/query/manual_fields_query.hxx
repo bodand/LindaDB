@@ -62,62 +62,35 @@ namespace ldb {
         manual_fields_query&
         operator=(manual_fields_query&& mv) noexcept = default;
 
-        ~manual_fields_query() noexcept = default;
+        ~
+        manual_fields_query() noexcept = default;
 
         template<class... Args>
         explicit constexpr manual_fields_query(Args&&... args) noexcept((
                std::is_nothrow_constructible_v<Matchers, Args> && ...))
             requires((!std::same_as<Args, manual_fields_query> && ...))
              : _payload(meta::make_matcher<Args>(std::forward<Args>(args))...) { }
-//
-//        [[nodiscard]] field_match_type<value_type>
-//        search_via_field(std::size_t field_index,
-//                         const IndexType& db_index) const {
-//            LDBT_ZONE_A;
-//            const auto do_check_if_index_matches =
-//                   [field_index,
-//                    &db_index,
-//                    this](field_match_type<value_type>& result,
-//                          std::size_t matcher_idx,
-//                          const auto& matcher_impl) {
-//                       LDBT_ZONE_A;
-//                       if (matcher_idx != field_index) return CONTINUE_LOOP;
-//
-//                       result = this->perform_search(matcher_impl, db_index);
-//                       return TERMINATE_LOOP;
-//                   };
-//            return iterate_matchers_via(do_check_if_index_matches);
-//        }
-//
-//        [[nodiscard]] field_match_type<value_type>
-//        remove_via_field(std::size_t field_index,
-//                         IndexType& db_index) const {
-//            LDBT_ZONE_A;
-//            const auto remove_if_index_matches =
-//                   [field_index,
-//                    &db_index,
-//                    this](field_match_type<value_type>& result,
-//                          std::size_t matcher_idx,
-//                          const auto& matcher_impl) {
-//                       LDBT_ZONE_A;
-//                       if (matcher_idx != field_index) return CONTINUE_LOOP;
-//
-//                       result = this->perform_remove(matcher_impl, db_index);
-//                       return TERMINATE_LOOP;
-//                   };
-//            return iterate_matchers_via(remove_if_index_matches);
-//        }
 
         [[nodiscard]] lv::linda_tuple
         as_representing_tuple() const noexcept {
             LDBT_ZONE_A;
             return [this]<std::size_t... MatcherIndex>(
                           std::index_sequence<MatcherIndex...>) {
-                LDBT_ZONE_A;
                 return lv::linda_tuple(
                        lv::make_linda_value(
                               std::get<MatcherIndex>(_payload).template get_value<lv::linda_value>())...);
             }(std::make_index_sequence<sizeof...(Matchers)>());
+        }
+
+        [[nodiscard]] std::string
+        as_type_string() const noexcept {
+            LDBT_ZONE_A;
+            std::string ret(sizeof...(Matchers), '0');
+            [this, &ret]<std::size_t... MatcherIndex>(
+                          std::index_sequence<MatcherIndex...>) {
+                (((void) ret[MatcherIndex] = std::get<MatcherIndex>(_payload).template get_type_char<lv::linda_value>()), ...);
+            }(std::make_index_sequence<sizeof...(Matchers)>());
+            return ret;
         }
 
     private:
@@ -160,7 +133,8 @@ namespace ldb {
         }
 
         struct matcher {
-            explicit matcher(std::partial_ordering& ordering) : ordering(ordering) { }
+            explicit
+            matcher(std::partial_ordering& ordering) : ordering(ordering) { }
             std::partial_ordering& ordering;
 
             bool

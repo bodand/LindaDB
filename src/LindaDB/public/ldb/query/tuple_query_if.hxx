@@ -75,6 +75,7 @@ namespace ldb {
         typename std::remove_cvref_t<Query>::value_type;
 
         { query.as_representing_tuple() } -> std::convertible_to<lv::linda_tuple>;
+        { query.as_type_string() } -> std::same_as<std::string>;
         { query <=> tuple };
     };
 }

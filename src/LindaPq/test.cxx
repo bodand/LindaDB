@@ -28,39 +28,62 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/work_pool --
+ * src/LindaPq/test --
  *   
  */
 
-#include <catch2/catch_test_macros.hpp>
-#include <lrt/work_pool/work_pool.hxx>
+#include <cstdlib>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <numeric>
+#include <thread>
 
-#include <lrt/work_pool/work.hxx>
+#include <ldb/lv/linda_tuple.hxx>
+#include <ldb/query.hxx>
+#include <lpq/db_context.hxx>
+#include <lpq/db_notify_awaiter.hxx>
+#include <lpq/db_query.hxx>
+#include <lpq/query_tuple_to_sql.hxx>
 
-namespace {
-    struct test_work {
-        lrt::work_pool<2, lrt::work<>>* pool;
+#include <libpq-fe.h>
+#include <mpi.h>
 
-        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
+int
+main(int argc, char** argv) {
+    using namespace ldb::lv::io;
+    int g;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &g);
 
-        void
-        perform() {
-            pool->terminate();
-        }
+    lpq::db_context db;
 
-        friend std::ostream&
-        operator<<(std::ostream& os, const test_work& /*ignored*/) {
-            return os;
-        }
-    };
-}
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.await_terminated();
+    if (rank != 0) {
+        auto awaiter = db.listen("linda_event");
+        awaiter.loop();
+    }
+    else {
+        const ldb::lv::linda_tuple tup(1, 2U, "al,ma", "yeeetus", 3UL);
+        const auto query = make_insert(db, tup);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(789));
+
+        std::ignore = query.exec(tup);
+    }
+
+    unsigned u;
+    std::string s;
+    const auto q = ldb::make_piecewise_query(ldb::over_index<lpq::db_context>, 1, ldb::ref(&u), "al,ma", ldb::ref(&s), 3UL);
+    const auto query = lpq::make_delete(db, q);
+    if (const auto res = query.exec(q.as_representing_tuple()))
+        std::cout << "found: " << *res << "\n";
+    else
+        std::cout << "nothing found\n";
+
+    MPI_Finalize();
 }

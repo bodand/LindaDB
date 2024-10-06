@@ -46,28 +46,13 @@
 
 #include <ldb/lv/ref_type.hxx>
 #include <ldb/query/meta_finder.hxx>
+#include <ldb/query/meta.hxx>
 
 namespace ldb {
-    namespace helper {
-        template<class, class>
-        struct index_of_type_i;
-
-        template<class T, class Head, class... Tail, template<class...> class L>
-        struct index_of_type_i<T, L<Head, Tail...>> {
-            constexpr const static auto value = 1 + index_of_type_i<T, L<Tail...>>::value;
-        };
-        template<class T, class... Tail, template<class...> class L>
-        struct index_of_type_i<T, L<T, Tail...>> {
-            constexpr const static auto value = 0;
-        };
-
-        template<class T, class TList>
-        constexpr const static auto index_of_type = index_of_type_i<T, TList>::value;
-    }
-
     template<class T>
     struct match_type {
-        constexpr explicit match_type(T* ref) noexcept : _ref(ref) { }
+        constexpr explicit
+        match_type(T* ref) noexcept : _ref(ref) { }
 
         template<class... Args>
         [[nodiscard]] constexpr auto
@@ -101,7 +86,13 @@ namespace ldb {
         template<class ValueList>
         [[nodiscard]] lv::ref_type
         get_value() const noexcept {
-            return lv::ref_type(helper::index_of_type<T, ValueList>);
+            return lv::ref_type(meta::index_of_type<T, ValueList>);
+        }
+
+        template<class ValueList>
+        [[nodiscard]] char
+        get_type_char() const noexcept {
+            return to_hex(meta::index_of_type<T, ValueList>);
         }
 
     private:

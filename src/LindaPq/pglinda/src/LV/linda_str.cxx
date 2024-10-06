@@ -36,8 +36,7 @@
 
 #include <charconv>
 #include <cstring>
-
-#include <ldb/lv/linda_value.hxx>
+#include <string_view>
 
 extern "C"
 {
@@ -46,8 +45,8 @@ extern "C"
 #include <fmgr.h>
 }
 
-#include "../include/fam_datum.hxx"
-#include "../include/linda_funs.h"
+#include "../../include/fam_datum.hxx"
+#include "../../include/linda_funs.h"
 
 namespace {
     [[noreturn]] void

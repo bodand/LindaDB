@@ -82,7 +82,7 @@ execute_compiler(int id,
     std::ostringstream ss;
     ss << "-c -ftemplate-depth=4000 -o " << out << " " << input;
 //    std::ofstream("_build.log", std::ios::app) << "g++ " << ss.str() << "\n";
-    int x = cross_exec("g++.exe", ss.str());
+    int x = cross_exec("g++", ss.str());
 //    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): CC" << id << ": g++ " << ss.str() << "... " << x << "\n";
     return x;
 }
@@ -94,7 +94,7 @@ execute_linker(int id,
     std::ostringstream ss;
     ss << "-o " << out << " " << inputs;
     //    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): LINK" << id << ": g++ " << ss.str() << "...\n";
-    auto x = cross_exec("g++.exe", ss.str());
+    auto x = cross_exec("g++", ss.str());
 //    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): LINK" << id << ": g++ " << ss.str() << "... " << x << "\n";
     return x;
 }

@@ -28,39 +28,60 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/work_pool --
+ * src/LindaPq/lindapq/include/db_query --
  *   
  */
+#ifndef DB_QUERY_HXX
+#define DB_QUERY_HXX
 
-#include <catch2/catch_test_macros.hpp>
-#include <lrt/work_pool/work_pool.hxx>
+#include <iostream>
+#include <optional>
+#include <string>
 
-#include <lrt/work_pool/work.hxx>
+#include <lpq/db_context.hxx>
+#include <lpq/query_tuple_to_sql.hxx>
 
-namespace {
-    struct test_work {
-        lrt::work_pool<2, lrt::work<>>* pool;
+namespace ldb::lv {
+    struct linda_tuple;
+}
 
-        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
+namespace lpq {
+    struct db_query {
+        db_query(db_context& db, bool query, std::string_view sql, const param_types& param_types);
 
-        void
-        perform() {
-            pool->terminate();
-        }
+        std::optional<ldb::lv::linda_tuple>
+        exec(const ldb::lv::linda_tuple& params) const;
 
-        friend std::ostream&
-        operator<<(std::ostream& os, const test_work& /*ignored*/) {
-            return os;
-        }
+        ~db_query() noexcept;
+
+    private:
+        db_context& db;
+        bool _query;
+        std::string _stmt;
+        param_types _param_count;
     };
+
+    inline db_query
+    make_insert(db_context& db, const ldb::lv::linda_tuple& tup) {
+        const auto [sql, param_types] = translate_insert(tup);
+        return {db, false, sql, param_types};
+    }
+
+    template<ldb::tuple_queryable Query>
+    db_query
+    make_select(db_context& db, const Query& query) {
+        const auto [sql, param_types] = query_to_sql_mapper(db, query).translate_search();
+        return {db, true, sql, param_types};
+    }
+
+    template<ldb::tuple_queryable Query>
+    db_query
+    make_delete(db_context& db, const Query& query) {
+        const auto [sql, param_types] = query_to_sql_mapper(db, query).translate_remove();
+        return {db, true, sql, param_types};
+    }
 }
 
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.await_terminated();
-}
+#endif

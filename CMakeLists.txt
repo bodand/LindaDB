@@ -91,7 +91,7 @@ option(LINDA_RT_BIG_ENDIAN
         ${LRT_IS_BIG_ENDIAN})
 option(LINDA_DB_PROFILING
         "Build with profiling enabled (Tracy profiler) [YES]"
-        YES)
+        NO)
 
 option(LINDA_DB_POSTGRES
         "Build the Postgres based DB-backend for LindaDB [YES] (Requires full Postgres server libraries, ignored if not found)"
@@ -187,9 +187,11 @@ find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
 find_package(Boost REQUIRED)
 find_package(Tracy CONFIG)
+find_package(MPI REQUIRED)
 
 if (LINDA_DB_POSTGRES)
     find_package(xxHash CONFIG REQUIRED)
+    set(PostgreSQL_ROOT "/opt/postgres/" CACHE INTERNAL "")
     find_package(PostgreSQL)
     if (TARGET PostgreSQL::PostgreSQL)
         set(LDB_HAVE_POSTGRES YES CACHE BOOL "Whether Postgres was detected")

@@ -28,54 +28,61 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-07-07.
+ * Originally created: 2024-10-10.
  *
- * src/LindaPq/pqlinda/src/linda_utils --
- *   
+ * src/LindaDB/public/ldb/query/meta --
+ *   Metaprogramming related helpers.
  */
+#ifndef META_HXX
+#define META_HXX
 
-extern "C"
-{
-#include <postgres.h>
-}
+#include <ldb/common.hxx>
 
-#include "../include/fam_datum.hxx"
-#include "../include/linda_funs.h"
+namespace ldb::meta {
+    template<class, class>
+    struct index_of_type_i;
 
-int
-lv_type(void* datum) {
-    return static_cast<fam_datum*>(datum)->type();
-}
+    template<class T, class Head, class... Tail, template<class...> class L>
+    struct index_of_type_i<T, L<Head, Tail...>> {
+        constexpr const static auto value = 1 + index_of_type_i<T, L<Tail...>>::value;
+    };
+    template<class T, class... Tail, template<class...> class L>
+    struct index_of_type_i<T, L<T, Tail...>> {
+        constexpr const static auto value = 0;
+    };
+    template<class T, template<class...> class L>
+    struct index_of_type_i<T, L<>> {
+    };
 
-const char*
-lv_nicetype(void* datum) {
-    switch (auto type = lv_type(datum);
-            static_cast<fam_datum::datum_type>(type)) {
-    case fam_datum::SINT16:
-        return pstrdup("Int16");
-    case fam_datum::UINT16:
-        return pstrdup("UInt16");
-    case fam_datum::SINT32:
-        return pstrdup("Int32");
-    case fam_datum::UINT32:
-        return pstrdup("UInt32");
-    case fam_datum::STRING:
-        return pstrdup("String");
-    case fam_datum::FNCALL:
-        return pstrdup("RemoteFunctionCall");
-    case fam_datum::SINT64:
-        return pstrdup("Int64");
-    case fam_datum::UINT64:
-        return pstrdup("UInt64");
-    case fam_datum::FLOT32:
-        return pstrdup("Float32");
-    case fam_datum::FLOT64:
-        return pstrdup("Float64");
-    case fam_datum::FNCTAG:
-        return pstrdup("FunctionCallTag");
-    case fam_datum::TYPERF:
-        return pstrdup("TypeReference");
-    default:
-        pg_unreachable();
+    template<class T, class TList>
+    constexpr const static auto index_of_type = index_of_type_i<T, TList>::value;
+
+    inline char
+    to_hex(const int x) noexcept {
+        constexpr static char hexa_buf[] = "ABCDEF";
+        switch (x) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            return x + '0';
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+            return hexa_buf[x - 10];
+        default:
+            LDB_UNREACHABLE;
+        }
     }
 }
+
+#endif

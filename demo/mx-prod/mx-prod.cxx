@@ -46,10 +46,10 @@
 
 #include <lrt/linda.hxx>
 
-long long
+std::int64_t
 get_random(int min = 0, int max = 99) {
     static std::mt19937_64 rng(std::random_device{}());
-    std::uniform_int_distribution<long long> dist(min, max);
+    std::uniform_int_distribution<std::int64_t> dist(min, max);
     return dist(rng);
 }
 
@@ -68,11 +68,11 @@ func(std::string a,
             int x = i;
             int y = j;
 
-            long long value = 0;
+            std::int64_t value = 0;
 
             for (int k = 0; k < width; ++k) {
-                long long value_a;
-                long long value_b;
+                std::int64_t value_a;
+                std::int64_t value_b;
 
                 rd(a, x, k, ldb::ref(&value_a));
                 rd(b, k, y, ldb::ref(&value_b));
@@ -118,6 +118,8 @@ real_main(int, char**) {
             out("<", i, j);
         }
     }
+
+    std::cout << "start\n";
     const auto end = std::chrono::high_resolution_clock::now();
 
     for (int i : std::views::iota(1, lrt::this_runtime().world_size())) {
@@ -127,7 +129,7 @@ real_main(int, char**) {
 
     for (auto i : std::views::iota(0, mx_width)) {
         for (auto j : std::views::iota(0, mx_height)) {
-            [[maybe_unused]] long long val;
+            [[maybe_unused]] std::int64_t val;
             rd("C", i, j, ldb::ref(&val));
             std::ignore = val;
         }

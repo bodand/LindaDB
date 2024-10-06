@@ -53,13 +53,44 @@ enable_language(C)
 add_library(pglinda SHARED
         pglinda/include/fam_datum.hxx
         pglinda/include/linda_funs.h
-        pglinda/src/linda_binary.cxx
-        pglinda/src/linda_compare.cxx
-        pglinda/src/linda_hash.cxx
-        pglinda/src/linda_str.cxx
-        pglinda/src/linda_utils.cxx
-        pglinda/src/pq_interface.c
+        pglinda/include/linda_type_funs.h
+        pglinda/src/LV/pq_interface.c
+        pglinda/src/LV/linda_binary.cxx
+        pglinda/src/LV/linda_compare.cxx
+        pglinda/src/LV/linda_hash.cxx
+        pglinda/src/LV/linda_str.cxx
+        pglinda/src/LV/linda_utils.cxx
+        pglinda/src/LV_TYPE/pq_interface.c
+        pglinda/src/LV_TYPE/linda_type_binary.cxx
+        pglinda/src/LV_TYPE/linda_type_compare.cxx
+        pglinda/src/LV_TYPE/linda_type_str.cxx
+        pglinda/src/LV_TYPE/linda_type_utils.cxx
 )
 target_link_libraries(pglinda
         PUBLIC PostgreSQL::PostgreSQL LindaDB
         PRIVATE internal-coverage internal-language-level internal-warnings internal-lto xxHash::xxhash)
+
+add_library(lindapq STATIC
+        lindapq/include/lpq/pg_store.hxx
+        lindapq/include/lpq/query_tuple_to_sql.hxx
+        lindapq/include/lpq/db_notify_awaiter.hxx
+        lindapq/include/lpq/db_context.hxx
+        lindapq/include/lpq/db_query.hxx
+        lindapq/src/pg_store.cxx
+        lindapq/src/db_context.cxx
+        lindapq/src/db_notify_awaiter.cxx
+        lindapq/src/db_query.cxx
+        lindapq/src/query_tuple_to_sql.cxx
+)
+target_link_libraries(lindapq
+        PRIVATE internal-warnings internal-coverage internal-lto PostgreSQL::PostgreSQL MPI::MPI_CXX LindaDB)
+target_compile_features(lindapq PUBLIC cxx_std_20)
+target_include_directories(lindapq
+        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lindapq/include>)
+
+add_executable(lindapg-test
+        test.cxx)
+target_link_libraries(lindapg-test
+        PRIVATE internal-warnings internal-coverage internal-lto PostgreSQL::PostgreSQL MPI::MPI_CXX LindaDB lindapq)
+target_compile_features(lindapg-test PUBLIC cxx_std_20)
+

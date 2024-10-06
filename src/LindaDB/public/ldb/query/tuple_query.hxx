@@ -78,6 +78,9 @@ namespace ldb {
             [[nodiscard]] virtual ldb::lv::linda_tuple
             do_as_representing_tuple() const = 0;
 
+            [[nodiscard]] virtual std::string
+            do_as_type_string() const = 0;
+
             virtual std::ostream&
             write_to(std::ostream& os) = 0;
 
@@ -96,20 +99,12 @@ namespace ldb {
                 return query_impl.as_representing_tuple();
             }
 
-//            [[nodiscard]] field_match_type<internal_value_type>
-//            do_search_on_index(std::size_t field_index,
-//                               const IndexType& db_index) const override {
-//                LDBT_ZONE_A;
-//                return query_impl.search_via_field(field_index, db_index);
-//            }
-//
-//            [[nodiscard]] field_match_type<internal_value_type>
-//            do_remove_on_index(std::size_t field_index,
-//                               IndexType& db_index) const override {
-//                LDBT_ZONE_A;
-//                return query_impl.remove_via_field(field_index, db_index);
-//            }
-//
+            [[nodiscard]] std::string
+            do_as_type_string() const override {
+                LDBT_ZONE_A;
+                return query_impl.as_type_string();
+            }
+
             [[nodiscard]] std::partial_ordering
             do_compare(const lv::linda_tuple& tuple) const override {
                 LDBT_ZONE_A;

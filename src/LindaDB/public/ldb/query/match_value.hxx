@@ -86,10 +86,16 @@ namespace ldb {
         constexpr static std::true_type
         indexable() { return {}; }
 
-        template<class ValueList>
+        template<class>
         [[nodiscard]] std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>
         get_value() const noexcept {
             return _field;
+        }
+
+        template<class ValueList>
+        [[nodiscard]] char
+        get_type_char() const noexcept {
+            return to_hex(meta::index_of_type<T, ValueList>);
         }
 
     private:

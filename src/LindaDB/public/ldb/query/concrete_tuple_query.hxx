@@ -38,6 +38,7 @@
 
 #include <cassert>
 #include <compare>
+#include <charconv>
 #include <cstddef>
 
 #include <ldb/index/tree/index_query.hxx> // NOLINT(*-include-cleaner) actually used
@@ -88,6 +89,17 @@ namespace ldb {
         as_representing_tuple() const noexcept {
             LDBT_ZONE_A;
             return _tuple;
+        }
+
+        [[nodiscard]] std::string
+        as_type_string() const {
+            LDBT_ZONE_A;
+            return std::accumulate(_tuple.begin(), _tuple.end(), std::string(), [](std::string acc, const lv::linda_value& lv) {
+                const auto last_size = acc.size();
+                acc.resize(last_size + 1);
+                std::to_chars(acc.data() + last_size, acc.data() + last_size + 1, lv.index(), 16);
+                return acc;
+            });
         }
 
     private:

@@ -28,39 +28,36 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/work_pool --
+ * src/LindaPq/pglinda/src/LV_TYPE/linda_type_binary --
  *   
  */
 
-#include <catch2/catch_test_macros.hpp>
-#include <lrt/work_pool/work_pool.hxx>
+#include <charconv>
+#include <cstring>
 
-#include <lrt/work_pool/work.hxx>
-
-namespace {
-    struct test_work {
-        lrt::work_pool<2, lrt::work<>>* pool;
-
-        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
-
-        void
-        perform() {
-            pool->terminate();
-        }
-
-        friend std::ostream&
-        operator<<(std::ostream& os, const test_work& /*ignored*/) {
-            return os;
-        }
-    };
+extern "C"
+{
+#include <postgres.h>
+// after postgres.h
+#include <fmgr.h>
+#include <libpq/pqformat.h>
 }
 
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.await_terminated();
+#include "../../include/linda_type_funs.h"
+
+bytea*
+internal_to_lv_type_bytes(lv_type_internal datum) {
+    StringInfoData buf;
+    pq_begintypsend(&buf);
+    pq_sendbyte(&buf, datum);
+    return pq_endtypsend(&buf);
+}
+
+lv_type_internal
+lv_type_bytes_to_internal(StringInfo buf) {
+    lv_type_internal datum = pq_getmsgbyte(buf);
+    pq_getmsgend(buf);
+    return datum;
 }

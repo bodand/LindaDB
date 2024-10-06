@@ -28,39 +28,62 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/work_pool --
+ * src/LindaPq/lindapq/include/db_context --
  *   
  */
+#ifndef DB_CONTEXT_HXX
+#define DB_CONTEXT_HXX
 
-#include <catch2/catch_test_macros.hpp>
-#include <lrt/work_pool/work_pool.hxx>
+#include <atomic>
+#include <memory>
+#include <span>
+#include <string>
+#include <optional>
+#include <string_view>
 
-#include <lrt/work_pool/work.hxx>
+namespace lpq {
+    struct db_notify_awaiter;
+}
+namespace ldb::lv {
+    struct linda_tuple;
+}
 
-namespace {
-    struct test_work {
-        lrt::work_pool<2, lrt::work<>>* pool;
+namespace lpq {
+    struct db_context {
+        using value_type = int;
 
-        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
+        db_context();
+
+        std::string
+        prepare(std::string_view sql);
+
+        std::optional<ldb::lv::linda_tuple>
+        exec_prepared(const std::string& stmt, std::span<const char*> params) const;
 
         void
-        perform() {
-            pool->terminate();
-        }
+        deallocate(const std::string& stmt) const;
 
-        friend std::ostream&
-        operator<<(std::ostream& os, const test_work& /*ignored*/) {
-            return os;
-        }
+        void*
+        native_handle() const noexcept { return _conn.get(); }
+
+        db_notify_awaiter
+        listen(std::string_view channel);
+
+    private:
+        std::string
+        next_name();
+
+        struct conn_freer {
+            void
+            operator()(void* conn) const noexcept;
+        };
+        using conn_type = std::unique_ptr<void, conn_freer>;
+
+        std::atomic<unsigned> _stmt_namer{};
+        conn_type _conn;
     };
 }
 
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.await_terminated();
-}
+#endif

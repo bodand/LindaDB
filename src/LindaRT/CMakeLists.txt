@@ -34,7 +34,6 @@
 #   The CMakeLists file for managing the LindaRT project's main source
 #   components.
 
-find_package(MPI REQUIRED)
 
 add_library(LindaRT STATIC
             include/lrt/work_pool/work/eval_work.hxx

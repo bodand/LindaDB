@@ -37,7 +37,6 @@
 if (WIN32)
     set(exec_impl exec.win32.cxx)
 else ()
-    return() # currently not implemented :(
     set(exec_impl exec.posix.cxx)
 endif ()
 

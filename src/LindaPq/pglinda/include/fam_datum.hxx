@@ -150,7 +150,11 @@ public:
             pq_sendstring(&buf, reinterpret_cast<const char*>(data()));
             break;
         case FNCALL:
-            break; // todo
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("invalid data for type %s: %s not implemented",
+                            "linda_value",
+                            "fncall")));
         case SINT64:
             [[fallthrough]];
         case UINT64:
@@ -186,8 +190,6 @@ public:
             return psprintf("3@%" PRIu32, *reinterpret_cast<std::uint32_t*>(data()));
         case STRING:
             return psprintf("4@%.*s", size(), reinterpret_cast<const char*>(data()));
-        case FNCALL:
-            return pstrdup("5@"); // todo
         case SINT64:
             return psprintf("6@%" PRId64, *reinterpret_cast<std::uint64_t*>(data()));
         case UINT64:
@@ -198,9 +200,14 @@ public:
             return psprintf("9@%g", *reinterpret_cast<double*>(data()));
         case FNCTAG:
             return pstrdup("A@");
-        case TYPERF: {
+        case TYPERF:
             return psprintf("B@%" PRId8, size(), *reinterpret_cast<std::int8_t*>(data()));
-        }
+        case FNCALL:
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("invalid data for type %s: %s not implemented",
+                            "linda_value",
+                            "fncall")));
         default:
             pg_unreachable();
         }

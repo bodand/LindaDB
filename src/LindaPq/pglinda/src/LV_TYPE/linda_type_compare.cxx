@@ -28,39 +28,63 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/work_pool --
+ * src/LindaPq/pglinda/src/LV_TYPE/linda_type_compare --
  *   
  */
 
-#include <catch2/catch_test_macros.hpp>
-#include <lrt/work_pool/work_pool.hxx>
 
-#include <lrt/work_pool/work.hxx>
+#include "../../include/fam_datum.hxx"
+#include "../../include/linda_type_funs.h"
 
 namespace {
-    struct test_work {
-        lrt::work_pool<2, lrt::work<>>* pool;
-
-        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
-
-        void
-        perform() {
-            pool->terminate();
-        }
-
-        friend std::ostream&
-        operator<<(std::ostream& os, const test_work& /*ignored*/) {
-            return os;
-        }
-    };
+    constexpr int
+    ordering_to_int(std::strong_ordering o) noexcept {
+        if (o < 0) return -1;
+        if (o > 0) return 1;
+        return 0;
+    }
 }
 
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.await_terminated();
+int
+lv_type_cmp(lv_type_internal lhs, lv_type_internal rhs) {
+    return ordering_to_int(lhs <=> rhs);
 }
+
+#define LEFT_TYPE (static_cast<const fam_datum*>(lhs)->type())
+#define RIGHT_TYPE (static_cast<const fam_datum*>(rhs)->type())
+
+int
+lv_type_value_cmp(lv_type_internal lhs, void* rhs) {
+    return ordering_to_int(lhs <=> RIGHT_TYPE);
+}
+
+int
+lv_value_type_cmp(void* lhs, lv_type_internal rhs) {
+    return ordering_to_int(LEFT_TYPE <=> rhs);
+}
+
+#define TYPE_VALUE_CMP_FN(name, op)                                  \
+    int lv_type_value_##name(lv_type_internal lhs, void* rhs) {      \
+        return lhs op RIGHT_TYPE;                                    \
+    }
+
+#define VALUE_TYPE_CMP_FN(name, op)                                 \
+    int lv_value_type_##name(void* lhs, lv_type_internal rhs) {     \
+        return LEFT_TYPE op rhs;                                    \
+    }
+
+TYPE_VALUE_CMP_FN(less, <)
+TYPE_VALUE_CMP_FN(less_equal, <=)
+TYPE_VALUE_CMP_FN(greater, >)
+TYPE_VALUE_CMP_FN(greater_equal, >=)
+TYPE_VALUE_CMP_FN(equal, ==)
+TYPE_VALUE_CMP_FN(inequal, !=)
+
+VALUE_TYPE_CMP_FN(less, <)
+VALUE_TYPE_CMP_FN(less_equal, <=)
+VALUE_TYPE_CMP_FN(greater, >)
+VALUE_TYPE_CMP_FN(greater_equal, >=)
+VALUE_TYPE_CMP_FN(equal, ==)
+VALUE_TYPE_CMP_FN(inequal, !=)

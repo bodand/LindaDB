@@ -30,74 +30,20 @@
  *
  * Originally created: 2024-07-07.
  *
- * src/LindaPq/pqlinda/src/linda_compare --
- *   
+ * src/LindaPq/pqlinda/src/linda_hash --
+ *   Support functions for allowing hash indexes in Postgres on LV columns.
  */
 
-#include "../include/fam_datum.hxx"
-#include "../include/linda_funs.h"
+#include <xxh3.h>
 
-namespace {
-    constexpr int
-    ordering_to_int(std::strong_ordering o) noexcept {
-        if (o < 0) return -1;
-        if (o > 0) return 1;
-        return 0;
-    }
-}
+#include "../../include/fam_datum.hxx"
+#include "../../include/linda_funs.h"
 
-int
-lv_cmp(void* lhs, void* rhs) {
-    const auto* left = static_cast<const fam_datum*>(lhs);
-    const auto* right = static_cast<const fam_datum*>(rhs);
-
-    return ordering_to_int(*left <=> *right);
-}
-
-bool
-lv_less(void* lhs, void* rhs) {
-    const auto* left = static_cast<const fam_datum*>(lhs);
-    const auto* right = static_cast<const fam_datum*>(rhs);
-
-    return *left < *right;
-}
-
-bool
-lv_less_equal(void* lhs, void* rhs) {
-    const auto* left = static_cast<const fam_datum*>(lhs);
-    const auto* right = static_cast<const fam_datum*>(rhs);
-
-    return *left <= *right;
-}
-
-bool
-lv_greater(void* lhs, void* rhs) {
-    const auto* left = static_cast<const fam_datum*>(lhs);
-    const auto* right = static_cast<const fam_datum*>(rhs);
-
-    return *left > *right;
-}
-
-bool
-lv_greater_equal(void* lhs, void* rhs) {
-    const auto* left = static_cast<const fam_datum*>(lhs);
-    const auto* right = static_cast<const fam_datum*>(rhs);
-
-    return *left >= *right;
-}
-
-bool
-lv_equal(void* lhs, void* rhs) {
-    const auto* left = static_cast<const fam_datum*>(lhs);
-    const auto* right = static_cast<const fam_datum*>(rhs);
-
-    return *left == *right;
-}
-
-bool
-lv_inequal(void* lhs, void* rhs) {
-    const auto* left = static_cast<const fam_datum*>(lhs);
-    const auto* right = static_cast<const fam_datum*>(rhs);
-
-    return *left != *right;
+int64
+lv_hash(void* datum, int64 salt) {
+    if (salt == 0)
+        return XXH3_64bits(VARDATA_ANY(datum), VARSIZE_ANY(datum));
+    return XXH3_64bits_withSeed(VARDATA_ANY(datum),
+                                VARSIZE_ANY(datum),
+                                salt);
 }

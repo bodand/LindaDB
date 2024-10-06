@@ -28,39 +28,10 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/work_pool --
+ * src/LindaPq/lindapq/src/query_tuple_to_sql --
  *   
  */
 
-#include <catch2/catch_test_macros.hpp>
-#include <lrt/work_pool/work_pool.hxx>
-
-#include <lrt/work_pool/work.hxx>
-
-namespace {
-    struct test_work {
-        lrt::work_pool<2, lrt::work<>>* pool;
-
-        explicit test_work(lrt::work_pool<2, lrt::work<>>& pool) : pool(&pool) { }
-
-        void
-        perform() {
-            pool->terminate();
-        }
-
-        friend std::ostream&
-        operator<<(std::ostream& os, const test_work& /*ignored*/) {
-            return os;
-        }
-    };
-}
-
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.await_terminated();
-}
+#include <lpq/query_tuple_to_sql.hxx>

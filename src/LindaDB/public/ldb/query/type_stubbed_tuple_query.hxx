@@ -40,6 +40,7 @@
 #include <cassert>
 #include <compare>
 #include <cstddef>
+#include <utility>
 
 #include <ldb/index/tree/index_query.hxx> // NOLINT(*-include-cleaner) actually used
 #include <ldb/lv/linda_tuple.hxx>
@@ -61,9 +62,11 @@ namespace ldb {
         type_stubbed_tuple_query&
         operator=(type_stubbed_tuple_query&& mv) noexcept = default;
 
-        ~type_stubbed_tuple_query() noexcept = default;
+        ~
+        type_stubbed_tuple_query() noexcept = default;
 
-        explicit type_stubbed_tuple_query(const lv::linda_tuple& tuple)
+        explicit
+        type_stubbed_tuple_query(const lv::linda_tuple& tuple)
              : _tuple(tuple) { }
 
         [[nodiscard]] field_match_type<value_type>
@@ -98,6 +101,17 @@ namespace ldb {
         as_representing_tuple() const noexcept {
             LDBT_ZONE_A;
             return _tuple;
+        }
+
+        [[nodiscard]] std::string
+        as_type_string() const {
+            LDBT_ZONE_A;
+            return std::accumulate(_tuple.begin(), _tuple.end(), std::string(), [](std::string acc, const lv::linda_value& lv) {
+                const auto last_size = acc.size();
+                acc.resize(last_size + 1);
+                std::to_chars(acc.data() + last_size, acc.data() + last_size + 1, lv.index(), 16);
+                return acc;
+            });
         }
 
     private:
