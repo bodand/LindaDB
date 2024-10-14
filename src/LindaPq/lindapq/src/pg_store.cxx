@@ -34,4 +34,21 @@
  *   
  */
 
+#include <lpq/pg_store.hxx>
 
+lpq::pg_store::pg_store()
+    : _awaiter(_db.listen("linda_event")) {
+    _await_looper = std::thread([this] {
+        _awaiter.loop([this](const std::int64_t,
+                             const std::string_view typemap) {
+            LDBT_LOCK(_typemaps_mtx);
+            const auto [begin, end] = _typemaps.equal_range(typemap);
+            for (auto i = begin; i != end; ++i) {
+                if (!i->second->retry()) continue;
+
+                _typemaps.erase(i);
+                break;
+            }
+        });
+    });
+}

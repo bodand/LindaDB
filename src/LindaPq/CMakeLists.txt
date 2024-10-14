@@ -76,11 +76,13 @@ add_library(lindapq STATIC
         lindapq/include/lpq/db_notify_awaiter.hxx
         lindapq/include/lpq/db_context.hxx
         lindapq/include/lpq/db_query.hxx
+        lindapq/include/lpq/pg_conn_pool.hxx
         lindapq/src/pg_store.cxx
         lindapq/src/db_context.cxx
         lindapq/src/db_notify_awaiter.cxx
         lindapq/src/db_query.cxx
         lindapq/src/query_tuple_to_sql.cxx
+        lindapq/src/pg_conn_pool.cxx
 )
 target_link_libraries(lindapq
         PRIVATE internal-warnings internal-coverage internal-lto PostgreSQL::PostgreSQL MPI::MPI_CXX LindaDB)

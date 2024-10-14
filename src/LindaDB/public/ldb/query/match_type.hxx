@@ -92,7 +92,7 @@ namespace ldb {
         template<class ValueList>
         [[nodiscard]] char
         get_type_char() const noexcept {
-            return to_hex(meta::index_of_type<T, ValueList>);
+            return meta::to_hex(meta::index_of_type<T, ValueList>);
         }
 
     private:

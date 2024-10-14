@@ -49,10 +49,15 @@ namespace ldb::lv {
 
 namespace lpq {
     struct db_query {
-        db_query(db_context& db, bool query, std::string_view sql, const param_types& param_types);
+        db_query(db_context& db,
+                 bool query,
+                 std::string_view sql,
+                 const param_types& param_types,
+                 const ldb::lv::linda_tuple& tup,
+                 bool prepared = false);
 
         std::optional<ldb::lv::linda_tuple>
-        exec(const ldb::lv::linda_tuple& params) const;
+        exec() const;
 
         ~db_query() noexcept;
 
@@ -61,26 +66,27 @@ namespace lpq {
         bool _query;
         std::string _stmt;
         param_types _param_count;
+        ldb::lv::linda_tuple _tuple;
     };
 
     inline db_query
     make_insert(db_context& db, const ldb::lv::linda_tuple& tup) {
-        const auto [sql, param_types] = translate_insert(tup);
-        return {db, false, sql, param_types};
+        const auto [sql, param_types] = translate_insert(db, tup);
+        return {db, false, sql, param_types, tup, true};
     }
 
     template<ldb::tuple_queryable Query>
     db_query
     make_select(db_context& db, const Query& query) {
         const auto [sql, param_types] = query_to_sql_mapper(db, query).translate_search();
-        return {db, true, sql, param_types};
+        return {db, true, sql, param_types, query.as_representing_tuple()};
     }
 
     template<ldb::tuple_queryable Query>
     db_query
     make_delete(db_context& db, const Query& query) {
         const auto [sql, param_types] = query_to_sql_mapper(db, query).translate_remove();
-        return {db, true, sql, param_types};
+        return {db, true, sql, param_types, query.as_representing_tuple()};
     }
 }
 

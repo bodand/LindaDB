@@ -88,7 +88,7 @@ namespace ldb {
             std::string ret(sizeof...(Matchers), '0');
             [this, &ret]<std::size_t... MatcherIndex>(
                           std::index_sequence<MatcherIndex...>) {
-                (((void) ret[MatcherIndex] = std::get<MatcherIndex>(_payload).template get_type_char<lv::linda_value>()), ...);
+                (((void) (ret[MatcherIndex] = std::get<MatcherIndex>(_payload).template get_type_char<lv::linda_value>())), ...);
             }(std::make_index_sequence<sizeof...(Matchers)>());
             return ret;
         }

@@ -37,6 +37,7 @@
 #define DB_NOTIFY_AWAITER_HXX
 #include <atomic>
 #include <chrono>
+#include <functional>
 
 #include "db_context.hxx"
 
@@ -46,7 +47,7 @@ namespace lpq {
 
         db_notify_awaiter(db_context& db, std::string_view channel);
 
-        void loop();
+        void loop(std::function<void(std::int64_t, std::string_view)> handler);
 
         void terminate();
     private:

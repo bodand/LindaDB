@@ -38,6 +38,7 @@
 #include <cmath>
 #include <format>
 #include <iostream>
+#include <mutex>
 #include <optional>
 #include <string>
 
@@ -81,55 +82,73 @@ namespace {
             PQclear(res);
         }
     };
+
     using unique_result = std::unique_ptr<PGresult, result_freer>;
 
     constexpr const char* const keys[] = {
-           "host",
-           "port",
-           "user",
-           "password",
-           "dbname",
-           nullptr};
+        "host",
+        "port",
+        "user",
+        "password",
+        "dbname",
+        nullptr
+    };
 }
 
 lpq::db_context::
 db_context() {
     const char* const values[] = {
-           env_or_default("LDB_PG_HOST", "127.0.0.1"),
-           env_or_default("LDB_PG_PORT", "5432"),
-           env_or_default("LDB_PG_USER", "postgres"),
-           env_or_default("LDB_PG_PASS", "postgres"),
-           env_or_default("LDB_PG_DB", "postgres"),
-           nullptr};
+        env_or_default("LDB_PG_HOST", "127.0.0.1"),
+        env_or_default("LDB_PG_PORT", "5432"),
+        env_or_default("LDB_PG_USER", "postgres"),
+        env_or_default("LDB_PG_PASS", "postgres"),
+        env_or_default("LDB_PG_DB", "postgres"),
+        nullptr
+    };
 
     _conn = conn_type(PQconnectdbParams(keys, values, false));
     if (const auto conn = static_cast<PGconn*>(_conn.get());
         !conn || PQstatus(conn) != CONNECTION_OK) {
         const auto postgres_error = PQerrorMessage(conn);
         std::cerr << "fatal: LindaDB\\lindapq cannot establish connection to postgres server: "
-                  << postgres_error << ": params="
-                  << "{Server=" << values[0] << ":" << values[1] << "}"
-                  << "{User=" << values[2] << "}"
-                  << "{Password=" << values[3] << "}"
-                  << "{Database=" << values[4] << "}"
-                  << "\n";
+                << postgres_error << ": params="
+                << "{Server=" << values[0] << ":" << values[1] << "}"
+                << "{User=" << values[2] << "}"
+                << "{Password=" << values[3] << "}"
+                << "{Database=" << values[4] << "}"
+                << "\n";
+        throw std::runtime_error(postgres_error);
+    }
+}
+
+void
+lpq::db_context::do_prepare(const std::string& name, const std::string_view sql) const {
+    const auto conn = static_cast<PGconn*>(_conn.get());
+    unique_result res(PQprepare(conn, name.c_str(), sql.data(), 0, nullptr));
+    if (!res || PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
+        const auto postgres_error = PQerrorMessage(conn);
+        std::cerr << "error: cannot prepare statement: " << PQerrorMessage(conn) << ": "
+                << sql << "\n";
         throw std::runtime_error(postgres_error);
     }
 }
 
 std::string
 lpq::db_context::prepare(std::string_view sql) {
-    const auto conn = static_cast<PGconn*>(_conn.get());
     auto name = next_name();
 
-    unique_result res(PQprepare(conn, name.c_str(), sql.data(), 0, nullptr));
-    if (!res || PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
-        const auto postgres_error = PQerrorMessage(conn);
-        std::cerr << "error: cannot prepare statement: " << PQerrorMessage(conn) << ": "
-                  << sql << "\n";
-        throw std::runtime_error(postgres_error);
-    }
+    do_prepare(name, sql);
     return name;
+}
+
+const std::string&
+lpq::db_context::prepared_insert() {
+    if (!_prep_insert.empty()) return _prep_insert;
+
+    constexpr const static auto insert_sql_shell = std::string_view("CALL insert_linda($1::LV[])");
+    do_prepare("prepared_insert", insert_sql_shell);
+    _prep_insert = "prepared_insert";
+    return _prep_insert;
 }
 
 namespace {
@@ -151,61 +170,71 @@ namespace {
         const auto data_offset = static_cast<std::size_t>(ptr - str.data() + 1);
 
         switch (data_type) {
-        case ldb::meta::index_of_type<std::int16_t, ldb::lv::linda_value>:
-            return parse_numeric<std::int16_t>(str.substr(data_offset));
+            case ldb::meta::index_of_type<std::int16_t, ldb::lv::linda_value>:
+                return parse_numeric<std::int16_t>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<std::uint16_t, ldb::lv::linda_value>:
-            return parse_numeric<std::uint16_t>(str.substr(data_offset));
+            case ldb::meta::index_of_type<std::uint16_t, ldb::lv::linda_value>:
+                return parse_numeric<std::uint16_t>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<std::int32_t, ldb::lv::linda_value>:
-            return parse_numeric<std::int32_t>(str.substr(data_offset));
+            case ldb::meta::index_of_type<std::int32_t, ldb::lv::linda_value>:
+                return parse_numeric<std::int32_t>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<std::uint32_t, ldb::lv::linda_value>:
-            return parse_numeric<std::uint32_t>(str.substr(data_offset));
+            case ldb::meta::index_of_type<std::uint32_t, ldb::lv::linda_value>:
+                return parse_numeric<std::uint32_t>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<std::int64_t, ldb::lv::linda_value>:
-            return parse_numeric<std::int64_t>(str.substr(data_offset));
+            case ldb::meta::index_of_type<std::int64_t, ldb::lv::linda_value>:
+                return parse_numeric<std::int64_t>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<std::uint64_t, ldb::lv::linda_value>:
-            return parse_numeric<std::uint64_t>(str.substr(data_offset));
+            case ldb::meta::index_of_type<std::uint64_t, ldb::lv::linda_value>:
+                return parse_numeric<std::uint64_t>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<std::string, ldb::lv::linda_value>:
-            return ldb::lv::make_linda_value(str.substr(data_offset));
+            case ldb::meta::index_of_type<std::string, ldb::lv::linda_value>:
+                return ldb::lv::make_linda_value(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<float, ldb::lv::linda_value>:
-            return parse_numeric<float>(str.substr(data_offset));
+            case ldb::meta::index_of_type<float, ldb::lv::linda_value>:
+                return parse_numeric<float>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<double, ldb::lv::linda_value>:
-            return parse_numeric<double>(str.substr(data_offset));
+            case ldb::meta::index_of_type<double, ldb::lv::linda_value>:
+                return parse_numeric<double>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<ldb::lv::fn_call_tag, ldb::lv::linda_value>:
-            return ldb::lv::make_linda_value(ldb::lv::fn_call_tag());
+            case ldb::meta::index_of_type<ldb::lv::fn_call_tag, ldb::lv::linda_value>:
+                return ldb::lv::make_linda_value(ldb::lv::fn_call_tag());
 
-        case ldb::meta::index_of_type<ldb::lv::ref_type, ldb::lv::linda_value>:
-            return parse_numeric<std::int8_t>(str.substr(data_offset));
+            case ldb::meta::index_of_type<ldb::lv::ref_type, ldb::lv::linda_value>:
+                return parse_numeric<std::int8_t>(str.substr(data_offset));
 
-        case ldb::meta::index_of_type<ldb::lv::fn_call_holder, ldb::lv::linda_value>:
-            assert_that(false, "DB cannot return fn call holder object");
+            case ldb::meta::index_of_type<ldb::lv::fn_call_holder, ldb::lv::linda_value>:
+                assert_that(false, "DB cannot return fn call holder object");
 
-        default:
-            LDB_UNREACHABLE;
+            default:
+                LDB_UNREACHABLE;
         }
     }
 
+    auto
+    locked_exec(std::mutex& mtx, PGconn* conn, const char* stmt, const std::span<const char*> params) {
+        LDBT_LOCK(mtx);
+
+        auto res = unique_result(
+            PQexecPrepared(conn,
+                           stmt,
+                           params.size(),
+                           params.data(),
+                           nullptr,
+                           nullptr,
+                           0));
+
+        const auto error = PQerrorMessage(conn);
+        return std::make_pair(std::move(res), error);
+    }
 }
 
 std::optional<ldb::lv::linda_tuple>
 lpq::db_context::exec_prepared(const std::string& stmt, const std::span<const char*> params) const {
-    const auto conn = static_cast<PGconn*>(_conn.get());
-
-    const auto res = unique_result(
-           PQexecPrepared(conn,
-                          stmt.c_str(),
-                          params.size(),
-                          params.data(),
-                          nullptr,
-                          nullptr,
-                          0));
+    const auto [res, error] = locked_exec(_conn_mtx,
+                                          static_cast<PGconn*>(_conn.get()),
+                                          stmt.c_str(),
+                                          params);
     const auto cmd_ok = PQresultStatus(res.get()) == PGRES_TUPLES_OK
                         || PQresultStatus(res.get()) == PGRES_COMMAND_OK;
     const auto row_count = PQntuples(res.get());
@@ -213,7 +242,7 @@ lpq::db_context::exec_prepared(const std::string& stmt, const std::span<const ch
     if (!res
         || !cmd_ok
         || row_count > 1) {
-        std::cerr << "error: stmt failed: " << PQerrorMessage(conn) << "\n";
+        std::cerr << "error: stmt failed: " << error << "\n";
         return {};
     }
 
@@ -224,7 +253,8 @@ lpq::db_context::exec_prepared(const std::string& stmt, const std::span<const ch
 
     for (int i = 0; i < fields_sz; ++i) {
         const auto field = PQgetvalue(res.get(), 0, i);
-        if (field) _vals[static_cast<unsigned>(i)] = parse_field(field);
+        assert_that(field, "trying to read from invalid tuple");
+        _vals[static_cast<unsigned>(i)] = parse_field(field);
     }
 
     return ldb::lv::linda_tuple(_vals);
@@ -233,5 +263,6 @@ lpq::db_context::exec_prepared(const std::string& stmt, const std::span<const ch
 void
 lpq::db_context::deallocate(const std::string& stmt) const {
     const auto conn = static_cast<PGconn*>(_conn.get());
+    if (stmt == "prepared_insert") return;
     PQclear(PQexec(conn, std::format("DEALLOCATE {}", stmt).c_str()));
 }

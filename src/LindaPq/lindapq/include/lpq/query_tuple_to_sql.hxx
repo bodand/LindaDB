@@ -61,17 +61,17 @@ namespace lpq {
     }
 
     inline auto
-    translate_insert(const ldb::lv::linda_tuple& tuple) {
-        constexpr const static auto insert_sql_shell = std::string_view("CALL insert_linda($1::LV[])");
+    translate_insert(db_context& db, const ldb::lv::linda_tuple& tuple) {
         const auto param_data = param_types{tuple.size(), 0, tuple.size()};
-        return std::make_pair(insert_sql_shell, param_data);
+        return std::make_pair(db.prepared_insert(), param_data);
     }
 
     template<ldb::tuple_queryable Query>
     struct query_to_sql_mapper {
         explicit
         query_to_sql_mapper(db_context&, Query query)
-             : _query_tuple(query.as_representing_tuple()) { }
+            : _query_tuple(query.as_representing_tuple()) {
+        }
 
         auto
         translate_search() {
@@ -86,7 +86,6 @@ namespace lpq {
         auto
         translate_remove() {
             const auto [cond, n] = generate_condition();
-            const auto scalar_params = std::min(n, cfg::direct_fields.size());
             const auto sql = std::format(sql_in_shell,
                                          generate_select_fields("rel."),
                                          cfg::relation_name,
@@ -96,7 +95,8 @@ namespace lpq {
 
     private:
         constexpr const static auto sql_read_shell = std::string_view(R"(SELECT {0} FROM {1} WHERE {2} LIMIT 1;)");
-        constexpr const static auto sql_in_shell = std::string_view(R"(WITH finder(ctid) AS (SELECT ctid FROM {1} WHERE {2} FOR UPDATE LIMIT 1)
+        constexpr const static auto sql_in_shell = std::string_view(
+            R"(WITH finder(ctid) AS (SELECT ctid FROM {1} WHERE {2} FOR UPDATE LIMIT 1)
 DELETE FROM {1} rel USING finder WHERE rel.ctid = finder.ctid RETURNING {0};)");
 
         std::pair<std::string, std::size_t>
@@ -108,8 +108,7 @@ DELETE FROM {1} rel USING finder WHERE rel.ctid = finder.ctid RETURNING {0};)");
                 if (!acc.empty()) acc += " AND ";
                 if (i < _query_tuple.size()) {
                     acc += std::visit(visitor, _query_tuple[i]);
-                }
-                else {
+                } else {
                     acc += std::format("{} IS NULL", nth_field(i + 1));
                 }
             }

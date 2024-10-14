@@ -28,35 +28,69 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-03-02.
+ * Originally created: 2024-10-10.
  *
- * src/LindaRT/public/lrt/balancer/uniform_random_balancer --
+ * src/LindaPq/lindapq/include/pg_conn_pool --
  *   
  */
-#ifndef LINDADB_UNIFORM_RANDOM_BALANCER_HXX
-#define LINDADB_UNIFORM_RANDOM_BALANCER_HXX
+#ifndef PG_CONN_POOL_HXX
+#define PG_CONN_POOL_HXX
 
-#include <random>
-#include <utility>
+#include <forward_list>
+#include <queue>
+#include <mutex>
+#include <atomic>
+#include <condition_variable>
 
-#include <ldb/lv/linda_tuple.hxx>
-#include <lrt/balancer/balancer_if.hxx>
+#include <lpq/db_context.hxx>
+#include <ldb/common.hxx>
+#include <ldb/profile.hxx>
 
-namespace lrt {
-    struct uniform_random_balancer final {
-        uniform_random_balancer(int comm_size) : _distribution(0, std::max(1, comm_size - 1)) {
-            LDBT_ZONE_A;
-        }
+namespace lpq {
+    struct wrapped_db_context;
 
-        int
-        send_to_rank(const ldb::lv::linda_tuple& /*ignored*/) {
-            LDBT_ZONE_A;
-            return _distribution(_rng);
-        }
+    struct pg_conn_pool {
+        constexpr const static auto cfg_max_connections = 32;
+        constexpr const static auto cfg_initial_connections = cfg_max_connections / 4;
+
+        pg_conn_pool();
+
+        wrapped_db_context
+        receive();
+
+        void
+        release(db_context* db);
 
     private:
-        std::mt19937_64 _rng{std::random_device{}()};
-        std::uniform_int_distribution<int> _distribution;
+        friend wrapped_db_context;
+
+        LDBT_MUTEX(_wait_list_mtx);
+        LDBT_CV(_wait_list_cv);
+        std::queue<db_context*> _wait_list{};
+        LDBT_MUTEX(_contexts_mtx);
+        std::forward_list<db_context> _contexts{};
+        std::atomic<std::size_t> _contexts_sz{cfg_initial_connections};
+    };
+
+    struct wrapped_db_context {
+        db_context*
+        operator->() const noexcept { return _ref; }
+
+        db_context&
+        operator*() const noexcept { return *_ref; }
+
+        ~wrapped_db_context() noexcept { _owner.release(_ref); }
+
+    private:
+        friend pg_conn_pool;
+
+        wrapped_db_context(db_context* ref, pg_conn_pool& owner)
+            : _ref(ref),
+              _owner(owner) {
+        }
+
+        db_context* _ref;
+        pg_conn_pool& _owner;
     };
 }
 

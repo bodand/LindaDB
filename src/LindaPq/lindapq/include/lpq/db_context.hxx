@@ -39,13 +39,18 @@
 #include <atomic>
 #include <memory>
 #include <span>
+#include <mutex>
 #include <string>
 #include <optional>
 #include <string_view>
 
+#include <ldb/common.hxx>
+#include <ldb/profile.hxx>
+
 namespace lpq {
     struct db_notify_awaiter;
 }
+
 namespace ldb::lv {
     struct linda_tuple;
 }
@@ -56,8 +61,13 @@ namespace lpq {
 
         db_context();
 
+        void do_prepare(const std::string& name, std::string_view sql) const;
+
         std::string
         prepare(std::string_view sql);
+
+        const std::string&
+            prepared_insert();
 
         std::optional<ldb::lv::linda_tuple>
         exec_prepared(const std::string& stmt, std::span<const char*> params) const;
@@ -79,10 +89,13 @@ namespace lpq {
             void
             operator()(void* conn) const noexcept;
         };
+
         using conn_type = std::unique_ptr<void, conn_freer>;
 
-        std::atomic<unsigned> _stmt_namer{};
+        inline static std::atomic<unsigned> _stmt_namer{};
+        mutable LDBT_MUTEX(_conn_mtx);
         conn_type _conn;
+        std::string _prep_insert{};
     };
 }
 

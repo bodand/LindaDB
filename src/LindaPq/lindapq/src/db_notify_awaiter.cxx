@@ -80,9 +80,9 @@ db_notify_awaiter(db_context& db, std::string_view channel) : _db(db) {
 }
 
 void
-lpq::db_notify_awaiter::loop() {
+lpq::db_notify_awaiter::loop(std::function<void(std::int64_t, std::string_view)> handler) {
     namespace chr = std::chrono;
-    const pg_usec_time_t timeout = chr::duration_cast<chr::microseconds>(cfg_loop_timeout).count();
+    constexpr pg_usec_time_t timeout = chr::duration_cast<chr::microseconds>(cfg_loop_timeout).count();
     const auto conn = static_cast<PGconn*>(_db.native_handle());
 
     while (!_stop.test()) {
@@ -97,12 +97,19 @@ lpq::db_notify_awaiter::loop() {
         PQconsumeInput(conn);
         unique_notify notify;
         while ((notify = unique_notify(PQnotifies(conn))) != nullptr) {
-            // todo callback
-            std::cout << "NOTIFY RECEIVED: " << notify->extra
-                      << " FROM " << notify->be_pid
-                      << " ON CHANNEL " << notify->relname
-                      << "\n";
-            terminate();
+            std::int64_t id;
+            const auto extra_sz = std::strlen(notify->extra);
+            const auto [ptr, ec] = std::from_chars(notify->extra, notify->extra + extra_sz, id);
+            if (ec != std::errc{}) continue;
+
+            const auto typemap_start = ptr + 1;
+            const auto typemap_sz = extra_sz - (typemap_start - notify->extra);
+
+            try {
+                handler(id, std::string_view(typemap_start, typemap_sz));
+            } catch (const std::exception& ex) {
+                std::cerr << "error: notification handler threw on " << notify->extra << ": " << ex.what() << "\n";
+            }
             PQconsumeInput(conn);
         }
     }

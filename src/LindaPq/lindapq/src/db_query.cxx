@@ -44,7 +44,7 @@ namespace {
     tuple_to_pg_array(It begin, End end) {
         constexpr const static std::string_view init_buf = "{";
         std::string ret(init_buf);
-        ret.reserve((end - begin) * 32);
+        ret.reserve(static_cast<std::string::size_type>(end - begin) * 32);
         ret = std::accumulate(begin, end, //
                               std::move(ret),
                               [](std::string acc, const ldb::lv::linda_value& lv) {
@@ -68,18 +68,28 @@ namespace {
 }
 
 lpq::db_query::
-db_query(db_context& db, bool query, std::string_view sql, const param_types& param_count)
-     : db(db), _query(query), _stmt(db.prepare(sql)), _param_count(param_count) {
+db_query(db_context& db,
+         const bool query,
+         const std::string_view sql,
+         const param_types& param_types,
+         const ldb::lv::linda_tuple& tup,
+         const bool prepared)
+    : db(db),
+      _query(query),
+      _stmt(prepared ? sql : db.prepare(sql)),
+      _param_count(param_types),
+      _tuple(tup) {
 }
 
 std::optional<ldb::lv::linda_tuple>
-lpq::db_query::exec(const ldb::lv::linda_tuple& params) const {
-    assert_that(_param_count.total_params == params.size());
+lpq::db_query::exec() const {
+    assert_that(_param_count.total_params == _tuple.size());
     std::vector<std::string> scalars(_param_count.scalar_params);
-    const std::string array = tuple_to_pg_array(std::next(params.begin(), _param_count.scalar_params),
-                                                params.end());
-    std::transform(params.begin(),
-                   std::next(params.begin(), _param_count.scalar_params),
+    const std::string array = tuple_to_pg_array(
+        std::next(_tuple.begin(), static_cast<long>(_param_count.scalar_params)),
+        _tuple.end());
+    std::transform(_tuple.begin(),
+                   std::next(_tuple.begin(), static_cast<long>(_param_count.scalar_params)),
                    scalars.begin(),
                    [this](const ldb::lv::linda_value& lv) {
                        if (_query) return pg_query_serialize(lv);
@@ -90,17 +100,10 @@ lpq::db_query::exec(const ldb::lv::linda_tuple& params) const {
     std::ranges::transform(scalars, param_values.begin(), [](auto& str) { return str.c_str(); });
     if (_param_count.array_params > 0) param_values.back() = array.c_str();
 
-    // std::cout << "params: [";
-    // for (std::size_t i = 0; i < param_values.size(); ++i) {
-    //     std::cout << "$" << i << " = " << param_values[i] << ", ";
-    // }
-    // std::cout << "]\n";
-
     return db.exec_prepared(_stmt, param_values);
 }
 
-lpq::db_query::~
-db_query() noexcept try {
+lpq::db_query::~db_query() noexcept try {
     db.deallocate(_stmt);
 } catch (...) {
     // mostly irrelevant: at most std::bad_alloc is expected & that is unlikely

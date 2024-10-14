@@ -51,6 +51,7 @@ namespace {
         template<std::integral I>
         std::size_t
         operator()(I i) const noexcept {
+            if (I(0) == i) return type_prefix_sz + 1;
             if constexpr (std::is_unsigned_v<I>) {
                 return type_prefix_sz + static_cast<std::size_t>(std::floor(std::log10(i))) + 1;
             }

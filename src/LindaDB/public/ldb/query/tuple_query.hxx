@@ -204,6 +204,13 @@ namespace ldb {
             assert_that(_impl);
             return _impl->do_as_representing_tuple();
         }
+
+        [[nodiscard]] std::string
+        as_type_string() const {
+            LDBT_ZONE_A;
+            assert_that(_impl);
+            return _impl->do_as_type_string();
+        }
     };
 }
 

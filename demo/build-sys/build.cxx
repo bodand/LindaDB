@@ -81,9 +81,9 @@ execute_compiler(int id,
                  const fs::path& input) {
     std::ostringstream ss;
     ss << "-c -ftemplate-depth=4000 -o " << out << " " << input;
-//    std::ofstream("_build.log", std::ios::app) << "g++ " << ss.str() << "\n";
+    //    std::ofstream("_build.log", std::ios::app) << "g++ " << ss.str() << "\n";
     int x = cross_exec("g++", ss.str());
-//    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): CC" << id << ": g++ " << ss.str() << "... " << x << "\n";
+    //    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): CC" << id << ": g++ " << ss.str() << "... " << x << "\n";
     return x;
 }
 
@@ -95,7 +95,7 @@ execute_linker(int id,
     ss << "-o " << out << " " << inputs;
     //    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): LINK" << id << ": g++ " << ss.str() << "...\n";
     auto x = cross_exec("g++", ss.str());
-//    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): LINK" << id << ": g++ " << ss.str() << "... " << x << "\n";
+    //    std::ofstream("_build.log", std::ios::app) << "(" << lrt::this_runtime().rank() << "): LINK" << id << ": g++ " << ss.str() << "... " << x << "\n";
     return x;
 }
 
@@ -132,11 +132,11 @@ work_linker(int worker_id) {
 
 void
 run_workers(int count) {
-    for (int const i : stdv::iota(0, count)) {
+    for (int const i: stdv::iota(0, count)) {
         eval((work_compiler) (i));
         eval((work_linker) (i));
     }
-    for (int const i : stdv::iota(0, count)) {
+    for (int const i: stdv::iota(0, count)) {
         in("_DONE", "CC", i);
         in("_DONE", "LINK", i);
     }
@@ -144,12 +144,17 @@ run_workers(int count) {
 
 int
 real_main(int argc, char** argv) {
+    const auto start = std::chrono::high_resolution_clock::now();
     auto build_file = std::ifstream("build.lb");
     const auto commands = read_commands(build_file);
 
     stdr::for_each(commands, std::mem_fn(&command::start));
 
-    run_workers(lrt::this_runtime().world_size() - 1);
+    run_workers(lrt::this_runtime().world_size());
 
+    const auto end = std::chrono::high_resolution_clock::now();
+    if (lrt::this_runtime().rank() == 0) {
+        std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
     return 0;
 }

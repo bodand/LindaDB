@@ -28,30 +28,59 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-01-14.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/runtime --
- *   Test for the runtime class in LindaRT.
+ * src/LindaPq/lindapq/src/pg_conn_pool --
+ *   
  */
 
-#include <concepts>
+#include <libpq-fe.h>
+#include <lpq/pg_conn_pool.hxx>
 
-#include <catch2/catch_test_macros.hpp>
-#include <ldb/store.hxx>
-#include <lrt/runtime.hxx>
+lpq::pg_conn_pool::pg_conn_pool() {
+    LDBT_LOCK(_wait_list_mtx);
+    LDBT_LOCK_EX(lck2, _contexts_mtx);
 
-TEST_CASE("runtime can retrieve a store object") {
-    int argc = 1;
-    char prog[] = "my-app";
-    char* argv_storage[] = {prog};
-    char** argv = argv_storage;
-    lrt::runtime rt(&argc, &argv);
-    STATIC_CHECK(std::same_as<decltype(rt.store()), ldb::simple_store&>);
-    CHECK_NOTHROW(rt.store());
-
-    SECTION("constant runtime retrieves constant store") {
-        const lrt::runtime& const_rt = rt;
-        STATIC_CHECK(std::same_as<decltype(const_rt.store()), const ldb::simple_store&>);
-        CHECK_NOTHROW(const_rt.store());
+    for (auto i = 0; i < cfg_initial_connections; ++i) {
+        const auto db = &_contexts.emplace_front();
+        _wait_list.push(db);
     }
+}
+
+lpq::wrapped_db_context
+lpq::pg_conn_pool::receive() {
+    // fast-track if we have a free connection
+    {
+        LDBT_LOCK(_wait_list_mtx);
+        if (!_wait_list.empty()) {
+            auto ret = wrapped_db_context(_wait_list.front(), *this);
+            _wait_list.pop();
+            return ret;
+        }
+    }
+
+    // if we can return a fresh connection we don't even need to lock
+    // _wait_list, so other threads can peacefully return and take another
+    // if they so wish to
+    if (_contexts_sz.load() < cfg_max_connections) {
+        _contexts_sz.fetch_add(1);
+        LDBT_LOCK(_contexts_mtx);
+        const auto next = &_contexts.emplace_front();
+        return wrapped_db_context(next, *this);
+    }
+
+    LDBT_UQ_LOCK(_wait_list_mtx);
+    _wait_list_cv.wait(lck, [this] { return !_wait_list.empty(); });
+    auto ret = wrapped_db_context(_wait_list.front(), *this);
+    _wait_list.pop();
+    return ret;
+}
+
+void lpq::pg_conn_pool::release(db_context* db) {
+    {
+        LDBT_LOCK(_wait_list_mtx);
+        _wait_list.push(db);
+    }
+    // PQreset(static_cast<PGconn*>(db->native_handle()));
+    _wait_list_cv.notify_one();
 }

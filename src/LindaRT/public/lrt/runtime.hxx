@@ -50,17 +50,25 @@
 #include <lrt/mpi_thread_context.hxx>
 #include <lrt/work_pool/work.hxx>
 #include <lrt/work_pool/work_pool.hxx>
+#include <lpq/pg_store.hxx>
 
 namespace lrt {
     struct runtime {
+        using storage_type = lpq::pg_store;
+
         runtime(int* argc, char*** argv,
                 std::function<balancer(const runtime&)> load_balancer //
-                = [](const lrt::runtime& rt) -> lrt::balancer { return lrt::round_robin_balancer(rt.world_size()); });
+                        = [](const lrt::runtime& rt) -> lrt::balancer {
+                    return lrt::round_robin_balancer(rt.world_size());
+                });
 
         runtime(const runtime& cp) = delete;
+
         runtime(runtime&& mv) noexcept = delete;
+
         runtime&
         operator=(const runtime& cp) = delete;
+
         runtime&
         operator=(runtime&& mv) noexcept = delete;
 
@@ -69,10 +77,10 @@ namespace lrt {
         void
         eval(const ldb::lv::linda_tuple& call_tuple);
 
-        ldb::simple_store&
+        storage_type&
         store() noexcept { return _store; }
 
-        const ldb::simple_store&
+        const storage_type&
         store() const noexcept { return _store; }
 
         [[nodiscard]] int
@@ -84,44 +92,35 @@ namespace lrt {
         void
         out(const ldb::lv::linda_tuple& tuple) {
             LDBT_ZONE_A;
-            if (_mpi.rank() == 0) return (void) _store.insert(tuple);
-            remote_insert(tuple);
+            _store.insert(tuple);
         }
 
         template<class... Args>
         ldb::lv::linda_tuple
         in(Args&&... args) {
             LDBT_ZONE_A;
-            if (_mpi.rank() == 0) return _store.remove(std::forward<Args>(args)...);
-            return remote_remove(ldb::make_piecewise_query(_store.indices(),
-                                                           std::forward<Args>(args)...));
+            return _store.remove(std::forward<Args>(args)...);
         }
 
         template<class... Args>
         bool
         inp(Args&&... args) {
             LDBT_ZONE_A;
-            if (_mpi.rank() == 0) return _store.try_remove(std::forward<Args>(args)...).has_value();
-            return remote_try_remove(ldb::make_piecewise_query(_store.indices(),
-                                                               std::forward<Args>(args)...));
+            return _store.try_remove(std::forward<Args>(args)...).has_value();
         }
 
         template<class... Args>
         ldb::lv::linda_tuple
         rd(Args&&... args) {
             LDBT_ZONE_A;
-            if (_mpi.rank() == 0) return _store.read(std::forward<Args>(args)...);
-            return remote_read(ldb::make_piecewise_query(_store.indices(),
-                                                         std::forward<Args>(args)...));
+            return _store.read(std::forward<Args>(args)...);
         }
 
         template<class... Args>
         bool
         rdp(Args&&... args) {
             LDBT_ZONE_A;
-            if (_mpi.rank() == 0) return _store.try_read(std::forward<Args>(args)...).has_value();
-            return remote_try_read(ldb::make_piecewise_query(_store.indices(),
-                                                             std::forward<Args>(args)...));
+            return _store.try_read(std::forward<Args>(args)...).has_value();
         }
 
         void
@@ -134,21 +133,6 @@ namespace lrt {
         void
         recv_thread_worker();
 
-        void
-        remote_insert(const ldb::lv::linda_tuple& tuple);
-
-        bool
-        remote_try_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
-
-        ldb::lv::linda_tuple
-        remote_remove(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
-
-        bool
-        remote_try_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
-
-        ldb::lv::linda_tuple
-        remote_read(const ldb::tuple_query<ldb::simple_store::storage_type>& query);
-
         lrt::mpi_runtime _mpi;
 
         std::atomic_flag _recv_start = ATOMIC_FLAG_INIT;
@@ -158,7 +142,7 @@ namespace lrt {
 
         lrt::work_pool<std::dynamic_extent, work<>> _work_pool;
 
-        ldb::simple_store _store{};
+        storage_type _store{};
     };
 }
 

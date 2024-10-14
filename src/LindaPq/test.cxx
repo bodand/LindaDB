@@ -52,38 +52,47 @@
 #include <libpq-fe.h>
 #include <mpi.h>
 
+#include "lpq/pg_store.hxx"
+
 int
 main(int argc, char** argv) {
     using namespace ldb::lv::io;
     int g;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &g);
 
-    lpq::db_context db;
+    lpq::pg_store store;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    const std::array tuples = {
+        ldb::lv::linda_tuple(1, 2, 3),
+        ldb::lv::linda_tuple(1, 2, "alma"),
+        ldb::lv::linda_tuple(1, "alma", 3),
+        ldb::lv::linda_tuple("alma", 2, 3),
+    };
+
+
     if (rank != 0) {
-        auto awaiter = db.listen("linda_event");
-        awaiter.loop();
-    }
-    else {
-        const ldb::lv::linda_tuple tup(1, 2U, "al,ma", "yeeetus", 3UL);
-        const auto query = make_insert(db, tup);
-
+        std::this_thread::sleep_for(std::chrono::milliseconds(987));
+        std::string given;
+        if (const auto got = store.try_remove("Teszt", ldb::ref(&given))) {
+            std::cout << "rank " << rank << " got a Teszt ember: " << *got << "\n";
+        } else {
+            std::cout << "rank " << rank << " did't get a Teszt ember\n";
+        }
+    } else {
         std::this_thread::sleep_for(std::chrono::milliseconds(789));
-
-        std::ignore = query.exec(tup);
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla1"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla2"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla3"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla4"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla5"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla6"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla7"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla8"));
+        store.insert(ldb::lv::linda_tuple("Teszt", "Béla9"));
     }
-
-    unsigned u;
-    std::string s;
-    const auto q = ldb::make_piecewise_query(ldb::over_index<lpq::db_context>, 1, ldb::ref(&u), "al,ma", ldb::ref(&s), 3UL);
-    const auto query = lpq::make_delete(db, q);
-    if (const auto res = query.exec(q.as_representing_tuple()))
-        std::cout << "found: " << *res << "\n";
-    else
-        std::cout << "nothing found\n";
 
     MPI_Finalize();
 }
