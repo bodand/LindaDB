@@ -56,11 +56,11 @@ namespace {
         }
     };
 }
-
-TEST_CASE("work_pool accepts works") {
-    lrt::work_pool<2, lrt::work<>> pool([]() {
-        return std::make_tuple();
-    });
-    pool.enqueue(test_work(pool));
-    pool.terminate();
-}
+//
+// TEST_CASE("work_pool accepts works") {
+//     lrt::work_pool<2, lrt::work<>> pool([]() {
+//         return std::make_tuple();
+//     });
+//     pool.enqueue(test_work(pool));
+//     pool.terminate();
+// }

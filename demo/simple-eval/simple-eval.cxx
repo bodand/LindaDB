@@ -42,7 +42,7 @@
 std::size_t
 string_size(const char* str) {
     int adage = 0;
-    in("str_adage", ldb::ref(&adage));
+    in("str_to_add", ldb::ref(&adage));
     return std::strlen(str) + adage;
 }
 
@@ -52,7 +52,7 @@ real_main(int, char**) {
     const char* test = "test";
     eval("str_size", (string_size)(test));
 
-    out("str_adage", 38);
+    out("str_to_add", 38);
 
     std::size_t size;
     in("str_size", ldb::ref(&size));

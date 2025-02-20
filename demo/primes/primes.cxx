@@ -44,9 +44,9 @@
 
 void
 initialize_values(int n) {
-    std::ranges::for_each(std::views::iota(2, n), [](int i) {
+    for (int i = 2; i < n; i++) {
         out("vec", i);
-    });
+    }
     out("m", 2);
 }
 
@@ -54,7 +54,6 @@ int
 eliminate_multiples(int p, int n) {
     int current_num;
     in("m", ldb::ref(&current_num));
-
     out("m", current_num + 1);
 
     while (current_num * current_num < n) {
@@ -78,19 +77,14 @@ real_main(int argc, char** argv) {
     constexpr static auto checked_range_start = 2;
     auto checked_range_end = 1000;
 
-    if (argc > 1) std::from_chars(argv[1], argv[1] + std::strlen(argv[1]), checked_range_end);
     initialize_values(checked_range_end);
 
-    std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
-                          [&checked_range_end](int i) {
-                              eval("done", (eliminate_multiples) (i, checked_range_end));
-                          });
-    std::ranges::for_each(std::views::iota(0, lrt::this_runtime().world_size() - 1),
-                          [](int i) {
-                              in("done", i);
-                          });
-
-    std::cout << "Primes in [1.." << checked_range_end << "]:\n";
+    for (std::size_t i = 0; i < checked_range_end; ++i) {
+        eval("done", (eliminate_multiples) (i, checked_range_end));
+    }
+    for (std::size_t i = 0; i < checked_range_end; ++i) {
+        in("done", i);
+    }
     int i;
     while (inp("vec", ldb::ref(&i))) std::cout << " " << i;
 
