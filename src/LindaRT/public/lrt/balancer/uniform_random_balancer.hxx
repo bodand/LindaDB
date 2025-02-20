@@ -44,7 +44,7 @@
 
 namespace lrt {
     struct uniform_random_balancer final {
-        uniform_random_balancer(int comm_size) : _distribution(1, std::max(1, comm_size - 1)) {
+        uniform_random_balancer(int comm_size) : _distribution(0, std::max(1, comm_size - 1)) {
             LDBT_ZONE_A;
         }
 

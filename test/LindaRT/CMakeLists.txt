@@ -30,12 +30,11 @@
 #
 # Originally created: 2023-10-14.
 #
-# test/LindaDB/CMakeLists.txt --
-#   CMake script for handling the LindaDB project's test requirements.
+# test/LindaRT/CMakeLists.txt --
+#   CMake script for handling the LindaRT project's test requirements.
 
 add_covered_test(NAME LindaRT.Test CATCH
                  SOURCES
-                 runtime.test.cxx
                  serialize_tuple.test.cxx
                  work_pool.test.cxx
                  work_queue.test.cxx

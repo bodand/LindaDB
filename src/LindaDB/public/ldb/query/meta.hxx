@@ -28,30 +28,61 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Originally created: 2024-01-14.
+ * Originally created: 2024-10-10.
  *
- * test/LindaRT/runtime --
- *   Test for the runtime class in LindaRT.
+ * src/LindaDB/public/ldb/query/meta --
+ *   Metaprogramming related helpers.
  */
+#ifndef META_HXX
+#define META_HXX
 
-#include <concepts>
+#include <ldb/common.hxx>
 
-#include <catch2/catch_test_macros.hpp>
-#include <ldb/store.hxx>
-#include <lrt/runtime.hxx>
+namespace ldb::meta {
+    template<class, class>
+    struct index_of_type_i;
 
-TEST_CASE("runtime can retrieve a store object") {
-    int argc = 1;
-    char prog[] = "my-app";
-    char* argv_storage[] = {prog};
-    char** argv = argv_storage;
-    lrt::runtime rt(&argc, &argv);
-    STATIC_CHECK(std::same_as<decltype(rt.store()), ldb::simple_store&>);
-    CHECK_NOTHROW(rt.store());
+    template<class T, class Head, class... Tail, template<class...> class L>
+    struct index_of_type_i<T, L<Head, Tail...>> {
+        constexpr const static auto value = 1 + index_of_type_i<T, L<Tail...>>::value;
+    };
+    template<class T, class... Tail, template<class...> class L>
+    struct index_of_type_i<T, L<T, Tail...>> {
+        constexpr const static auto value = 0;
+    };
+    template<class T, template<class...> class L>
+    struct index_of_type_i<T, L<>> {
+    };
 
-    SECTION("constant runtime retrieves constant store") {
-        const lrt::runtime& const_rt = rt;
-        STATIC_CHECK(std::same_as<decltype(const_rt.store()), const ldb::simple_store&>);
-        CHECK_NOTHROW(const_rt.store());
+    template<class T, class TList>
+    constexpr const static auto index_of_type = index_of_type_i<T, TList>::value;
+
+    inline char
+    to_hex(const int x) noexcept {
+        constexpr static char hexa_buf[] = "ABCDEF";
+        switch (x) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            return x + '0';
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+            return hexa_buf[x - 10];
+        default:
+            LDB_UNREACHABLE;
+        }
     }
 }
+
+#endif

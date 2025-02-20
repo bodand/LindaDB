@@ -46,7 +46,7 @@ lrt::this_runtime() {
     return *gLrt_Runtime_ObjectRef;
 }
 
-ldb::simple_store&
+lpq::pg_store&
 lrt::this_store() {
     LDBT_ZONE_A;
     assert_that(gLrt_Runtime_ObjectRef, "runtime has not yet been initialized");

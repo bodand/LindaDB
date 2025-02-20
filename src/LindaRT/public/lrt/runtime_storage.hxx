@@ -36,9 +36,13 @@
 #ifndef LINDADB_RUNTIME_STORAGE_HXX
 #define LINDADB_RUNTIME_STORAGE_HXX
 
-#include "ldb/simple_store.hxx"
 namespace ldb {
     struct store;
+    struct simple_store;
+}
+
+namespace lpq {
+    struct pg_store;
 }
 
 namespace lrt {
@@ -48,7 +52,7 @@ namespace lrt {
     runtime&
     this_runtime();
 
-    ldb::simple_store&
+    lpq::pg_store&
     this_store();
 }
 

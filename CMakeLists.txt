@@ -91,6 +91,10 @@ option(LINDA_RT_BIG_ENDIAN
         ${LRT_IS_BIG_ENDIAN})
 option(LINDA_DB_PROFILING
         "Build with profiling enabled (Tracy profiler) [YES]"
+        NO)
+
+option(LINDA_DB_POSTGRES
+        "Build the Postgres based DB-backend for LindaDB [YES] (Requires full Postgres server libraries, ignored if not found)"
         YES)
 
 # coverage data
@@ -119,13 +123,13 @@ endif ()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug"
         AND CMAKE_CXX_COMPILER_ID MATCHES [[GNU|Clang]])
-    add_compile_options(
-            $<$<PLATFORM_ID:Linux>:-fsanitize=address>
-            $<$<PLATFORM_ID:Linux>:-fno-omit-frame-pointer>
-    )
-    add_link_options(
-            $<$<PLATFORM_ID:Linux>:-fsanitize=address,undefined>
-    )
+    #    add_compile_options(
+    #            $<$<PLATFORM_ID:Linux>:-fsanitize=address>
+    #            $<$<PLATFORM_ID:Linux>:-fno-omit-frame-pointer>
+    #    )
+    #    add_link_options(
+    #            $<$<PLATFORM_ID:Linux>:-fsanitize=address,undefined>
+    #    )
 endif ()
 
 try_compile(LDB_HAVE_CXX23
@@ -136,6 +140,11 @@ try_compile(LDB_HAVE_CXX23
 try_compile(LDB_HAVE_STACKTRACE
         SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_stacktrace.cxx"
         LOG_DESCRIPTION "Checking for std::stacktrace support..."
+        CXX_STANDARD 23
+        CXX_EXTENSIONS NO)
+try_compile(LDB_HAVE_FAM_IN_CXX
+        SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/try_compile/have_fam.cxx"
+        LOG_DESCRIPTION "Checking for FAM support in C++..."
         CXX_STANDARD 23
         CXX_EXTENSIONS NO)
 add_library(internal-language-level INTERFACE)
@@ -178,6 +187,18 @@ find_package(mimalloc CONFIG REQUIRED)
 find_package(Catch2 CONFIG)
 find_package(Boost REQUIRED)
 find_package(Tracy CONFIG)
+find_package(MPI REQUIRED)
+
+if (LINDA_DB_POSTGRES)
+    find_package(xxHash CONFIG REQUIRED)
+    set(PostgreSQL_ROOT "/opt/postgres/" CACHE INTERNAL "")
+    find_package(PostgreSQL)
+    if (TARGET PostgreSQL::PostgreSQL)
+        set(LDB_HAVE_POSTGRES YES CACHE BOOL "Whether Postgres was detected")
+    else ()
+        set(LDB_HAVE_POSTGRES NO CACHE BOOL "Whether Postgres was detected")
+    endif ()
+endif ()
 
 add_library(ldb-tracy INTERFACE)
 if (TARGET Tracy::TracyClient)
@@ -195,6 +216,7 @@ add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>)
 
 set(PROJECT_TARGETS)
 add_subdirectory(src/LindaDB)
+add_subdirectory(src/LindaPq)
 add_subdirectory(src/LindaRT)
 # demo apps
 add_subdirectory(demo)

@@ -42,6 +42,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <cmath>
 #include <typeinfo>
 #include <variant>
 
@@ -55,12 +56,12 @@ namespace ldb::lv {
            std::uint16_t,
            std::int32_t,
            std::uint32_t,
+           std::string,
+           fn_call_holder,
            std::int64_t,
            std::uint64_t,
-           std::string,
            float,
            double,
-           fn_call_holder,
            fn_call_tag,
            ref_type>;
 
@@ -127,6 +128,24 @@ namespace ldb::lv {
     constexpr const static auto is_linda_value_v = is_linda_value<T>::value;
 
     inline namespace io {
+        std::size_t
+        pg_str_size(const linda_value& lv, bool escape = false);
+
+        void
+        pg_serialize_to(const linda_value& lv, char* begin, char* end, bool escape = false);
+
+        std::string
+        pg_serialize(const linda_value& lv, bool escape = false);
+
+        std::size_t
+        pg_query_str_size(const linda_value& lv, bool escape = false);
+
+        void
+        pg_query_serialize_to(const linda_value& lv, char* begin, char* end, bool escape = false);
+
+        std::string
+        pg_query_serialize(const linda_value& lv, bool escape = false);
+
         inline std::ostream&
         operator<<(std::ostream& os, const linda_value& lv) {
             std::visit(helper::printer(os), lv);

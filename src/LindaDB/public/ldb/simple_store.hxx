@@ -37,6 +37,7 @@
 #define LINDADB_SIMPLE_STORE_HXX
 
 #include <optional>
+#include <condition_variable>
 
 #include <ldb/index/tree/impl/avl2/avl2_tree.hxx>
 #include <ldb/index/tree/index_query.hxx>

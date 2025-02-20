@@ -46,11 +46,36 @@
 
 #include <lrt/linda.hxx>
 
-long long
+std::int64_t
 get_random(int min = 0, int max = 99) {
     static std::mt19937_64 rng(std::random_device{}());
-    std::uniform_int_distribution<long long> dist(min, max);
+    std::uniform_int_distribution<std::int64_t> dist(min, max);
     return dist(rng);
+}
+
+std::int64_t
+calc(std::string a, std::string b, int i, int j) {
+    int width;
+    rd("W", ldb::ref(&width));
+    int x = i;
+    int y = j;
+
+    std::int64_t value = 0;
+
+    for (int k = 0; k < width; ++k) {
+        std::int64_t value_a;
+        std::int64_t value_b;
+
+        rd(a, x, k, ldb::ref(&value_a));
+        rd(b, k, y, ldb::ref(&value_b));
+
+        value += value_a * value_b;
+    }
+
+    int c;
+    in("computed", ldb::ref(&c));
+    out("computed", c + 1);
+    return value;
 }
 
 int
@@ -62,17 +87,17 @@ func(std::string a,
     rd("W", ldb::ref(&width));
     rd("H", ldb::ref(&height));
 
-    for (auto i : std::views::iota(0, width)) {
-        for (auto j : std::views::iota(0, height)) {
+    for (auto i: std::views::iota(0, width)) {
+        for (auto j: std::views::iota(0, height)) {
             if (!inp("<", i, j)) continue;
             int x = i;
             int y = j;
 
-            long long value = 0;
+            std::int64_t value = 0;
 
             for (int k = 0; k < width; ++k) {
-                long long value_a;
-                long long value_b;
+                std::int64_t value_a;
+                std::int64_t value_b;
 
                 rd(a, x, k, ldb::ref(&value_a));
                 rd(b, k, y, ldb::ref(&value_b));
@@ -99,41 +124,42 @@ real_main(int, char**) {
     out("H", mx_height);
 
     const auto start = std::chrono::high_resolution_clock::now();
-    for (auto i : std::views::iota(0, mx_width)) {
-        for (auto j : std::views::iota(0, mx_height)) {
+    for (auto i: std::views::iota(0, mx_width)) {
+        for (auto j: std::views::iota(0, mx_height)) {
             auto val = get_random();
             out("A", i, j, val);
         }
     }
 
-    for (auto i : std::views::iota(0, mx_height)) {
-        for (auto j : std::views::iota(0, mx_width)) {
+    for (auto i: std::views::iota(0, mx_height)) {
+        for (auto j: std::views::iota(0, mx_width)) {
             auto val = get_random();
             out("B", i, j, val);
         }
     }
 
-    for (auto i : std::views::iota(0, mx_width)) {
-        for (auto j : std::views::iota(0, mx_height)) {
-            out("<", i, j);
-        }
-    }
+    out("computed", 0);
+    std::cout << "start\n";
     const auto end = std::chrono::high_resolution_clock::now();
 
-    for (int i : std::views::iota(1, lrt::this_runtime().world_size())) {
-        eval("computed", (func) ("A", "B", "C"));
-    }
-    in("computed", 0);
-
-    for (auto i : std::views::iota(0, mx_width)) {
-        for (auto j : std::views::iota(0, mx_height)) {
-            [[maybe_unused]] long long val;
-            rd("C", i, j, ldb::ref(&val));
-            std::ignore = val;
+    for (auto i: std::views::iota(0, mx_width)) {
+        for (auto j: std::views::iota(0, mx_height)) {
+            eval("C", i, j, (calc)("A", "B", i, j));
         }
     }
 
+    in("computed", mx_height * mx_height);
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "\n";
+
+    for (auto i: std::views::iota(0, mx_width)) {
+        for (auto j: std::views::iota(0, mx_height)) {
+            [[maybe_unused]] std::int64_t val;
+            rd("C", i, j, ldb::ref(&val));
+            std::cout << std::setw(8) << val;
+        }
+        std::cout << "\n";
+    }
+
 
     return 0;
 }
